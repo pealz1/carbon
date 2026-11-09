@@ -1,5 +1,6 @@
 //! Loudness normalization for local files: ReplayGain tags when the file has them, otherwise an
 //! EBU R128 measurement made once in the background and cached by path, size and mtime.
+use super::contain::contain;
 use super::decoder::Decoder;
 use ebur128::{EbuR128, Mode};
 use serde::{Deserialize, Serialize};
@@ -57,6 +58,10 @@ fn stamp(path: &Path) -> Option<(u64, u64)> {
 /// Integrated loudness and sample peak of a whole file. Slow (decodes everything), so it only
 /// ever runs on the analysis thread.
 fn measure(path: &Path) -> Result<(f32, f32), String> {
+    contain(|| measure_unguarded(path))
+}
+
+fn measure_unguarded(path: &Path) -> Result<(f32, f32), String> {
     let mut decoder = Decoder::open(path)?;
     let mut meter = EbuR128::new(2, decoder.rate(), Mode::I | Mode::SAMPLE_PEAK).map_err(|e| e.to_string())?;
     let mut chunk = Vec::new();

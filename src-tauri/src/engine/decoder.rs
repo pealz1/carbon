@@ -1,5 +1,7 @@
 //! Symphonia wrapper: opens a local file and yields interleaved stereo f32 at the file's rate.
-//! Encoder delay and padding are trimmed by Symphonia (gapless is on by default).
+//! Encoder delay and padding are trimmed by Symphonia (gapless is on by default). Every call into
+//! Symphonia is contained, so a panic on a corrupt file becomes an error for that track.
+use super::contain::{DAMAGED, contain};
 use std::fs::File;
 use std::path::Path;
 use symphonia::core::codecs::CodecParameters;
@@ -23,19 +25,25 @@ pub struct Decoder {
     duration_ms: Option<u64>,
     scratch: Vec<f32>,
     skip_frames: usize,
+    /// Set after a contained panic: the decoder's state can't be trusted any more.
+    poisoned: bool,
 }
 
 fn describe(e: &Error) -> String {
     match e {
         Error::IoError(io) => format!("the file couldn't be read ({io})"),
         Error::Unsupported(_) => "this audio format isn't supported".into(),
-        Error::DecodeError(_) => "the file looks damaged".into(),
+        Error::DecodeError(_) => DAMAGED.into(),
         other => other.to_string(),
     }
 }
 
 impl Decoder {
     pub fn open(path: &Path) -> Result<Decoder, String> {
+        contain(|| Decoder::open_unguarded(path))
+    }
+
+    fn open_unguarded(path: &Path) -> Result<Decoder, String> {
         let file = File::open(path).map_err(|e| format!("the file couldn't be opened ({e})"))?;
         let mss = MediaSourceStream::new(Box::new(file), MediaSourceStreamOptions::default());
         let mut hint = Hint::new();
@@ -67,6 +75,7 @@ impl Decoder {
             duration_ms,
             scratch: Vec::new(),
             skip_frames: 0,
+            poisoned: false,
         })
     }
 
@@ -80,6 +89,25 @@ impl Decoder {
 
     /// Appends the next packet's audio to `out` as interleaved stereo. Ok(false) = end of file.
     pub fn next_chunk(&mut self, out: &mut Vec<f32>) -> Result<bool, String> {
+        self.guarded(|d| d.next_chunk_unguarded(out))
+    }
+
+    /// Seeks to `ms`; returns where playback really resumes. Frames before the target are
+    /// dropped from the next chunk so the position is sample-accurate.
+    pub fn seek(&mut self, ms: u64) -> Result<u64, String> {
+        self.guarded(|d| d.seek_unguarded(ms))
+    }
+
+    fn guarded<T>(&mut self, work: impl FnOnce(&mut Decoder) -> Result<T, String>) -> Result<T, String> {
+        if self.poisoned {
+            return Err(DAMAGED.into());
+        }
+        let result = contain(|| work(&mut *self));
+        self.poisoned = result.as_ref().is_err_and(|e| e == DAMAGED);
+        result
+    }
+
+    fn next_chunk_unguarded(&mut self, out: &mut Vec<f32>) -> Result<bool, String> {
         let mut bad = 0;
         loop {
             let packet = match self.reader.next_packet() {
@@ -108,9 +136,7 @@ impl Decoder {
         }
     }
 
-    /// Seeks to `ms`; returns where playback really resumes. Frames before the target are
-    /// dropped from the next chunk so the position is sample-accurate.
-    pub fn seek(&mut self, ms: u64) -> Result<u64, String> {
+    fn seek_unguarded(&mut self, ms: u64) -> Result<u64, String> {
         let time = Time::try_from_secs_f64(ms as f64 / 1000.0).ok_or("that position is out of range")?;
         let seeked = self
             .reader
@@ -200,6 +226,44 @@ pub mod tests {
         while d.next_chunk(&mut out).unwrap() {}
         assert_eq!(out.len() / 2, 6_000);
         let _ = std::fs::remove_file(path);
+    }
+
+    /// Corrupt input of every shape must come back as an error (or a clean end), never a panic
+    /// or a hang: truncated headers, absurd sizes, real magic numbers followed by noise.
+    #[test]
+    fn broken_files_fail_cleanly() {
+        let dir = std::env::temp_dir().join(format!("carbon-test-{}-broken", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let good = temp_wav("broken-src", 8_000, 2, 0.2);
+        let wav = std::fs::read(&good).unwrap();
+        let mut huge = wav.clone();
+        huge[40..44].copy_from_slice(&u32::MAX.to_le_bytes()); // data chunk claims 4 GB
+        let mut zero_rate = wav.clone();
+        zero_rate[24..28].copy_from_slice(&0u32.to_le_bytes());
+        let noise: Vec<u8> = (0..8192u32).map(|i| (i.wrapping_mul(2_654_435_761) >> 13) as u8).collect();
+        let cases: [(&str, Vec<u8>); 7] = [
+            ("empty.mp3", Vec::new()),
+            ("header-only.wav", wav[..30].to_vec()),
+            ("truncated.wav", wav[..wav.len() / 3].to_vec()),
+            ("huge.wav", huge),
+            ("zero-rate.wav", zero_rate),
+            ("noise.flac", [b"fLaC".as_slice(), &noise].concat()),
+            ("noise.m4a", [b"\0\0\0\x18ftypM4A ".as_slice(), &noise].concat()),
+        ];
+        for (name, bytes) in cases {
+            let path = dir.join(name);
+            std::fs::write(&path, bytes).unwrap();
+            if let Ok(mut d) = Decoder::open(&path) {
+                let mut out = Vec::new();
+                let mut packets = 0;
+                while let Ok(true) = d.next_chunk(&mut out) {
+                    packets += 1;
+                    assert!(packets < 10_000, "{name} never ended");
+                }
+            }
+        }
+        let _ = std::fs::remove_dir_all(dir);
+        let _ = std::fs::remove_file(good);
     }
 
     #[test]

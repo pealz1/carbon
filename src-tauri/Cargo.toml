@@ -48,5 +48,6 @@ rtrb = "0.4"
 codegen-units = 1
 lto = true
 opt-level = 3
-panic = "abort"
+# Unwind so a parser bug on a corrupt file is caught (engine/contain.rs) instead of closing Carbon.
+panic = "unwind"
 strip = true

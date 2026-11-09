@@ -1,6 +1,7 @@
 //! Walks library folders for audio files and reads their tags and embedded artwork with lofty.
 //! Files whose size and mtime haven't changed since the last scan are reused as-is.
 use super::LocalTrack;
+use crate::engine::contain::contain;
 use crate::engine::loudness;
 use lofty::picture::{MimeType, PictureType};
 use lofty::prelude::*;
@@ -64,7 +65,8 @@ pub fn scan(files: &[PathBuf], previous: &HashMap<String, LocalTrack>, art_dir: 
         let key = path.to_string_lossy();
         match previous.get(key.as_ref()) {
             Some(old) if old.size == size && old.modified == modified => tracks.push(old.clone()),
-            _ => match read(path, size, modified, art_dir) {
+            // lofty parses untrusted bytes: a panic there skips the file instead of the scan.
+            _ => match contain(|| read(path, size, modified, art_dir)) {
                 Ok(track) => tracks.push(track),
                 Err(e) => eprintln!("[library] skipped {}: {e}", path.display()),
             },
@@ -170,6 +172,22 @@ mod tests {
         let previous = HashMap::from([(t.path.clone(), cached)]);
         let again = scan(std::slice::from_ref(&song), &previous, None, |_| {});
         assert_eq!(again[0].title, "From cache");
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn skips_corrupt_files_instead_of_failing_the_scan() {
+        let dir = temp_dir("corrupt");
+        let good = dir.join("Album/good.wav");
+        write_wav(&good, 8000, 1, 0.1, 0.5);
+        let mut files = vec![good.clone()];
+        for (name, bytes) in [("noise.flac", b"fLaC\xff\xff\x00\x01garbage".to_vec()), ("cut.mp3", b"ID3\x04\x00\x00\x7f\x7f\x7f\x7f".to_vec()), ("empty.ogg", Vec::new())] {
+            let path = dir.join("Album").join(name);
+            fs::write(&path, bytes).unwrap();
+            files.push(path);
+        }
+        let tracks = scan(&files, &HashMap::new(), Some(&dir.join("art")), |_| {});
+        assert_eq!(tracks.iter().map(|t| t.path.clone()).collect::<Vec<_>>(), vec![good.to_string_lossy().into_owned()]);
         let _ = fs::remove_dir_all(dir);
     }
 

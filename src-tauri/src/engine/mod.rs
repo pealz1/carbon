@@ -1,6 +1,7 @@
 //! Carbon's own audio engine for local files: Symphonia decode, rubato resampling, a real-time
 //! DSP chain (preamp, 10-band EQ, width, limiter) and cpal output. Spotify audio never passes
 //! through here; the webview hands off between the two strictly one after the other.
+pub mod contain;
 pub mod crossfade;
 pub mod decoder;
 pub mod dsp;
