@@ -62,14 +62,6 @@ impl Queue {
         }
     }
 
-    pub fn peek_previous(&self) -> Option<usize> {
-        match self.index {
-            0 if self.repeat == Repeat::Off || self.tracks.is_empty() => None,
-            0 => Some(self.tracks.len() - 1),
-            i => Some(i - 1),
-        }
-    }
-
     pub fn jump(&mut self, index: usize) -> Option<&QueueTrack> {
         let track = self.tracks.get(index)?;
         self.index = index;
@@ -98,13 +90,11 @@ mod tests {
         let q = queue(3, 1, Repeat::Off);
         assert_eq!(q.peek_next(true), Some(2));
         assert_eq!(queue(3, 2, Repeat::Off).peek_next(true), None);
-        assert_eq!(queue(3, 0, Repeat::Off).peek_previous(), None);
     }
 
     #[test]
-    fn repeat_all_wraps_both_ways() {
+    fn repeat_all_wraps() {
         assert_eq!(queue(3, 2, Repeat::All).peek_next(true), Some(0));
-        assert_eq!(queue(3, 0, Repeat::All).peek_previous(), Some(2));
     }
 
     #[test]
@@ -119,7 +109,6 @@ mod tests {
         assert_eq!(queue(2, 9, Repeat::Off).index(), 1);
         let empty = queue(0, 0, Repeat::All);
         assert_eq!(empty.peek_next(true), None);
-        assert_eq!(empty.peek_previous(), None);
     }
 
     #[test]

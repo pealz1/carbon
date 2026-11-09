@@ -28,6 +28,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 const MAX_QUEUE: usize = 10_000;
 const MAX_POSITION_MS: u64 = 24 * 60 * 60 * 1000;
 const MAX_CURVE_POINTS: usize = 512;
+const STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 const STOPPED: &str = "Carbon's audio engine stopped. Restart Carbon to play local files.";
 
 pub struct Engine {
@@ -80,7 +81,7 @@ impl Engine {
 }
 
 #[tauri::command]
-pub fn engine_play(engine: State<Engine>, library: State<Library>, ids: Vec<String>, index: usize, repeat: Repeat) -> Result<(), String> {
+pub fn engine_play(engine: State<Engine>, library: State<Library>, ids: Vec<String>, index: usize, repeat: Repeat, play_id: u32) -> Result<(), String> {
     if ids.is_empty() || ids.len() > MAX_QUEUE {
         return Err(format!("A queue holds 1 to {MAX_QUEUE} songs."));
     }
@@ -88,7 +89,7 @@ pub fn engine_play(engine: State<Engine>, library: State<Library>, ids: Vec<Stri
         return Err("That song isn't in the queue.".into());
     }
     let tracks = library.queue_tracks(&ids)?;
-    engine.send(Command::Play { tracks, index, repeat })
+    engine.send(Command::Play { tracks, index, repeat, play_id })
 }
 
 #[tauri::command]
@@ -101,19 +102,12 @@ pub fn engine_resume(engine: State<Engine>) -> Result<(), String> {
     engine.send(Command::Resume)
 }
 
+/// Resolves after local audio has faded out and the device is closed.
 #[tauri::command]
-pub fn engine_stop(engine: State<Engine>) -> Result<(), String> {
-    engine.send(Command::Stop)
-}
-
-#[tauri::command]
-pub fn engine_next(engine: State<Engine>) -> Result<(), String> {
-    engine.send(Command::Next)
-}
-
-#[tauri::command]
-pub fn engine_previous(engine: State<Engine>) -> Result<(), String> {
-    engine.send(Command::Previous)
+pub async fn engine_stop(engine: State<'_, Engine>) -> Result<(), String> {
+    let (done, stopped) = tokio::sync::oneshot::channel();
+    engine.send(Command::Stop(done))?;
+    tokio::time::timeout(STOP_TIMEOUT, stopped).await.map_err(|_| "Carbon's audio engine didn't stop in time.".to_string())?.map_err(|_| STOPPED.to_string())
 }
 
 #[tauri::command]

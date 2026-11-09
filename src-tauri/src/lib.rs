@@ -107,8 +107,6 @@ pub fn run() {
             engine::engine_pause,
             engine::engine_resume,
             engine::engine_stop,
-            engine::engine_next,
-            engine::engine_previous,
             engine::engine_seek,
             engine::engine_volume,
             engine::engine_repeat,

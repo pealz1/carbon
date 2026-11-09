@@ -14,6 +14,7 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
+use tokio::sync::oneshot;
 
 const MIN_WRITE_FRAMES: usize = 512;
 const MAX_WRITE_FRAMES: usize = 4096;
@@ -22,15 +23,16 @@ const DEVICE_CHECK_EVERY: Duration = Duration::from_secs(2);
 /// Let go of the device after a short pause so Windows can sleep and other apps get exclusive mode.
 const RELEASE_AFTER_PAUSE: Duration = Duration::from_secs(2);
 const FLUSH_TIMEOUT: Duration = Duration::from_millis(300);
-const RESTART_THRESHOLD_MS: u64 = 3000;
+/// Long enough for the callback's pause ramp to reach silence before the device closes.
+const STOP_FADE: Duration = Duration::from_millis(15);
 
 pub enum Command {
-    Play { tracks: Vec<QueueTrack>, index: usize, repeat: Repeat },
+    /// `play_id` is echoed in every state so the webview can ignore states from older queues.
+    Play { tracks: Vec<QueueTrack>, index: usize, repeat: Repeat, play_id: u32 },
     Pause,
     Resume,
-    Stop,
-    Next,
-    Previous,
+    /// Replies once the device is silent and closed, so a Spotify hand-off can't overlap.
+    Stop(oneshot::Sender<()>),
     Seek(u64),
     Repeat(Repeat),
     Volume(f32),
@@ -50,6 +52,7 @@ pub enum Status {
 #[derive(Serialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct EngineState {
+    pub play_id: u32,
     pub status: Status,
     pub index: Option<usize>,
     pub track_id: Option<String>,
@@ -74,6 +77,7 @@ pub struct Player<E: Events> {
     produced: u64,
     timeline: Timeline,
     status: Status,
+    play_id: u32,
     sound: SoundSettings,
     volume: f32,
     gains: HashMap<String, f32>,
@@ -101,6 +105,7 @@ impl<E: Events> Player<E> {
             produced: 0,
             timeline: Timeline::default(),
             status: Status::Idle,
+            play_id: 0,
             sound,
             volume: 1.0,
             gains: HashMap::new(),
@@ -138,15 +143,21 @@ impl<E: Events> Player<E> {
 
     fn handle(&mut self, command: Command) {
         match command {
-            Command::Play { tracks, index, repeat } => {
+            Command::Play { tracks, index, repeat, play_id } => {
+                self.play_id = play_id;
                 self.queue = Queue::new(tracks, index, repeat);
                 self.start(self.queue.index(), 0, false);
             }
             Command::Pause => self.pause(),
             Command::Resume => self.resume(),
-            Command::Stop => self.stop(Status::Idle),
-            Command::Next => self.skip(true),
-            Command::Previous => self.skip(false),
+            Command::Stop(done) => {
+                if self.status == Status::Playing && self.output.is_some() {
+                    self.shared.paused.store(true, Ordering::Release);
+                    std::thread::sleep(STOP_FADE);
+                }
+                self.stop(Status::Idle);
+                let _ = done.send(());
+            }
             Command::Seek(ms) => {
                 if let Some(index) = self.playing().map(|(i, _)| i) {
                     self.start(index, ms, self.status == Status::Paused);
@@ -415,23 +426,6 @@ impl<E: Events> Player<E> {
         }
     }
 
-    fn skip(&mut self, forward: bool) {
-        let Some((index, position)) = self.playing() else { return };
-        self.queue.jump(index);
-        let paused = self.status == Status::Paused;
-        let target = if forward {
-            self.queue.peek_next(false)
-        } else if position > RESTART_THRESHOLD_MS {
-            Some(index)
-        } else {
-            self.queue.peek_previous().or(Some(index))
-        };
-        match target {
-            Some(i) => self.start(i, 0, paused),
-            None => self.stop(Status::Ended),
-        }
-    }
-
     fn stop(&mut self, status: Status) {
         self.flush();
         self.output = None;
@@ -506,7 +500,7 @@ impl<E: Events> Player<E> {
             Some((i, id, pos, dur)) => (Some(i), Some(id), pos, dur),
             None => (None, None, 0, 0),
         };
-        EngineState { status: self.status, index, track_id, position_ms, duration_ms }
+        EngineState { play_id: self.play_id, status: self.status, index, track_id, position_ms, duration_ms }
     }
 }
 

@@ -1,7 +1,10 @@
-// Carbon's playback engine: Spotify's Web Playback SDK running inside this window.
-// UI state comes from SDK events; position is interpolated locally instead of polling the API.
+// Carbon's player: Spotify's Web Playback SDK running inside this window, plus Carbon's own engine
+// for local files (via MixedPlayback, which owns Carbon-managed queues and the hand-off between
+// the two). UI state comes from SDK/engine events; position is interpolated locally.
 import { getAccessToken } from "$lib/auth";
 import { DEFAULT_VOLUME, PLAYER_NAME, SPOTIFY, TIMING } from "$lib/config";
+import { MixedPlayback } from "$lib/local/mixed.svelte";
+import { isLocalUri } from "$lib/local/tracks";
 import { reportPlayback, type PlaybackInfo } from "$lib/native";
 import * as sp from "$lib/spotify/endpoints";
 import { pickLargestImage, toTrack } from "$lib/spotify/mappers";
@@ -51,6 +54,26 @@ class Player {
   #positionAt = $state(0);
   #sdk: Spotify.Player | null = null;
   #deviceId: Promise<string> | null = null;
+  #sdkModes = { shuffle: false, repeat: "off" as RepeatMode };
+  #mixed = new MixedPlayback({
+    volume: () => this.volume,
+    repeat: () => this.repeat,
+    position: () => this.position(),
+    setModes: (shuffle, repeat) => ((this.shuffle = shuffle), (this.repeat = repeat)),
+    show: (track) => this.#show(track),
+    sync: (paused, positionMs, durationMs) => this.#sync(paused, positionMs, durationMs),
+    fail: (message) => (this.error = message),
+    spotifyPause: async () => void (await this.#sdk?.pause()),
+    spotifyPlay: (uris) => this.#playSpotifyRun(uris),
+    spotifySeek: async (ms) => void (await this.#sdk?.seek(Math.round(ms))),
+    spotifyToggle: async () => void (await this.#sdk?.togglePlay()),
+    spotifyEnqueue: (uri) => this.#run((id) => sp.addToQueue(uri, id)),
+  });
+
+  /** Tracks after the current one when Carbon owns the queue (local files, Carbon playlists). */
+  get upNext(): Track[] | null {
+    return this.#mixed.upNext;
+  }
 
   /** Current position in ms, extrapolated from the last SDK update while playing. */
   position(now = performance.now()): number {
@@ -97,6 +120,8 @@ class Player {
   }
 
   #apply(state: Spotify.PlaybackState | null): void {
+    if (state) this.#sdkModes = { shuffle: state.shuffle, repeat: REPEAT_MODES[state.repeat_mode] ?? "off" };
+    if (this.#mixed.backend === "local" || (state && this.#mixed.active && !this.#mixed.spotifyState(state))) return;
     if (!state) {
       this.paused = true; // playback moved to another device
       this.#report();
@@ -109,12 +134,44 @@ class Player {
     this.durationMs = state.duration;
     this.#positionMs = state.position;
     this.#positionAt = performance.now();
-    this.shuffle = state.shuffle;
-    this.repeat = REPEAT_MODES[state.repeat_mode] ?? "off";
+    if (!this.#mixed.active) ({ shuffle: this.shuffle, repeat: this.repeat } = this.#sdkModes);
     this.contextUri = state.context?.uri ?? null;
     this.error = null;
     this.#report();
   }
+
+  #show(track: Track): void {
+    this.track = track;
+    this.artwork = track.album?.image ?? null;
+    this.durationMs = track.durationMs;
+    this.error = null;
+  }
+
+  #sync(paused: boolean, positionMs: number, durationMs?: number): void {
+    this.paused = paused;
+    if (durationMs) this.durationMs = durationMs;
+    this.#positionMs = positionMs;
+    this.#positionAt = performance.now();
+    this.#report();
+  }
+
+  /** A Spotify run inside a Carbon queue. Spotify's own shuffle/repeat would reorder or loop it. */
+  async #playSpotifyRun(uris: string[]): Promise<void> {
+    await this.#run(async (id) => {
+      if (this.#sdkModes.shuffle) await sp.setShuffle(false, id);
+      if (this.#sdkModes.repeat !== "off") await sp.setRepeat("off", id);
+      await sp.playOn(id, { uris, offset: { position: 0 } });
+    });
+  }
+
+  /** Plain Spotify playback takes over from a Carbon queue (stopping local audio first). */
+  async #spotify<T>(action: () => Promise<T>): Promise<T> {
+    if (this.#mixed.active || this.#mixed.backend === "local") await this.#mixed.leave();
+    return action();
+  }
+
+  /** Plays a list in Carbon's own queue: local files, Carbon playlists, or both mixed. */
+  playQueue = (tracks: Track[], index = 0) => this.#mixed.play(tracks, index);
 
   /** Tells the Rust core what's playing: Windows media overlay, tray, Discord, Last.fm. */
   #report(): void {
@@ -124,7 +181,7 @@ class Player {
           title: this.track.name,
           artists: this.track.artists.map((a) => a.name),
           album: this.track.album?.name ?? "",
-          artworkUrl: this.artwork,
+          artworkUrl: this.artwork?.startsWith("https://") ? this.artwork : null, // the OS can't load local art URLs
           durationMs: this.durationMs,
           positionMs: Math.min(this.#positionMs, this.durationMs),
           paused: this.paused,
@@ -144,12 +201,16 @@ class Player {
   }
 
   playContext = (contextUri: string, offsetUri?: string) =>
-    this.#run((id) => sp.playOn(id, { context_uri: contextUri, ...(offsetUri && { offset: { uri: offsetUri } }) }));
+    this.#spotify(() => this.#run((id) => sp.playOn(id, { context_uri: contextUri, ...(offsetUri && { offset: { uri: offsetUri } }) })));
 
-  playTracks = (uris: string[], index = 0) => this.#run((id) => sp.playOn(id, { uris, offset: { position: index } }));
+  /** `tracks` lets lists that contain local files play them through Carbon's queue. */
+  playTracks = (uris: string[], index = 0, tracks?: Track[]) =>
+    tracks?.some((t) => isLocalUri(t.uri))
+      ? this.playQueue(tracks, index)
+      : this.#spotify(() => this.#run((id) => sp.playOn(id, { uris, offset: { position: index } })));
 
   togglePlay = () =>
-    this.#run(async (id) => {
+    this.#mixed.active ? this.#mixed.toggle() : this.#run(async (id) => {
       if (this.track && this.#sdk) return this.#sdk.togglePlay();
       // Nothing loaded on Carbon yet: pick up where Spotify left off, else your last song.
       const last = await sp.lastPlayback();
@@ -159,14 +220,14 @@ class Player {
       throw new Error("Pick something to play first.");
     });
 
-  next = () => this.#run(async () => this.#sdk?.nextTrack());
-  previous = () => this.#run(async () => this.#sdk?.previousTrack());
+  next = () => (this.#mixed.active ? this.#mixed.next() : this.#run(async () => this.#sdk?.nextTrack()));
+  previous = () => (this.#mixed.active ? this.#mixed.previous() : this.#run(async () => this.#sdk?.previousTrack()));
 
   seek = (ms: number) =>
     this.#run(async () => {
       this.#positionMs = ms;
       this.#positionAt = performance.now();
-      await this.#sdk?.seek(Math.round(ms));
+      await (this.#mixed.active ? this.#mixed.seek(ms) : this.#sdk?.seek(Math.round(ms)));
     });
 
   setVolume = (volume: number) => {
@@ -177,16 +238,27 @@ class Player {
       // per-device convenience only; failing to persist is harmless
     }
     void this.#sdk?.setVolume(this.volume);
+    this.#mixed.setVolume(this.volume);
   };
 
-  toggleShuffle = () => this.#run((id) => sp.setShuffle(!this.shuffle, id));
+  toggleShuffle = () =>
+    this.#mixed.active ? this.#mixed.toggleShuffle(!this.shuffle) : this.#run((id) => sp.setShuffle(!this.shuffle, id));
 
   cycleRepeat = () =>
-    this.#run((id) => sp.setRepeat(REPEAT_MODES[(REPEAT_MODES.indexOf(this.repeat) + 1) % REPEAT_MODES.length], id));
+    this.#mixed.active
+      ? this.#mixed.cycleRepeat()
+      : this.#run((id) => sp.setRepeat(REPEAT_MODES[(REPEAT_MODES.indexOf(this.repeat) + 1) % REPEAT_MODES.length], id));
 
-  addToQueue = (uri: string) => this.#run((id) => sp.addToQueue(uri, id));
+  /** Local files can only join a queue Carbon owns, so a playing Spotify track is adopted into one. */
+  addToQueue = async (uri: string, track?: Track): Promise<void> => {
+    if (this.#mixed.active && track) return this.#mixed.add(track);
+    if (!track || !isLocalUri(uri)) return this.#run((id) => sp.addToQueue(uri, id));
+    if (!this.track) return this.playQueue([track]);
+    this.#mixed.adopt(this.track, track);
+  };
 
   stop(): void {
+    void this.#mixed.stop();
     this.#sdk?.disconnect();
     this.#sdk = null;
     this.#deviceId = null;
