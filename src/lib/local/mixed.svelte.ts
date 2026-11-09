@@ -10,6 +10,8 @@ import { localId } from "./tracks";
 /** A Spotify track "played to the end" if it was this close when it stopped. */
 const END_SLACK_MS = 3000;
 const RESTART_AFTER_MS = 3000;
+/** The engine takes at most this many files at once; longer runs continue window by window. */
+export const ENGINE_WINDOW = 5000;
 const NEXT_REPEAT: Record<Repeat, Repeat> = { off: "context", context: "track", track: "off" };
 
 /** What the Player exposes to this controller. */
@@ -17,6 +19,8 @@ export interface Host {
   volume(): number;
   repeat(): Repeat;
   position(): number;
+  /** Length of what is showing now, read before a new SDK state replaces it. */
+  durationMs(): number;
   setModes(shuffle: boolean, repeat: Repeat): void;
   show(track: Track): void;
   sync(paused: boolean, positionMs: number, durationMs?: number): void;
@@ -122,12 +126,15 @@ export class MixedPlayback {
     if (!queue) return;
     this.queue = [...queue.slice(0, this.index + 1), track, ...queue.slice(this.index + 1)];
     this.#unshuffled = this.#unshuffled && [...this.#unshuffled, track];
-    const same = backendOf(track) === this.backend;
-    if (same && this.backend === "spotify") return this.#host.spotifyEnqueue(track.uri);
-    // The engine already holds the old run; restart it in place so it includes the new track.
-    if (same && this.backend === "local") return this.#goTo(this.index, this.#host.position());
-    // A different backend splits the run: the hand-off happens when the current run ends.
-    if (this.#run) this.#run = { ...this.#run, end: this.index + 1 };
+    // The engine holds the old run; restart it in place so it follows the new order.
+    if (this.backend === "local") return this.#goTo(this.index, this.#host.position());
+    if (!this.#run) return;
+    if (backendOf(track) === "spotify") {
+      this.#run = { ...this.#run, end: this.#run.end + 1 };
+      return this.#host.spotifyEnqueue(track.uri); // Spotify plays its own queue next, matching ours
+    }
+    // A local file splits the Spotify run: the hand-off happens when Spotify moves past it.
+    this.#run = { ...this.#run, end: this.index + 1 };
   }
 
   /** Wraps the current Spotify track into a Carbon queue so a local file can follow it. */
@@ -159,7 +166,7 @@ export class MixedPlayback {
     const current = state.track_window.current_track;
     const uris = [current?.uri, current?.linked_from?.uri];
     const at = queue.findIndex((t, i) => i >= run.start && i < run.end && uris.includes(t.uri));
-    const wasNearEnd = this.#host.position() > 0 && (current?.duration_ms ?? 0) - this.#host.position() < END_SLACK_MS;
+    const wasNearEnd = this.#host.position() > 0 && this.#host.durationMs() - this.#host.position() < END_SLACK_MS;
     const ended = spotifyRunEnded({ confirmed: this.#confirmed, inRun: at >= 0, paused: state.paused, positionMs: state.position, wasNearEnd });
     if (at >= 0) {
       this.#confirmed = true;
@@ -249,7 +256,8 @@ export class MixedPlayback {
     else await engine.stop(); // the Rust side fades out and closes the device before replying
   }
 
-  async #startLocal(queue: Track[], run: Run, index: number, positionMs: number): Promise<void> {
+  async #startLocal(queue: Track[], full: Run, index: number, positionMs: number): Promise<void> {
+    const run = full.end - full.start > ENGINE_WINDOW ? { ...full, start: index, end: Math.min(full.end, index + ENGINE_WINDOW) } : full;
     this.backend = "local";
     this.#run = run;
     this.#show(index);
@@ -257,8 +265,7 @@ export class MixedPlayback {
     await engine.volume(this.#host.volume());
     const ids = queue.slice(run.start, run.end).map((t) => localId(t.uri));
     this.#playId += 1;
-    await engine.play(ids, index - run.start, engineRepeat(this.#host.repeat(), run, queue.length), this.#playId);
-    if (positionMs > 0) await engine.seek(positionMs);
+    await engine.play(ids, index - run.start, engineRepeat(this.#host.repeat(), run, queue.length), this.#playId, positionMs);
   }
 
   async #startSpotify(queue: Track[], run: Run, index: number, positionMs: number): Promise<void> {

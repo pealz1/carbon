@@ -59,6 +59,7 @@ class Player {
     volume: () => this.volume,
     repeat: () => this.repeat,
     position: () => this.position(),
+    durationMs: () => this.durationMs,
     setModes: (shuffle, repeat) => ((this.shuffle = shuffle), (this.repeat = repeat)),
     show: (track) => this.#show(track),
     sync: (paused, positionMs, durationMs) => this.#sync(paused, positionMs, durationMs),
@@ -223,12 +224,13 @@ class Player {
   next = () => (this.#mixed.active ? this.#mixed.next() : this.#run(async () => this.#sdk?.nextTrack()));
   previous = () => (this.#mixed.active ? this.#mixed.previous() : this.#run(async () => this.#sdk?.previousTrack()));
 
-  seek = (ms: number) =>
-    this.#run(async () => {
-      this.#positionMs = ms;
-      this.#positionAt = performance.now();
-      await (this.#mixed.active ? this.#mixed.seek(ms) : this.#sdk?.seek(Math.round(ms)));
-    });
+  seek = (ms: number) => {
+    this.#positionMs = ms;
+    this.#positionAt = performance.now();
+    // Carbon queues seek without waiting on Spotify's SDK, which local files don't need.
+    if (this.#mixed.active) return this.#mixed.seek(ms).catch((e) => (this.error = message(e)));
+    return this.#run(async () => this.#sdk?.seek(Math.round(ms)));
+  };
 
   setVolume = (volume: number) => {
     this.volume = Math.min(1, Math.max(0, volume));

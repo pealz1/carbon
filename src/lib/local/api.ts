@@ -67,7 +67,8 @@ export interface Preset {
 }
 
 export const engine = {
-  play: (ids: string[], index: number, repeat: EngineRepeat, playId: number) => invoke("engine_play", { ids, index, repeat, playId }),
+  play: (ids: string[], index: number, repeat: EngineRepeat, playId: number, startMs = 0) =>
+    invoke("engine_play", { ids, index, repeat, playId, startMs: Math.max(0, Math.round(startMs)) }),
   pause: () => invoke("engine_pause"),
   resume: () => invoke("engine_resume"),
   stop: () => invoke("engine_stop"),
@@ -106,4 +107,6 @@ export const sound = {
   curve: (bands: Bands, preampDb: number, points: number) => invoke<number[]>("sound_curve", { bands, preampDb, points }),
   devices: () => invoke<string[]>("sound_devices"),
   spotifyEqInjected: () => invoke<boolean>("sound_spotify_eq_injected"),
+  /** "Remove saved data" put everything back on defaults. */
+  onReset: (handler: (settings: SoundSettings) => void) => listen<SoundSettings>("sound-reset", (e) => handler(e.payload)),
 };

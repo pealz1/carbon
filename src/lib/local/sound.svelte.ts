@@ -39,6 +39,7 @@ class Sound {
     try {
       [this.value, this.presets, this.#injected] = await Promise.all([api.get(), api.presets(), api.spotifyEqInjected()]);
       this.bypassNote = takeNote();
+      await api.onReset((defaults) => (this.value = defaults));
       this.#refreshEqStatus();
       if (this.#injected) {
         listenToFrame((state) => void this.#onFrame(state));

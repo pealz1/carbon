@@ -28,7 +28,7 @@ const STOP_FADE: Duration = Duration::from_millis(15);
 
 pub enum Command {
     /// `play_id` is echoed in every state so the webview can ignore states from older queues.
-    Play { tracks: Vec<QueueTrack>, index: usize, repeat: Repeat, play_id: u32 },
+    Play { tracks: Vec<QueueTrack>, index: usize, repeat: Repeat, play_id: u32, start_ms: u64 },
     Pause,
     Resume,
     /// Replies once the device is silent and closed, so a Spotify hand-off can't overlap.
@@ -143,10 +143,10 @@ impl<E: Events> Player<E> {
 
     fn handle(&mut self, command: Command) {
         match command {
-            Command::Play { tracks, index, repeat, play_id } => {
+            Command::Play { tracks, index, repeat, play_id, start_ms } => {
                 self.play_id = play_id;
                 self.queue = Queue::new(tracks, index, repeat);
-                self.start(self.queue.index(), 0, false);
+                self.start(self.queue.index(), start_ms, false);
             }
             Command::Pause => self.pause(),
             Command::Resume => self.resume(),

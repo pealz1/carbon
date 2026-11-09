@@ -80,8 +80,17 @@ impl Engine {
     }
 }
 
+/// `start_ms` starts the first track part-way in one step (no burst from 0:00 before a seek).
 #[tauri::command]
-pub fn engine_play(engine: State<Engine>, library: State<Library>, ids: Vec<String>, index: usize, repeat: Repeat, play_id: u32) -> Result<(), String> {
+pub fn engine_play(
+    engine: State<Engine>,
+    library: State<Library>,
+    ids: Vec<String>,
+    index: usize,
+    repeat: Repeat,
+    play_id: u32,
+    start_ms: u64,
+) -> Result<(), String> {
     if ids.is_empty() || ids.len() > MAX_QUEUE {
         return Err(format!("A queue holds 1 to {MAX_QUEUE} songs."));
     }
@@ -89,7 +98,7 @@ pub fn engine_play(engine: State<Engine>, library: State<Library>, ids: Vec<Stri
         return Err("That song isn't in the queue.".into());
     }
     let tracks = library.queue_tracks(&ids)?;
-    engine.send(Command::Play { tracks, index, repeat, play_id })
+    engine.send(Command::Play { tracks, index, repeat, play_id, start_ms: start_ms.min(MAX_POSITION_MS) })
 }
 
 #[tauri::command]
@@ -162,11 +171,16 @@ pub async fn sound_devices() -> Vec<String> {
     output::list_devices()
 }
 
-/// Used by "remove saved data".
+/// Used by "remove saved data": deletes the files and puts the live engine back on defaults.
 pub fn delete_data(app: &AppHandle) -> Result<(), String> {
     sound::delete(app)?;
     if let Ok(dir) = app.path().app_cache_dir() {
         loudness::delete_cache(&dir)?;
     }
+    let defaults = SoundSettings::default();
+    let engine = app.state::<Engine>();
+    *engine.sound.lock().map_err(|e| e.to_string())? = defaults.clone();
+    engine.send(Command::Sound(Box::new(defaults.clone())))?;
+    let _ = app.emit("sound-reset", &defaults);
     Ok(())
 }
