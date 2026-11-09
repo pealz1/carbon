@@ -52,7 +52,7 @@ function host(over: Partial<Host> = {}): Host & { at: number } {
     spotifyPlay: vi.fn(async (uris: string[]) => void h.log.push(`spotify.play:${uris.length}`)),
     spotifySeek: async () => {},
     spotifyToggle: async () => {},
-    spotifyEnqueue: vi.fn(async () => {}),
+    spotifyEnqueue: vi.fn(async () => true),
     ...over,
   };
   return fake;
@@ -124,13 +124,22 @@ describe("adding to a Carbon queue", () => {
     const m = new MixedPlayback(fake);
     await m.play([S(1), S(2)], 0);
     m.spotifyState(sdkState(S(1), false, 1_000));
-    await m.add(S(9));
+    expect(await m.add(S(9))).toBe(true);
     expect(fake.spotifyEnqueue).toHaveBeenCalledWith(S(9).uri);
     m.spotifyState(sdkState(S(9), false, 0));
     expect(m.index).toBe(1);
     expect(m.spotifyState(sdkState(S(2), false, 0))).toBe(true); // still inside the run, not "ended"
     expect(m.index).toBe(2);
     expect(fake.spotifyPlay).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the queue as it was when Spotify won't take the song", async () => {
+    const fake = host({ spotifyEnqueue: vi.fn(async () => false) });
+    const m = new MixedPlayback(fake);
+    await m.play([S(1), S(2)], 0);
+    m.spotifyState(sdkState(S(1), false, 1_000));
+    expect(await m.add(S(9))).toBe(false);
+    expect(m.upNext?.map((t) => t.uri)).toEqual([S(2).uri]);
   });
 
   it("hands a local song over once Spotify moves past the current track", async () => {

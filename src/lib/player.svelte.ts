@@ -72,7 +72,7 @@ class Player {
     spotifyPlay: (uris) => this.#playSpotifyRun(uris),
     spotifySeek: async (ms) => void (await this.#sdk?.seek(Math.round(ms))),
     spotifyToggle: async () => void (await this.#sdk?.togglePlay()),
-    spotifyEnqueue: async (uri) => void (await this.#run((id) => sp.addToQueue(uri, id))),
+    spotifyEnqueue: (uri) => this.#run((id) => sp.addToQueue(uri, id)),
   });
 
   /** Tracks after the current one when Carbon owns the queue (local files, Carbon playlists). */
@@ -311,9 +311,9 @@ class Player {
    * Resolves false (with `error` set) when Spotify refused.
    */
   addToQueue = async (uri: string, track?: Track): Promise<boolean> => {
-    if (this.#mixed.active && track) await this.#mixed.add(track);
-    else if (!track || !isLocalUri(uri)) return this.#run((id) => sp.addToQueue(uri, id));
-    else if (!this.track) await this.playQueue([track]);
+    if (this.#mixed.active && track) return this.#mixed.add(track);
+    if (!track || !isLocalUri(uri)) return this.#run((id) => sp.addToQueue(uri, id));
+    if (!this.track) await this.playQueue([track]);
     else this.#mixed.adopt(this.track, track);
     return true;
   };

@@ -29,7 +29,8 @@ export interface Host {
   spotifyPlay(uris: string[]): Promise<void>;
   spotifySeek(ms: number): Promise<void>;
   spotifyToggle(): Promise<void>;
-  spotifyEnqueue(uri: string): Promise<void>;
+  /** Resolves false when Spotify refused the song. */
+  spotifyEnqueue(uri: string): Promise<boolean>;
 }
 
 export class MixedPlayback {
@@ -123,21 +124,21 @@ export class MixedPlayback {
     if (this.backend === "local" && this.#run && this.queue) await engine.repeat(engineRepeat(repeat, this.#run, this.queue.length));
   }
 
-  /** Puts `track` right after the current one. */
-  async add(track: Track): Promise<void> {
+  /** Puts `track` right after the current one. Resolves false, changing nothing, if Spotify refused it. */
+  async add(track: Track): Promise<boolean> {
+    if (!this.queue) return false;
+    // Spotify plays its own queue next, matching ours, so it has to take the song first.
+    const viaSpotify = this.backend === "spotify" && this.#run !== null && backendOf(track) === "spotify";
+    if (viaSpotify && !(await this.#host.spotifyEnqueue(track.uri))) return false;
     const queue = this.queue;
-    if (!queue) return;
+    if (!queue) return false; // stopped while Spotify answered
     this.queue = [...queue.slice(0, this.index + 1), track, ...queue.slice(this.index + 1)];
     this.#unshuffled = this.#unshuffled && [...this.#unshuffled, track];
-    // The engine holds the old run; restart it in place so it follows the new order.
-    if (this.backend === "local") return this.#goTo(this.index, this.#host.position());
-    if (!this.#run) return;
-    if (backendOf(track) === "spotify") {
-      this.#run = { ...this.#run, end: this.#run.end + 1 };
-      return this.#host.spotifyEnqueue(track.uri); // Spotify plays its own queue next, matching ours
-    }
-    // A local file splits the Spotify run: the hand-off happens when Spotify moves past it.
-    this.#run = { ...this.#run, end: this.index + 1 };
+    // The engine holds the old run, so restart it in place to follow the new order. A Spotify run
+    // grows by a Spotify song; a local file splits it, handing off once Spotify moves past it.
+    if (this.backend === "local") await this.#goTo(this.index, this.#host.position());
+    else if (this.#run) this.#run = { ...this.#run, end: backendOf(track) === "spotify" ? this.#run.end + 1 : this.index + 1 };
+    return true;
   }
 
   /** Wraps the current Spotify track into a Carbon queue so a local file can follow it. */

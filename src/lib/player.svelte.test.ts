@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("$lib/native", () => ({ reportPlayback: vi.fn(async () => {}) }));
 vi.mock("$lib/auth", () => ({ getAccessToken: vi.fn(async () => "token") }));
-vi.mock("$lib/spotify/endpoints", () => ({ setShuffle: vi.fn(), playOn: vi.fn() }));
+vi.mock("$lib/spotify/endpoints", () => ({ setShuffle: vi.fn(), playOn: vi.fn(), addToQueue: vi.fn() }));
 
 const sp = await import("$lib/spotify/endpoints");
 const { player } = await import("./player.svelte");
@@ -99,5 +99,17 @@ describe("player additions", () => {
     getCurrentState.mockResolvedValueOnce(state(10_000, { paused: true }));
     await player.seek(90_000);
     expect(player.position()).toBe(90_000);
+  });
+
+  // Last: it leaves a Carbon queue running.
+  it("says so when Spotify won't take a song into a Carbon queue", async () => {
+    const track = (uri: string) => ({ id: uri, uri, name: uri, artists: [], album: null, durationMs: 1000, explicit: false });
+    expect(await player.addToQueue("local:abc", track("local:abc"))).toBe(true);
+    expect(player.upNext?.map((t) => t.uri)).toEqual(["local:abc"]);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(sp.addToQueue).mockRejectedValueOnce(new Error("Spotify said no"));
+    expect(await player.addToQueue("spotify:track:t2", track("spotify:track:t2"))).toBe(false);
+    expect(player.error).toBe("Spotify said no");
+    expect(player.upNext?.map((t) => t.uri)).toEqual(["local:abc"]);
   });
 });
