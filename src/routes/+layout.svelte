@@ -21,6 +21,7 @@
   import Toasts from "$lib/components/Toasts.svelte";
   import { dialogs } from "$lib/dialogs.svelte";
   import { handleKey } from "$lib/keyboard";
+  import { sound } from "$lib/local/sound.svelte";
   import { organizer } from "$lib/organizer.svelte";
   import { player } from "$lib/player.svelte";
   import { session } from "$lib/session.svelte";
@@ -33,6 +34,7 @@
     void account.boot();
     void organizer.load();
     void view.syncFullscreen();
+    void sound.boot();
   });
 
   // Spotify starts once the Carbon account gate (if this build has one) is passed.

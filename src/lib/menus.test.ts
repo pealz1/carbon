@@ -111,8 +111,16 @@ describe("trackMenu", () => {
     const targets = items(find(menu, "Add to playlist")!.items!).map((i) => i.label);
     expect(targets).toEqual(["New playlist…", "List mine", "List shared"]);
     await find(menu, "Add to queue")!.action!();
-    expect(player.addToQueue).toHaveBeenCalledWith("spotify:track:t1");
+    expect(player.addToQueue).toHaveBeenCalledWith("spotify:track:t1", track);
     expect(toasts.items.at(-1)?.text).toBe("Added to queue.");
+  });
+
+  it("offers only the queue for a local file, passing the track along", async () => {
+    const local = { ...track, id: "local:abc", uri: "local:abc", album: null, artists: [{ id: "", name: "Me", uri: "" }] };
+    const menu = trackMenu(local);
+    expect(items(menu).map((i) => i.label)).toEqual(["Add to queue"]);
+    await find(menu, "Add to queue")!.action!();
+    expect(player.addToQueue).toHaveBeenCalledWith("local:abc", local);
   });
 
   it("starts a new playlist with the song, or adds to an existing one", async () => {
@@ -216,7 +224,7 @@ describe("album, artist and folder menus", () => {
     find(menu, "Shuffle play")!.action!();
     expect(player.shufflePlay).toHaveBeenCalledWith("spotify:album:al1", 1);
     await find(menu, "Add to queue")!.action!();
-    expect(player.addToQueue).toHaveBeenCalledWith("spotify:track:t1");
+    expect(player.addToQueue).toHaveBeenCalledWith("spotify:track:t1", track);
     const artist = artistMenu({ ...album, kind: "artist", id: "a1", uri: "spotify:artist:a1" });
     find(artist, "Go to artist")!.action!();
     expect(goto).toHaveBeenCalledWith("/artist/a1");

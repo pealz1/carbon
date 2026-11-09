@@ -1,6 +1,9 @@
+mod carbon_playlists;
 mod discord;
+mod engine;
 mod lastfm;
 mod library;
+mod local_library;
 mod media_controls;
 mod oauth;
 mod playback;
@@ -59,9 +62,14 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(SettingsState(Mutex::new(prefs)));
     app.manage(LibraryState(Mutex::new(library::load(&handle))));
     app.manage(tray::build(&handle)?);
+    let sound = engine::sound::load(&handle);
+    app.manage(local_library::LocalLibrary::load(&handle));
+    app.manage(carbon_playlists::Store::load(&handle));
+    app.manage(engine::spotify_eq::SpotifyEqInjected(sound.spotify_eq));
+    let window = engine::spotify_eq::create_main_window(app, sound.spotify_eq)?;
+    app.manage(engine::Engine::spawn(&handle, sound));
 
     let media = MediaState::default();
-    let window = app.get_webview_window("main").ok_or("main window missing")?;
     media.attach(&handle, &window);
     app.manage(media);
 
@@ -84,6 +92,7 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .setup(setup)
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event
@@ -116,6 +125,30 @@ pub fn run() {
             system::app_info,
             system::uninstall,
             system::remove_saved_data,
+            engine::engine_play,
+            engine::engine_pause,
+            engine::engine_resume,
+            engine::engine_stop,
+            engine::engine_seek,
+            engine::engine_volume,
+            engine::engine_repeat,
+            engine::sound_get,
+            engine::sound_set,
+            engine::sound_presets,
+            engine::sound_curve,
+            engine::sound_devices,
+            engine::spotify_eq::sound_spotify_eq_injected,
+            local_library::local_library_get,
+            local_library::local_library_add_folder,
+            local_library::local_library_remove_folder,
+            local_library::local_library_rescan,
+            carbon_playlists::carbon_playlists,
+            carbon_playlists::carbon_playlist_create,
+            carbon_playlists::carbon_playlist_rename,
+            carbon_playlists::carbon_playlist_delete,
+            carbon_playlists::carbon_playlist_add,
+            carbon_playlists::carbon_playlist_remove,
+            carbon_playlists::carbon_playlist_move,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Carbon");

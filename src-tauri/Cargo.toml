@@ -18,7 +18,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri = { version = "2", features = ["tray-icon", "image-png", "protocol-asset"] }
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-autostart = "2"
@@ -37,6 +37,14 @@ socketioxide = { version = "0.18", default-features = false }
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 getrandom = "0.3"
+tauri-plugin-dialog = "2"
+# Local-file audio engine: decode, output, resample, loudness, tags, real-time-safe hand-off.
+symphonia = { version = "0.6", default-features = false, features = ["opt-simd", "all-meta", "mp3", "aac", "alac", "isomp4", "flac", "ogg", "vorbis", "wav", "pcm", "adpcm"] }
+cpal = "0.18"
+rubato = { version = "5", default-features = false }
+ebur128 = "0.1"
+lofty = "0.25"
+rtrb = "0.4"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
@@ -44,7 +52,8 @@ getrandom = "0.3"
 codegen-units = 1
 lto = true
 opt-level = 3
-panic = "abort"
+# Unwind so a parser bug on a corrupt file is caught (engine/contain.rs) instead of closing Carbon.
+panic = "unwind"
 strip = true
 
 [dev-dependencies]

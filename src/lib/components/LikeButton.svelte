@@ -1,13 +1,17 @@
 <script lang="ts">
   import { untrack } from "svelte";
+  import { isLocalUri } from "$lib/local/tracks";
   import { saved } from "$lib/saved.svelte";
   import Icon from "./Icon.svelte";
 
   let { uri, label, size = 16 }: { uri: string; label: string; size?: number } = $props();
 
+  // Liked Songs is Spotify's: local files have nothing to like.
+  const likeable = $derived(!isLocalUri(uri));
+
   $effect(() => {
     const target = uri;
-    untrack(() => saved.want([target]));
+    if (likeable) untrack(() => saved.want([target]));
   });
 
   const on = $derived(saved.has(uri) === true);
@@ -18,16 +22,18 @@
   }
 </script>
 
-<button
-  class="like"
-  class:on
-  onclick={toggle}
-  aria-pressed={on}
-  aria-label={on ? `Remove ${label} from Liked Songs` : `Like ${label}`}
-  title={on ? "Remove from Liked Songs" : "Save to Liked Songs"}
->
-  <Icon name="heart" {size} filled={on} />
-</button>
+{#if likeable}
+  <button
+    class="like"
+    class:on
+    onclick={toggle}
+    aria-pressed={on}
+    aria-label={on ? `Remove ${label} from Liked Songs` : `Like ${label}`}
+    title={on ? "Remove from Liked Songs" : "Save to Liked Songs"}
+  >
+    <Icon name="heart" {size} filled={on} />
+  </button>
+{/if}
 
 <style>
   .like {

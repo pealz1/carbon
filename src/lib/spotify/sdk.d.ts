@@ -14,6 +14,8 @@ declare namespace Spotify {
     duration_ms: number;
     artists: { name: string; uri: string }[];
     album: { name: string; uri: string; images: Image[] };
+    /** Set when Spotify swapped in a regional copy of the track that was asked for. */
+    linked_from?: { uri: string | null } | null;
   }
 
   interface PlaybackState {

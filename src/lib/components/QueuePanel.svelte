@@ -30,7 +30,9 @@
   {/if}
   <p class="eyebrow">Next in queue</p>
   <div class="list">
-    {#if queue.data?.length}
+    {#if player.upNext}
+      <TrackList tracks={player.upNext} compact />
+    {:else if queue.data?.length}
       <TrackList tracks={queue.data} compact />
     {:else}
       <Status loading={queue.loading} error={queue.error} empty="Nothing queued." onretry={queue.reload} />

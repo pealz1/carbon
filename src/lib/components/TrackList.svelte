@@ -1,9 +1,11 @@
 <script lang="ts">
   import { formatDuration } from "$lib/format";
+  import { hasPage, isLocalUri } from "$lib/local/tracks";
   import { menu } from "$lib/menu.svelte";
   import { trackMenu } from "$lib/menus";
   import { player } from "$lib/player.svelte";
   import type { PlaylistSummary, Track } from "$lib/spotify/types";
+  import AddToCarbon from "./AddToCarbon.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
 
@@ -35,7 +37,7 @@
   function play(index: number) {
     const track = tracks[index];
     if (contextUri) player.playContext(contextUri, track.uri);
-    else player.playTracks(tracks.map((t) => t.uri), index);
+    else player.playTracks(tracks.map((t) => t.uri), index, tracks);
   }
 </script>
 
@@ -62,17 +64,19 @@
           </span>
           <span class="artists">
             {#each track.artists as artist, j (artist.uri)}
-              {#if j > 0}{", "}{/if}<a href="/artist/{artist.id}">{artist.name}</a>
+              {#if j > 0}{", "}{/if}{#if hasPage(artist)}<a href="/artist/{artist.id}">{artist.name}</a>{:else}{artist.name}{/if}
             {/each}
           </span>
         </div>
       </div>
       {#if showAlbum}
         <span class="album">
-          {#if track.album}<a href="/album/{track.album.id}">{track.album.name}</a>{/if}
+          {#if hasPage(track.album)}<a href="/album/{track.album?.id}">{track.album?.name}</a>{:else}{track.album?.name ?? ""}{/if}
         </span>
       {/if}
-      <LikeButton uri={track.uri} label={track.name} />
+      <span class="carbon-btn"><AddToCarbon tracks={[track]} /></span>
+      <!-- Liked Songs is Spotify-only; the empty cell keeps local rows on the grid. -->
+      {#if isLocalUri(track.uri)}<span></span>{:else}<LikeButton uri={track.uri} label={track.name} />{/if}
       <span class="duration tabular">{formatDuration(track.durationMs)}</span>
       <button class="more" onclick={(e) => openMenu(e, track)} aria-label="More options for {track.name}" aria-haspopup="menu" title="More">
         <Icon name="more" size={16} />
@@ -90,7 +94,7 @@
 
   .row {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) 32px 52px 32px;
+    grid-template-columns: 36px minmax(0, 1fr) 28px 32px 52px 32px;
     align-items: center;
     gap: var(--sp-3);
     height: 56px;
@@ -102,12 +106,12 @@
   }
 
   .with-album .row {
-    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 32px 52px 32px;
+    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 28px 32px 52px 32px;
   }
 
   .compact .row {
     height: 50px;
-    grid-template-columns: 28px minmax(0, 1fr) 28px 44px 28px;
+    grid-template-columns: 28px minmax(0, 1fr) 28px 28px 44px 28px;
     gap: var(--sp-2);
   }
 
@@ -259,6 +263,16 @@
     border-radius: var(--r-pill);
     color: var(--text-muted);
     transition: opacity var(--dur-fast);
+  }
+
+  .carbon-btn {
+    opacity: 0;
+    transition: opacity var(--dur-fast);
+  }
+
+  .row:hover .carbon-btn,
+  .carbon-btn:focus-within {
+    opacity: 1;
   }
 
   .more:hover {

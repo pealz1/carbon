@@ -2,6 +2,7 @@
 // Labels that depend on live state (liked, pinned) are getters, so an open menu stays truthful.
 import { goto } from "$app/navigation";
 import { dialogs } from "$lib/dialogs.svelte";
+import { isLocalUri } from "$lib/local/tracks";
 import type { MenuEntry, MenuItem } from "$lib/menu.svelte";
 import { flattenFolders, folderOf, movePlaylist, removeFolder, togglePin } from "$lib/organizer";
 import { organizer } from "$lib/organizer.svelte";
@@ -35,8 +36,9 @@ export async function copyLink(uri: string): Promise<void> {
 
 const copyItem = (uri: string): MenuItem => ({ label: "Copy Spotify link", icon: "link", action: () => copyLink(uri), disabled: !spotifyLink(uri) });
 
-async function queue(uris: string[]): Promise<void> {
-  for (const uri of uris) if (!(await player.addToQueue(uri))) return;
+/** `tracks` (same order as `uris`) lets the songs join a Carbon queue, which local files need. */
+async function queue(uris: string[], tracks?: Track[]): Promise<void> {
+  for (const [i, uri] of uris.entries()) if (!(await player.addToQueue(uri, tracks?.[i]))) return;
   toasts.show(uris.length === 1 ? "Added to queue." : `Added ${uris.length} songs to queue.`);
 }
 
@@ -76,8 +78,11 @@ export interface TrackMenuOptions {
 
 export function trackMenu(track: Track, options: TrackMenuOptions = {}): MenuEntry[] {
   const { removeFrom, onRemoved } = options;
+  const toQueue: MenuItem = { label: "Add to queue", icon: "queue", action: () => queue([track.uri], [track]) };
+  // Local files exist only in Carbon: no Spotify playlists, likes, album pages or links.
+  if (isLocalUri(track.uri)) return [toQueue];
   return [
-    { label: "Add to queue", icon: "queue", action: () => queue([track.uri]) },
+    toQueue,
     { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([track.uri]) },
     likeItem(track.uri, "Save to Liked Songs", "Remove from Liked Songs"),
     ...(removeFrom
@@ -106,7 +111,7 @@ const playItems = (uri: string, count?: number): MenuItem[] => [
 export function albumMenu(album: Card, tracks: Track[] = []): MenuEntry[] {
   return [
     ...playItems(album.uri, tracks.length || undefined),
-    ...(tracks.length ? [{ label: "Add to queue", icon: "queue", action: () => queue(tracks.map((t) => t.uri)) } satisfies MenuItem] : []),
+    ...(tracks.length ? [{ label: "Add to queue", icon: "queue", action: () => queue(tracks.map((t) => t.uri), tracks) } satisfies MenuItem] : []),
     ...(tracks.length ? [{ label: "Add to playlist", icon: "plus", items: addToPlaylistItems(tracks.map((t) => t.uri)) } satisfies MenuItem] : []),
     likeItem(album.uri, "Save to library", "Remove from library"),
     "separator",
