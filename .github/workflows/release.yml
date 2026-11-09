@@ -32,18 +32,30 @@ jobs:
       # Seed its cache with retries instead. Keep versions in sync with tauri-bundler's NSIS module.
       - name: Pre-fetch NSIS tools
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          # Downloads through the GitHub API, retrying, then checks the hashes the bundler expects.
+          function Fetch($repo, $tag, $file, $dir) {
+            for ($i = 1; $i -le 6; $i++) {
+              gh release download $tag -R $repo -p $file -D $dir --clobber
+              if ($LASTEXITCODE -eq 0) { return }
+              Start-Sleep -Seconds (5 * $i)
+            }
+            throw "could not download $file from $repo"
+          }
           $tools = Join-Path $env:LOCALAPPDATA "tauri"
           New-Item -ItemType Directory -Force $tools | Out-Null
-          $retry = @("-fsSL", "--retry", "8", "--retry-all-errors", "--retry-delay", "5")
-          curl.exe @retry -o "$env:RUNNER_TEMP\nsis.zip" https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.13/nsis-3.13.zip
-          Expand-Archive "$env:RUNNER_TEMP\nsis.zip" -DestinationPath $tools -Force
+          Fetch "tauri-apps/binary-releases" "nsis-3.13" "nsis-3.13.zip" $env:RUNNER_TEMP
+          Expand-Archive "$env:RUNNER_TEMP\nsis-3.13.zip" -DestinationPath $tools -Force
           Rename-Item (Join-Path $tools "nsis-3.13") "NSIS"
           $plugins = Join-Path $tools "NSIS\Plugins\x86-unicode\additional"
           New-Item -ItemType Directory -Force $plugins | Out-Null
-          curl.exe @retry -o "$plugins\nsis_tauri_utils.dll" https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll
-          $hash = (Get-FileHash "$plugins\nsis_tauri_utils.dll" -Algorithm SHA1).Hash
-          if ($hash -ne "75197FEE3C6A814FE035788D1C34EAD39349B860") { throw "nsis_tauri_utils.dll hash mismatch: $hash" }
+          Fetch "tauri-apps/nsis-tauri-utils" "nsis_tauri_utils-v0.5.3" "nsis_tauri_utils.dll" $plugins
+          $exe = (Get-FileHash (Join-Path $tools "NSIS\NSIS.exe") -Algorithm SHA1).Hash
+          $dll = (Get-FileHash "$plugins\nsis_tauri_utils.dll" -Algorithm SHA1).Hash
+          if ($exe -ne "6D45D4E8CCF18FE1FDAC9164058F356102A2ECF2") { throw "NSIS.exe hash mismatch: $exe" }
+          if ($dll -ne "75197FEE3C6A814FE035788D1C34EAD39349B860") { throw "nsis_tauri_utils.dll hash mismatch: $dll" }
 
       # Integration keys are baked in at build time from repository secrets (never committed).
       - name: Write build keys
