@@ -4,6 +4,7 @@
   import { formatDuration } from "$lib/format";
   import { player } from "$lib/player.svelte";
   import Icon from "./Icon.svelte";
+  import LikeButton from "./LikeButton.svelte";
   import QueuePanel from "./QueuePanel.svelte";
   import Slider from "./Slider.svelte";
   import { specular } from "$lib/liquid";
@@ -28,10 +29,6 @@
 
 <svelte:window onkeydown={onKey} />
 
-{#if player.error}
-  <p class="toast glass" role="status">{player.error}</p>
-{/if}
-
 <section class="dock liquid" use:specular aria-label="Now playing">
   <div class="track">
     {#if player.track}
@@ -54,6 +51,7 @@
           {/each}
         </span>
       </div>
+      <LikeButton uri={player.track.uri} label={player.track.name} size={17} />
     {:else}
       <span class="art-blank"></span>
       <div class="meta">
@@ -267,18 +265,5 @@
   .volume {
     width: 110px;
     display: flex;
-  }
-
-  .toast {
-    position: absolute;
-    left: 50%;
-    bottom: calc(var(--dock-h) + var(--sp-5));
-    z-index: 6;
-    transform: translateX(-50%);
-    margin: 0;
-    padding: var(--sp-2) var(--sp-4);
-    border-radius: var(--r-pill);
-    font-size: var(--fs-small);
-    color: var(--warning);
   }
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LikeButton from "$lib/components/LikeButton.svelte";
   import Status from "$lib/components/Status.svelte";
   import { describeError } from "$lib/errors";
   import { activeLineIndex } from "$lib/lrc";
@@ -65,7 +66,10 @@
           <img class="cover" src={player.artwork} alt="" width="440" height="440" style="transform: rotateX({tilt.x}deg) rotateY({tilt.y}deg)" />
         {/if}
       </div>
-      <h1>{player.track.name}</h1>
+      <div class="title-row">
+        <h1>{player.track.name}</h1>
+        <LikeButton uri={player.track.uri} label={player.track.name} size={22} />
+      </div>
       <p class="by">{player.track.artists.map((a) => a.name).join(", ")}</p>
       {#if player.track.album}<p class="album">{player.track.album.name}</p>{/if}
     </section>
@@ -137,6 +141,16 @@
     box-shadow: var(--shadow-art), 0 0 0 1px var(--glass-edge), 0 40px 120px -30px var(--accent-glow);
     transition: transform var(--dur-slow) var(--ease-out);
     will-change: transform;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-3);
+  }
+
+  .title-row :global(.like) {
+    margin-top: var(--sp-1);
   }
 
   h1 {

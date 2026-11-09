@@ -3,6 +3,7 @@
   import { player } from "$lib/player.svelte";
   import type { Track } from "$lib/spotify/types";
   import Icon from "./Icon.svelte";
+  import LikeButton from "./LikeButton.svelte";
 
   let {
     tracks,
@@ -61,9 +62,7 @@
           {#if track.album}<a href="/album/{track.album.id}">{track.album.name}</a>{/if}
         </span>
       {/if}
-      <button class="queue-btn" onclick={() => player.addToQueue(track.uri)} aria-label="Add {track.name} to queue" title="Add to queue">
-        <Icon name="plus" size={16} />
-      </button>
+      <LikeButton uri={track.uri} label={track.name} />
       <span class="duration tabular">{formatDuration(track.durationMs)}</span>
     </li>
   {/each}
@@ -227,25 +226,13 @@
     color: var(--text-muted);
   }
 
-  .queue-btn {
-    width: 28px;
-    height: 28px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--r-pill);
-    color: var(--text-muted);
+  .row :global(.like:not(.on)) {
     opacity: 0;
-    transition: opacity var(--dur-fast);
   }
 
-  .row:hover .queue-btn,
-  .queue-btn:focus-visible {
+  .row:hover :global(.like),
+  .row :global(.like:focus-visible) {
     opacity: 1;
-  }
-
-  .queue-btn:hover {
-    color: var(--text);
-    background: var(--glass-active);
   }
 
   .duration {
