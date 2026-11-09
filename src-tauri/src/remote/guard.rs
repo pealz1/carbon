@@ -25,6 +25,9 @@ pub const MAX_DEVICES: usize = 8;
 const CODE_SPACE: u32 = 1_000_000;
 // Largest multiple of CODE_SPACE below u32::MAX, so `n % CODE_SPACE` is unbiased.
 const CODE_LIMIT: u32 = u32::MAX - u32::MAX % CODE_SPACE;
+/// Commands a remote may send at once, then per second; a held-down button stays well inside it.
+const COMMAND_BURST: f64 = 20.0;
+const COMMANDS_PER_SECOND: f64 = 20.0;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Reject {
@@ -81,6 +84,35 @@ impl Secrets {
 
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+/// One remote's command allowance: a token bucket.
+pub struct CommandBudget {
+    tokens: f64,
+    at: Instant,
+    warned: bool,
+}
+
+impl CommandBudget {
+    pub fn new(now: Instant) -> Self {
+        Self { tokens: COMMAND_BURST, at: now, warned: false }
+    }
+
+    pub fn spend(&mut self, now: Instant) -> bool {
+        let refill = now.saturating_duration_since(self.at).as_secs_f64() * COMMANDS_PER_SECOND;
+        self.tokens = (self.tokens + refill).min(COMMAND_BURST);
+        self.at = now;
+        let allowed = self.tokens >= 1.0;
+        if allowed {
+            self.tokens -= 1.0;
+        }
+        allowed
+    }
+
+    /// True the first time only, so a flood is logged once per remote.
+    pub fn first_overflow(&mut self) -> bool {
+        !std::mem::replace(&mut self.warned, true)
+    }
 }
 
 /// Private, loopback and link-local addresses only: the server binds every interface, but
@@ -365,6 +397,22 @@ mod tests {
         assert_eq!(request(Some("192.168.1.20:10767"), Some(b"http://192.168.1.20:10768")), no);
         assert_eq!(request(Some("192.168.1.20:10767"), Some(b"http://192.168.1.20:10767/")), no);
         assert_eq!(request(Some("192.168.1.20:10767"), Some(b"http://\xff")), no);
+    }
+
+    #[test]
+    fn lets_a_burst_of_commands_through_then_refills() {
+        let now = Instant::now();
+        let mut budget = CommandBudget::new(now);
+        assert!((0..20).all(|_| budget.spend(now)));
+        assert!(!budget.spend(now));
+        assert!(budget.first_overflow());
+        assert!(!budget.first_overflow());
+        let later = now + Duration::from_millis(100);
+        assert!(budget.spend(later) && budget.spend(later), "20 a second");
+        assert!(!budget.spend(later));
+        let idle = now + Duration::from_secs(5);
+        assert!((0..20).all(|_| budget.spend(idle)));
+        assert!(!budget.spend(idle), "never more than one burst saved up");
     }
 
     #[test]

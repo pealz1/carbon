@@ -1,6 +1,6 @@
 //! The socket.io server (websocket transport only) and the embedded remote web app.
 //! Knows nothing about Tauri: state comes in on a watch channel, commands go out to a sink.
-use super::guard::{Guard, Reject, Secrets, check_request};
+use super::guard::{CommandBudget, Guard, Reject, Secrets, check_request};
 use super::{assets, http};
 use super::protocol::{self, COMMAND_EVENTS, Hello, RemoteState};
 use crate::media_controls::MediaCommand;
@@ -95,9 +95,14 @@ impl Shared {
         if s.emit("hello", &hello).and_then(|_| s.emit("state", &current)).is_err() {
             eprintln!("[remote] could not greet {}", s.id);
         }
+        let budget = Arc::new(Mutex::new(CommandBudget::new(Instant::now())));
         for event in COMMAND_EVENTS {
             let sink = self.ctx.on_command.clone();
+            let (budget, id) = (budget.clone(), s.id);
             s.on(event, async move |TryData(data): TryData<serde_json::Value>| {
+                if !spend(&budget, id) {
+                    return;
+                }
                 if let Some(command) = protocol::parse_command(event, data.ok().as_ref()) {
                     sink(command);
                 }
@@ -110,6 +115,16 @@ impl Shared {
         });
         (self.ctx.on_change)();
     }
+}
+
+/// Takes one command from a remote's budget. The excess is dropped silently, logged once.
+fn spend(budget: &Mutex<CommandBudget>, id: Sid) -> bool {
+    let mut budget = lock(budget);
+    let allowed = budget.spend(Instant::now());
+    if !allowed && budget.first_overflow() {
+        eprintln!("[remote] {id} is sending commands too fast; dropping the excess");
+    }
+    allowed
 }
 
 fn register(io: &SocketIo, shared: Arc<Shared>) {

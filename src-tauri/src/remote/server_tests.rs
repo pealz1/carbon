@@ -142,6 +142,19 @@ async fn greets_lists_the_device_and_forwards_only_valid_commands() {
 }
 
 #[tokio::test]
+async fn drops_commands_beyond_a_burst() {
+    let h = harness().await;
+    let mut ws = paired(&h).await;
+    for _ in 0..40 {
+        ws.send(Message::text(r#"42["play"]"#)).await.unwrap();
+    }
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    let forwarded = h.commands.lock().unwrap().len();
+    assert!((20..30).contains(&forwarded), "{forwarded} of 40 got through");
+    h.server.stop().await;
+}
+
+#[tokio::test]
 async fn pushes_changes_now_and_position_ticks_at_most_once_a_second() {
     let h = harness().await;
     let mut ws = paired(&h).await;

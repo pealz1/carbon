@@ -108,7 +108,8 @@ result. Anything else, and any command whose payload doesn't validate, is silent
 | `repeat` | `{ "mode": "off" \| "context" \| "track" }` | |
 | `playUri` | `{ "uri": string }` | `spotify:<track\|album\|playlist\|artist>:<22 letters or digits>`. Tracks play on their own; the rest play as a context. |
 
-Messages larger than 4 KB close the connection.
+Each connection may send 20 commands at once, then 20 a second; the excess is dropped. Messages
+larger than 4 KB close the connection.
 
 ## Versioning
 
