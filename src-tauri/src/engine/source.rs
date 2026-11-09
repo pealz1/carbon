@@ -125,7 +125,7 @@ mod tests {
                 break;
             }
         }
-        assert!((total as i64 - 48_000).abs() < 1200, "{total}");
+        assert!((total as i64 - 48_000).abs() <= 2, "{total}"); // exact length keeps albums gapless
         assert_eq!(s.remaining_frames(), Some(0));
         let _ = std::fs::remove_file(path);
     }
