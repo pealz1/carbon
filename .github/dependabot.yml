@@ -9,6 +9,14 @@ updates:
         patterns: ["@tauri-apps/*"]
       svelte:
         patterns: ["svelte", "@sveltejs/*", "svelte-check"]
+    ignore:
+      # Majors that need a deliberate migration (SvelteKit 3 config move; TypeScript 7 once Kit supports it).
+      - dependency-name: "@sveltejs/kit"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@sveltejs/adapter-static"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: cargo
     directory: /src-tauri
     schedule:
@@ -20,3 +28,7 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    ignore:
+      # Adopted alongside a test release, since CI doesn't exercise the release action.
+      - dependency-name: "tauri-apps/tauri-action"
+        update-types: ["version-update:semver-major"]
