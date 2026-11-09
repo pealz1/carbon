@@ -158,4 +158,70 @@ describe("endpoints", () => {
     expect(bodies[1].uris).toHaveLength(50);
     expect(bodies[2]).toEqual({ items: [{ uri: "spotify:track:1" }] });
   });
+
+  it("maps the profile, top lists, playlists and saved albums", async () => {
+    vi.stubGlobal(
+      "fetch",
+      routes({
+        "/me": { id: "me", display_name: null, images: [] },
+        "/me/top/tracks": { items: [track("t1")], next: null },
+        "/me/top/artists": { items: [{ id: "a1", name: "Artist", uri: "spotify:artist:a1" }], next: null },
+        "/me/playlists": { items: [{ id: "p1", uri: "spotify:playlist:p1", name: "Mine", owner: { id: "me" }, collaborative: true }, null], next: null, total: 1 },
+        "/me/albums": { items: [{ album: { id: "al1", name: "Album", uri: "spotify:album:al1" } }], next: null, total: 1 },
+        "/me/following": { artists: { items: [{ id: "a2", name: "Followed", uri: "spotify:artist:a2" }], next: null } },
+      }),
+    );
+    expect(await sp.me()).toEqual({ id: "me", name: "me", image: null });
+    expect((await sp.topTracks()).map((t) => t.id)).toEqual(["t1"]);
+    expect((await sp.topArtists())[0]).toMatchObject({ kind: "artist", title: "Artist" });
+    expect(await sp.myPlaylists()).toMatchObject({ items: [{ id: "p1", collaborative: true, public: null }], nextOffset: null });
+    expect((await sp.savedAlbums()).items[0]).toMatchObject({ kind: "album", id: "al1" });
+    expect((await sp.followedArtists())[0].title).toBe("Followed");
+  });
+
+  it("reads playlists, their items and albums", async () => {
+    vi.stubGlobal(
+      "fetch",
+      routes({
+        "/playlists/p9": { id: "p9", uri: "spotify:playlist:p9", name: "P", public: true, images: [{ url: "big", width: 640 }] },
+        "/playlists/p9/items": { items: [{ item: track("t1") }, { item: null }], next: null, total: 2 },
+        "/albums/al9": {
+          id: "al9",
+          uri: "spotify:album:al9",
+          name: "LP",
+          release_date: "1997-05-21",
+          artists: [{ id: "a1", name: "Artist", uri: "spotify:artist:a1" }],
+          tracks: { items: [{ ...track("t2"), album: undefined }], next: null },
+        },
+      }),
+    );
+    expect(await sp.playlist("p9")).toMatchObject({ id: "p9", public: true, largeImage: "big" });
+    expect((await sp.playlistTracks("p9")).items.map((t) => t.id)).toEqual(["t1"]);
+    const album = await sp.album("al9");
+    expect(album).toMatchObject({ year: "1997", type: "album", artists: [{ id: "a1" }] });
+    expect(album.tracks[0].album?.id).toBe("al9");
+  });
+
+  it("reads the queue and sends player commands to Carbon's device", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) =>
+      new URL(String(input)).pathname.endsWith("/me/player/queue") && _init?.method === "GET"
+        ? new Response(JSON.stringify({ queue: [track("q1")] }))
+        : new Response(null, { status: 204 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    expect((await sp.queue()).map((t) => t.id)).toEqual(["q1"]);
+    await sp.playOn("dev", { context_uri: "spotify:album:al1" });
+    await sp.setShuffle(true, "dev");
+    await sp.setRepeat("track", "dev");
+    await sp.transferTo("dev", false);
+    await sp.addToQueue("spotify:track:x", "dev");
+    const sent = fetchMock.mock.calls.slice(1).map(([input, init]) => `${init?.method} ${new URL(String(input)).pathname}?${new URL(String(input)).searchParams}`);
+    expect(sent).toEqual([
+      "PUT /v1/me/player/play?device_id=dev",
+      "PUT /v1/me/player/shuffle?state=true&device_id=dev",
+      "PUT /v1/me/player/repeat?state=track&device_id=dev",
+      "PUT /v1/me/player?",
+      "POST /v1/me/player/queue?uri=spotify%3Atrack%3Ax&device_id=dev",
+    ]);
+  });
 });

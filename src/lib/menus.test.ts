@@ -204,3 +204,43 @@ describe("cardMenu", () => {
     expect(find(cardMenu(card("playlist", "nowhere")), "Save to library")).toBeDefined();
   });
 });
+
+describe("album, artist and folder menus", () => {
+  it("queues and files a whole album when its songs are known", async () => {
+    const { albumMenu, artistMenu } = await import("./menus");
+    const album = { kind: "album" as const, id: "al1", uri: "spotify:album:al1", title: "OK", subtitle: "", image: null, playUri: "spotify:album:al1" };
+    const menu = albumMenu(album, [track]);
+    expect(items(menu).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Add to queue", "Add to playlist", "Save to library", "Copy Spotify link"]);
+    find(menu, "Play")!.action!();
+    expect(player.playContext).toHaveBeenCalledWith("spotify:album:al1");
+    find(menu, "Shuffle play")!.action!();
+    expect(player.shufflePlay).toHaveBeenCalledWith("spotify:album:al1", 1);
+    await find(menu, "Add to queue")!.action!();
+    expect(player.addToQueue).toHaveBeenCalledWith("spotify:track:t1");
+    const artist = artistMenu({ ...album, kind: "artist", id: "a1", uri: "spotify:artist:a1" });
+    find(artist, "Go to artist")!.action!();
+    expect(goto).toHaveBeenCalledWith("/artist/a1");
+  });
+
+  it("stops queueing at the first failure without claiming success", async () => {
+    vi.mocked(player.addToQueue).mockResolvedValueOnce(false);
+    const before = toasts.items.length;
+    await find(trackMenu(track), "Add to queue")!.action!();
+    expect(toasts.items.length).toBe(before);
+  });
+
+  it("creates subfolders and renames folders", async () => {
+    await organizer.change((lib) => ({ ...lib, folders: [{ id: "f9", name: "Moods", collapsed: false, folders: [], playlists: [] }] }));
+    const menu = folderMenu(organizer.data.folders[0]);
+    find(menu, "New folder inside…")!.action!();
+    expect(dialogs.folder).toEqual({ mode: "create", parentId: "f9" });
+    find(menu, "Rename…")!.action!();
+    expect(dialogs.folder).toMatchObject({ mode: "rename", folder: { id: "f9" } });
+  });
+
+  it("removes a followed playlist from the library", async () => {
+    await find(playlistMenu(playlist("theirs", "friend")), "Remove from library")!.action!();
+    expect(sp.deletePlaylist).toHaveBeenCalledWith("theirs");
+  });
+});
+
