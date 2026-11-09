@@ -1,0 +1,38 @@
+// Reactive copy of the Rust-owned settings, applied to the document as data attributes.
+import { describeError } from "$lib/errors";
+import { getSettings, saveSettings, type Settings } from "$lib/native";
+
+class Preferences {
+  value = $state<Settings | null>(null);
+  error = $state<string | null>(null);
+
+  async load(): Promise<Settings> {
+    this.value = await getSettings();
+    this.#apply();
+    return this.value;
+  }
+
+  async update(patch: Partial<Settings>): Promise<boolean> {
+    if (!this.value) return false;
+    try {
+      this.value = await saveSettings({ ...this.value, ...patch });
+      this.error = null;
+      this.#apply();
+      return true;
+    } catch (e) {
+      console.error("[settings]", e);
+      this.error = describeError(e);
+      return false;
+    }
+  }
+
+  #apply(): void {
+    if (!this.value) return;
+    const root = document.documentElement;
+    root.dataset.accent = this.value.accent;
+    root.dataset.effects = this.value.effects;
+    root.style.setProperty("--lyrics-scale", String(this.value.lyricsScale));
+  }
+}
+
+export const prefs = new Preferences();

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup help (Spotify Client ID)
+    url: https://getcarbon.cc/setup
+    about: Most sign-in problems are solved by the setup guide.
+  - name: Security issue
+    url: https://github.com/pealz1/carbon/security/advisories/new
+    about: Please report vulnerabilities privately.

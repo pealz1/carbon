@@ -1,0 +1,81 @@
+//! What's playing, as reported by the webview player. Fanned out to the OS media controls,
+//! tray, Discord and Last.fm.
+use serde::{Deserialize, Serialize};
+
+const MAX_TEXT: usize = 512;
+const MAX_DURATION_MS: u64 = 24 * 60 * 60 * 1000;
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaybackInfo {
+    pub track_id: String,
+    pub title: String,
+    pub artists: Vec<String>,
+    pub album: String,
+    pub artwork_url: Option<String>,
+    pub duration_ms: u64,
+    pub position_ms: u64,
+    pub paused: bool,
+}
+
+impl PlaybackInfo {
+    /// Bounds-checks data arriving from the webview before it reaches the OS or the network.
+    pub fn validate(&self) -> Result<(), String> {
+        let texts = [&self.track_id, &self.title, &self.album].into_iter().chain(self.artists.iter());
+        if texts.into_iter().any(|t| t.len() > MAX_TEXT) || self.artists.len() > 32 {
+            return Err("playback info is too large".into());
+        }
+        if self.track_id.is_empty() || self.title.is_empty() {
+            return Err("playback info is missing a track".into());
+        }
+        if self.duration_ms > MAX_DURATION_MS || self.position_ms > self.duration_ms.saturating_add(5_000) {
+            return Err("playback timing is out of range".into());
+        }
+        if let Some(url) = &self.artwork_url
+            && (!url.starts_with("https://") || url.len() > MAX_TEXT)
+        {
+            return Err("artwork must be an https URL".into());
+        }
+        Ok(())
+    }
+
+    pub fn artist_line(&self) -> String {
+        self.artists.join(", ")
+    }
+}
+
+#[cfg(test)]
+pub fn sample(track_id: &str, duration_ms: u64, position_ms: u64, paused: bool) -> PlaybackInfo {
+    PlaybackInfo {
+        track_id: track_id.into(),
+        title: "No Surprises".into(),
+        artists: vec!["Radiohead".into()],
+        album: "OK Computer".into(),
+        artwork_url: Some("https://i.scdn.co/image/abc".into()),
+        duration_ms,
+        position_ms,
+        paused,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_normal_playback() {
+        assert!(sample("t1", 229_000, 10_000, false).validate().is_ok());
+    }
+
+    #[test]
+    fn rejects_bad_input() {
+        let mut info = sample("t1", 229_000, 10_000, false);
+        info.artwork_url = Some("http://insecure".into());
+        assert!(info.validate().is_err());
+        assert!(sample("", 1000, 0, false).validate().is_err());
+        assert!(sample("t1", 1000, 60_000, false).validate().is_err());
+        let mut long = sample("t1", 1000, 0, false);
+        long.title = "x".repeat(MAX_TEXT + 1);
+        assert!(long.validate().is_err());
+    }
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Carbon",
+  "version": "0.2.0",
+  "identifier": "com.pealz.carbon",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Carbon",
+        "width": 1320,
+        "height": 840,
+        "minWidth": 980,
+        "minHeight": 640,
+        "center": true,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "theme": "Dark",
+        "windowEffects": { "effects": ["micaDark"] },
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,HardwareMediaKeyHandling --autoplay-policy=no-user-gesture-required"
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self' https://sdk.scdn.co",
+        "frame-src": "https://sdk.scdn.co",
+        "connect-src": "'self' ipc: http://ipc.localhost https://api.spotify.com https://accounts.spotify.com https://lrclib.net",
+        "img-src": "'self' data: blob: https:",
+        "media-src": "'self' blob: https:",
+        "style-src": "'self' 'unsafe-inline'",
+        "font-src": "'self' data:"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "publisher": "Carbon",
+    "homepage": "https://getcarbon.cc",
+    "copyright": "© 2026 Carbon contributors",
+    "category": "Music",
+    "shortDescription": "A fast, beautiful Spotify client",
+    "longDescription": "Carbon is a fast, liquid-glass Spotify client for Windows with synced lyrics, Discord status and Last.fm scrobbling.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "startMenuFolder": "Carbon"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUyQjZCREY5Nzk5NDREMDUKUldRRlRaUjUrYjIyVXRURDU1TEJ0Nk1pR1lNYkRQOGJUeWVMNGIyVHNHWk5LL0RuZ2duMHdMZ24K",
+      "endpoints": ["https://github.com/pealz1/carbon/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  }
+}

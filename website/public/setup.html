@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup guide: create your Spotify Client ID · Carbon</title>
+  <meta name="description" content="Create your own free Spotify Client ID for Carbon in about two minutes: make a developer app, set the redirect URI, and paste the Client ID into Carbon.">
+  <link rel="canonical" href="https://getcarbon.cc/setup">
+  <meta name="theme-color" content="#0b0c0f">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&amp;family=Instrument+Sans:wght@400..600&amp;display=swap">
+  <link rel="stylesheet" href="/assets/site.css?v=1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Carbon">
+  <meta property="og:title" content="Set up Carbon: create your Spotify Client ID">
+  <meta property="og:description" content="Three steps, about two minutes. Make a free Spotify developer app and paste its Client ID into Carbon.">
+  <meta property="og:url" content="https://getcarbon.cc/setup">
+  <meta property="og:image" content="https://getcarbon.cc/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The Carbon logo and app window on a dark graphite background.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Set up Carbon: create your Spotify Client ID">
+  <meta name="twitter:description" content="Three steps, about two minutes. Make a free Spotify developer app and paste its Client ID into Carbon.">
+  <meta name="twitter:image" content="https://getcarbon.cc/assets/og.png">
+  <meta name="twitter:image:alt" content="The Carbon logo and app window on a dark graphite background.">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="wrap nav" aria-label="Primary">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="34" height="34" alt="">carbon</a>
+      <ul class="nav__links">
+        <li class="hide-sm"><a href="/#features">Features</a></li>
+        <li><a href="/setup" aria-current="page">Setup</a></li>
+        <li class="hide-sm"><a href="/#faq">FAQ</a></li>
+      </ul>
+      <a class="btn btn--primary btn--sm" href="https://github.com/pealz1/carbon/releases/latest">Download</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="wrap page-hero" aria-labelledby="page-title">
+      <h1 class="page-title" id="page-title">Make your own<br><em class="iris">Client ID.</em></h1>
+      <p class="lead">Carbon connects to Spotify through a developer app that you own. Creating one is free and takes about two minutes.</p>
+      <aside class="why glass" aria-labelledby="why-title">
+        <h2 id="why-title">Why not one shared ID?</h2>
+        <p>Spotify’s 2026 developer rules limit each developer app (each Client ID) to 5 users. A shared ID would fill up after five people, so every Carbon listener creates their own.</p>
+      </aside>
+      <p class="muted">You’ll need a Spotify Premium account. Spotify requires Premium for developer apps, and for playback in Carbon.</p>
+    </section>
+
+    <ol class="wrap guide">
+      <li class="guide__step" id="step-1">
+        <div class="guide__body">
+          <h2>Open the Spotify developer dashboard</h2>
+          <p class="prose">Go to <a href="https://developer.spotify.com/dashboard">developer.spotify.com/dashboard</a> and log in with your Spotify account.</p>
+        </div>
+      </li>
+
+      <li class="guide__step" id="step-2">
+        <div class="guide__body">
+          <h2>Create an app</h2>
+          <p>Choose <strong>Create app</strong> and fill in the form like this:</p>
+          <dl class="form-mock glass">
+            <div>
+              <dt>App name</dt>
+              <dd>Anything, for example “My Carbon”</dd>
+            </div>
+            <div>
+              <dt>App description</dt>
+              <dd>Anything you like</dd>
+            </div>
+            <div class="is-key">
+              <dt>Redirect URI</dt>
+              <dd>
+                <code class="uri">http://127.0.0.1:8888/callback</code>
+                <small>Copy it exactly: <code>127.0.0.1</code>, not <code>localhost</code>, and no trailing slash.</small>
+              </dd>
+            </div>
+            <div>
+              <dt>APIs used</dt>
+              <dd class="checks"><span class="check">Web API</span><span class="check">Web Playback SDK</span></dd>
+            </div>
+          </dl>
+          <p>Accept Spotify’s developer terms, then <strong>Save</strong>.</p>
+        </div>
+      </li>
+
+      <li class="guide__step" id="step-3">
+        <div class="guide__body">
+          <h2>Copy your Client ID into Carbon</h2>
+          <ol>
+            <li>Open your new app and go to its <strong>Settings</strong>.</li>
+            <li>Copy the <strong>Client ID</strong>.</li>
+            <li>Start Carbon and paste it in when it asks on first launch.</li>
+          </ol>
+          <p class="warn"><strong>Client ID, not Client secret.</strong> Carbon never needs the secret, so leave it hidden and don’t paste it anywhere.</p>
+        </div>
+      </li>
+    </ol>
+
+    <section class="wrap extras" aria-labelledby="extras-title">
+      <header class="section-head">
+        <p class="kicker"><span class="kicker__n">+</span> Optional</p>
+        <h2 class="h1" id="extras-title">Nice extras.</h2>
+      </header>
+      <div class="extras__list">
+        <div class="glass">
+          <h3>Discord presence</h3>
+          <p>Works automatically when the Discord desktop app is open. Your profile shows “Listening to…” with what’s playing.</p>
+        </div>
+        <div class="glass">
+          <h3>Last.fm scrobbling</h3>
+          <p>Connect your Last.fm account from Carbon’s Settings. Nothing is sent to Last.fm until you do.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap help" aria-label="Get help">
+      <p class="prose">Stuck on a step? <a href="https://github.com/pealz1/carbon/issues">Open an issue on GitHub</a> and say where it went wrong.</p>
+      <a class="btn btn--primary" href="https://github.com/pealz1/carbon/releases/latest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
+        Download for Windows
+      </a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer__grid">
+      <div class="footer__brand">
+        <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="34" height="34" alt="" loading="lazy">carbon</a>
+        <p>A free, open-source Spotify client for Windows.</p>
+      </div>
+      <nav aria-label="Footer">
+        <ul class="footer__links">
+          <li><a href="https://github.com/pealz1/carbon/releases/latest">Download</a></li>
+          <li><a href="/setup">Setup guide</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="https://github.com/pealz1/carbon">Source code</a></li>
+          <li><a href="https://github.com/pealz1/carbon/issues">Report an issue</a></li>
+        </ul>
+      </nav>
+      <p class="disclaimer">Carbon is an independent project. It is not affiliated with, endorsed by, or sponsored by Spotify. Spotify is a trademark of Spotify AB.</p>
+    </div>
+    <p class="footer__mega" aria-hidden="true">carbon</p>
+  </footer>
+</body>
+</html>

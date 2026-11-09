@@ -1,0 +1,16 @@
+{
+  // Static-assets-only Worker for https://getcarbon.cc
+  "name": "carbon-site",
+  "account_id": "8c28d68df63ec3278045b5cc68a0bba5",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "getcarbon.cc", "custom_domain": true },
+    { "pattern": "www.getcarbon.cc", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  }
+}

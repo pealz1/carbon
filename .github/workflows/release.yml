@@ -1,0 +1,52 @@
+name: Release
+
+# Push a tag like v0.2.0 to build the signed Windows installer, publish it as a GitHub release
+# and update latest.json, which installed copies of Carbon check for updates.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # Integration keys are baked in at build time from repository secrets (never committed).
+      - name: Write build keys
+        shell: bash
+        run: |
+          {
+            echo "CARBON_DISCORD_APP_ID=${{ secrets.CARBON_DISCORD_APP_ID }}"
+            echo "CARBON_LASTFM_API_KEY=${{ secrets.CARBON_LASTFM_API_KEY }}"
+            echo "CARBON_LASTFM_SECRET=${{ secrets.CARBON_LASTFM_SECRET }}"
+          } > .env.local
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Carbon ${{ github.ref_name }}
+          releaseBody: See the changelog below, and https://getcarbon.cc for setup help.
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true

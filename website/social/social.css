@@ -1,0 +1,91 @@
+/* Styles for the social/icon render templates only (not deployed). */
+:root {
+  --c-base: #0b0c0f;
+  --c-ink: #f1f1f4;
+  --c-white: #fff;
+  --c-black: #000;
+  --c-cyan: #7fe7ff;
+  --c-violet: #a99cff;
+  --c-pink: #ff8ad4;
+  --c-icon-top: #23242e;
+  --c-icon-bottom: #08090c;
+  --c-aura: #6e5bff;
+  --grad-brand: linear-gradient(115deg, var(--c-cyan), var(--c-violet) 48%, var(--c-pink));
+  --c-line: color-mix(in srgb, var(--c-white) 17%, transparent);
+  --c-glass: color-mix(in srgb, var(--c-white) 7%, transparent);
+  --c-shadow: color-mix(in srgb, var(--c-black) 75%, transparent);
+  --font-display: "Bricolage Grotesque", sans-serif;
+  --font-text: "Instrument Sans", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; }
+body { position: relative; overflow: hidden; background: var(--c-base); color: var(--c-ink); }
+body::after { content: ""; position: absolute; inset: 0; background: url("../public/assets/grain.svg"); opacity: 0.05; pointer-events: none; }
+
+.beams span {
+  position: absolute;
+  width: 1500px;
+  height: 46px;
+  border-radius: 999px;
+  background: var(--grad-brand);
+  filter: blur(46px);
+  opacity: 0.32;
+  transform: rotate(-17deg);
+}
+.beams span:nth-child(1) { left: 260px; top: 300px; }
+.beams span:nth-child(2) { left: 360px; top: 380px; height: 16px; filter: blur(16px); opacity: 0.4; }
+.beams span:nth-child(3) { left: 160px; top: 470px; height: 90px; opacity: 0.16; }
+
+.copy { position: absolute; z-index: 2; }
+.brand { display: flex; align-items: center; gap: 12px; font: 800 52px / 1 var(--font-display); letter-spacing: -0.045em; }
+.brand img { width: 64px; height: 64px; }
+h1 { margin-top: 40px; font: 800 96px / 0.92 var(--font-display); font-stretch: 92%; letter-spacing: -0.03em; }
+h1 .indent { display: inline-block; padding-left: 0.9em; }
+h1 em {
+  font-style: normal;
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.sub { margin-top: 34px; font: 500 26px / 1.4 var(--font-text); color: color-mix(in srgb, var(--c-ink) 74%, transparent); }
+
+.frame {
+  position: absolute;
+  z-index: 1;
+  padding: 10px;
+  border-radius: 28px;
+  border: 1px solid var(--c-line);
+  background: linear-gradient(180deg, var(--c-glass), transparent 50%);
+  box-shadow: inset 0 1px 0 var(--c-line), 0 60px 120px -30px var(--c-shadow);
+  transform: perspective(1800px) rotateY(-16deg) rotateX(5deg);
+  transform-origin: left center;
+}
+.frame img { display: block; width: 100%; border-radius: 19px; }
+
+/* 1200 x 630 Open Graph */
+.og { width: 1200px; height: 630px; }
+.og .copy { left: 72px; top: 64px; }
+.og .frame { left: 690px; top: 120px; width: 860px; }
+
+/* 1280 x 640 GitHub social preview: text sits inside the central safe area */
+.gh { width: 1280px; height: 640px; }
+.gh .copy { left: 150px; top: 92px; }
+.gh .brand { font-size: 48px; }
+.gh .brand img { width: 58px; height: 58px; }
+.gh h1 { font-size: 92px; }
+.gh .sub { font-size: 25px; }
+.gh .frame { left: 760px; top: 130px; width: 780px; }
+.gh .beams span:nth-child(1) { left: 330px; }
+
+/* 180 x 180 apple-touch-icon */
+.icon {
+  width: 180px;
+  height: 180px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--c-aura) 45%, transparent), transparent 70%),
+    linear-gradient(135deg, var(--c-icon-top), var(--c-icon-bottom));
+}
+.icon::after { display: none; }
+.icon img { width: 136px; height: 136px; }
