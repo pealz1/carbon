@@ -33,7 +33,7 @@
         "default-src": "'self'",
         "script-src": "'self' https://sdk.scdn.co",
         "frame-src": "https://sdk.scdn.co",
-        "connect-src": "'self' ipc: http://ipc.localhost https://api.spotify.com https://accounts.spotify.com https://lrclib.net",
+        "connect-src": "'self' ipc: http://ipc.localhost https://api.spotify.com https://accounts.spotify.com https://lrclib.net https://api.getcarbon.cc",
         "img-src": "'self' data: blob: https:",
         "media-src": "'self' blob: https:",
         "style-src": "'self' 'unsafe-inline'",

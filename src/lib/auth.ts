@@ -27,7 +27,7 @@ export function useClientId(id: string): void {
 
 export const hasClientId = (): boolean => clientId.length > 0;
 
-const withTimeout = <T>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+export const withTimeout = <T>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), ms))]);
 
 async function tokenRequest(params: Record<string, string>): Promise<TokenResponse> {

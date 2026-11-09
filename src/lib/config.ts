@@ -31,6 +31,17 @@ export const SPOTIFY = {
 
 export const LYRICS_URL = "https://lrclib.net/api";
 
+// Carbon accounts (cloud/API.md). Off unless a build sets VITE_REQUIRE_CARBON_ACCOUNT=true.
+// The CSP in tauri.conf.json only allows the default API host; a custom VITE_CARBON_API needs it too.
+export const REQUIRE_CARBON_ACCOUNT = import.meta.env.VITE_REQUIRE_CARBON_ACCOUNT === "true";
+export const CARBON = {
+  apiUrl: (import.meta.env.VITE_CARBON_API || "https://api.getcarbon.cc").replace(/\/+$/, ""),
+  loginUrl: "https://getcarbon.cc/app-login",
+  accountUrl: "https://getcarbon.cc/account",
+  // Must match the path wait_for_carbon_redirect listens on in src-tauri/src/oauth.rs.
+  redirectUri: "http://127.0.0.1:8888/carbon-callback",
+} as const;
+
 export const TIMING = {
   loginTimeoutMs: 300_000,
   sdkTimeoutMs: 20_000,

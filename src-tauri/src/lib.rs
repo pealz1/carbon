@@ -86,9 +86,13 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             playback_update,
             oauth::wait_for_oauth_redirect,
+            oauth::wait_for_carbon_redirect,
             token_store::token_load,
             token_store::token_save,
             token_store::token_clear,
+            token_store::carbon_token_load,
+            token_store::carbon_token_save,
+            token_store::carbon_token_clear,
             settings::settings_get,
             settings::settings_set,
             library::library_get,

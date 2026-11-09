@@ -39,11 +39,12 @@ pub fn uninstall(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Signs out of Spotify and Last.fm and deletes settings and folders. Credential Manager entries
+/// Signs out of Spotify, Carbon and Last.fm and deletes settings and folders. Credential Manager entries
 /// survive an uninstall, so this is the "leave nothing behind" option.
 #[tauri::command]
 pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     token_store::token_clear()?;
+    token_store::carbon_token_clear()?;
     lastfm::clear_session()?;
     library::delete(&app)?;
     settings::delete(&app)

@@ -3,7 +3,9 @@
   import { afterNavigate, onNavigate } from "$app/navigation";
   import { page } from "$app/state";
   import { onMount, type Snippet } from "svelte";
+  import { account } from "$lib/account.svelte";
   import Ambient from "$lib/components/Ambient.svelte";
+  import CarbonSignIn from "$lib/components/CarbonSignIn.svelte";
   import Cinema from "$lib/components/Cinema.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
@@ -28,9 +30,17 @@
   let main = $state<HTMLElement>();
 
   onMount(() => {
-    void session.boot();
+    void account.boot();
     void organizer.load();
     void view.syncFullscreen();
+  });
+
+  // Spotify starts once the Carbon account gate (if this build has one) is passed.
+  let spotifyStarted = false;
+  $effect(() => {
+    if (!account.open || spotifyStarted) return;
+    spotifyStarted = true;
+    void session.boot();
   });
   afterNavigate(() => main?.scrollTo({ top: 0 }));
 
@@ -52,7 +62,11 @@
 <LiquidFilter />
 <Ambient image={player.track?.album?.image ?? null} intense={page.url.pathname === "/now-playing"} />
 
-{#if session.status === "booting"}
+{#if account.required && account.status === "unknown"}
+  <div class="boot" data-tauri-drag-region><Logo size={56} /></div>
+{:else if !account.open}
+  <CarbonSignIn />
+{:else if session.status === "booting"}
   <div class="boot" data-tauri-drag-region><Logo size={56} /></div>
 {:else if session.status !== "signed-in"}
   <SignIn />
