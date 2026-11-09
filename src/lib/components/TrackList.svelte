@@ -1,7 +1,9 @@
 <script lang="ts">
   import { formatDuration } from "$lib/format";
+  import { hasPage } from "$lib/local/tracks";
   import { player } from "$lib/player.svelte";
   import type { Track } from "$lib/spotify/types";
+  import AddToCarbon from "./AddToCarbon.svelte";
   import Icon from "./Icon.svelte";
 
   let {
@@ -24,7 +26,7 @@
   function play(index: number) {
     const track = tracks[index];
     if (contextUri) player.playContext(contextUri, track.uri);
-    else player.playTracks(tracks.map((t) => t.uri), index);
+    else player.playTracks(tracks.map((t) => t.uri), index, tracks);
   }
 </script>
 
@@ -51,17 +53,18 @@
           </span>
           <span class="artists">
             {#each track.artists as artist, j (artist.uri)}
-              {#if j > 0}{", "}{/if}<a href="/artist/{artist.id}">{artist.name}</a>
+              {#if j > 0}{", "}{/if}{#if hasPage(artist)}<a href="/artist/{artist.id}">{artist.name}</a>{:else}{artist.name}{/if}
             {/each}
           </span>
         </div>
       </div>
       {#if showAlbum}
         <span class="album">
-          {#if track.album}<a href="/album/{track.album.id}">{track.album.name}</a>{/if}
+          {#if hasPage(track.album)}<a href="/album/{track.album?.id}">{track.album?.name}</a>{:else}{track.album?.name ?? ""}{/if}
         </span>
       {/if}
-      <button class="queue-btn" onclick={() => player.addToQueue(track.uri)} aria-label="Add {track.name} to queue" title="Add to queue">
+      <span class="carbon-btn"><AddToCarbon tracks={[track]} /></span>
+      <button class="queue-btn" onclick={() => player.addToQueue(track.uri, track)} aria-label="Add {track.name} to queue" title="Add to queue">
         <Icon name="plus" size={16} />
       </button>
       <span class="duration tabular">{formatDuration(track.durationMs)}</span>
@@ -78,7 +81,7 @@
 
   .row {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) 32px 52px;
+    grid-template-columns: 36px minmax(0, 1fr) 28px 32px 52px;
     align-items: center;
     gap: var(--sp-3);
     height: 56px;
@@ -90,12 +93,12 @@
   }
 
   .with-album .row {
-    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 32px 52px;
+    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 28px 32px 52px;
   }
 
   .compact .row {
     height: 50px;
-    grid-template-columns: 28px minmax(0, 1fr) 28px 44px;
+    grid-template-columns: 28px minmax(0, 1fr) 28px 28px 44px;
     gap: var(--sp-2);
   }
 
@@ -238,6 +241,13 @@
     transition: opacity var(--dur-fast);
   }
 
+  .carbon-btn {
+    opacity: 0;
+    transition: opacity var(--dur-fast);
+  }
+
+  .row:hover .carbon-btn,
+  .carbon-btn:focus-within,
   .row:hover .queue-btn,
   .queue-btn:focus-visible {
     opacity: 1;

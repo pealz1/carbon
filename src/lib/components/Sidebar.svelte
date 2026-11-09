@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import { onMount } from "svelte";
+  import { carbonPlaylists } from "$lib/local/playlists.svelte";
   import { player } from "$lib/player.svelte";
   import { session } from "$lib/session.svelte";
   import Icon, { type IconName } from "./Icon.svelte";
@@ -10,7 +13,16 @@
     { href: "/", label: "Home", icon: "home" },
     { href: "/search", label: "Search", icon: "search" },
     { href: "/library", label: "Library", icon: "library" },
+    { href: "/local", label: "Local files", icon: "folder" },
+    { href: "/sound", label: "Sound", icon: "equalizer" },
   ];
+
+  onMount(() => void carbonPlaylists.load());
+
+  async function newPlaylist() {
+    const id = await carbonPlaylists.create("New playlist");
+    if (id) void goto(`/carbon/${id}`);
+  }
 
   const path = $derived(page.url.pathname);
   const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
@@ -37,6 +49,16 @@
       <span class="liked-tile"><Icon name="heart" size={15} filled /></span>
       <span class="name">Liked Songs</span>
     </a>
+    {#each carbonPlaylists.list as playlist (playlist.id)}
+      <a href="/carbon/{playlist.id}" class="row" class:active={path === `/carbon/${playlist.id}`}>
+        <span class="carbon-tile"><Icon name="listAdd" size={15} /></span>
+        <span class="name">{playlist.name}</span>
+      </a>
+    {/each}
+    <button class="row new" onclick={newPlaylist}>
+      <span class="carbon-tile ghost"><Icon name="plus" size={15} /></span>
+      <span class="name">New Carbon playlist</span>
+    </button>
     {#each session.playlists as playlist (playlist.id)}
       <a href="/playlist/{playlist.id}" class="row" class:active={path === `/playlist/${playlist.id}`}>
         {#if playlist.image}
@@ -165,6 +187,29 @@
 
   .blank-tile {
     background: var(--glass-hover);
+  }
+
+  .carbon-tile {
+    width: 32px;
+    height: 32px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-sm);
+    background: var(--glass-active);
+    color: var(--accent);
+    box-shadow: 0 1px 0 0 var(--glass-edge-top) inset;
+  }
+
+  .carbon-tile.ghost {
+    background: none;
+    border: 1px dashed var(--glass-edge-top);
+    box-shadow: none;
+  }
+
+  .row.new {
+    width: 100%;
+    text-align: left;
   }
 
   .liked-tile {
