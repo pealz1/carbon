@@ -31,8 +31,9 @@ class Saved {
 
   async #flush(): Promise<void> {
     this.#timer = null;
-    const batch = [...this.#pending];
+    const batch = [...this.#pending].filter((uri) => !this.#known.has(uri)); // remember() may have answered meanwhile
     this.#pending.clear();
+    if (!batch.length) return;
     try {
       const found = await sp.isSaved(batch);
       batch.forEach((uri, i) => this.#known.set(uri, found[i]));

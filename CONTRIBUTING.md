@@ -29,6 +29,10 @@ Create a `.env.local` in the repo root (it's gitignored). Everything is optional
 # Skip the in-app Client ID step while developing
 VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id
 
+# Carbon accounts (off by default; the backend isn't live yet)
+VITE_REQUIRE_CARBON_ACCOUNT=false
+# VITE_CARBON_API=https://api.getcarbon.cc   (another host must also be added to the CSP in tauri.conf.json)
+
 # Enable integrations in your local build
 CARBON_DISCORD_APP_ID=
 CARBON_LASTFM_API_KEY=

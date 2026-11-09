@@ -30,6 +30,14 @@ describe("saved", () => {
     expect(sp.isSaved).toHaveBeenCalledTimes(1);
   });
 
+  it("skips the call when a list answered while it was queued", async () => {
+    saved.want(["spotify:track:q"]);
+    saved.remember(["spotify:track:q"], true);
+    await vi.runAllTimersAsync();
+    expect(sp.isSaved).not.toHaveBeenCalled();
+    expect(saved.has("spotify:track:q")).toBe(true);
+  });
+
   it("leaves items unknown when the check fails, so they're asked again later", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.mocked(sp.isSaved).mockRejectedValueOnce(new Error("offline"));
