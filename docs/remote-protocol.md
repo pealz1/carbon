@@ -14,6 +14,7 @@ The server is **off by default**. Turn it on in **Settings → Remote**.
 | Address | `ws://<pc-ip>:<port>/socket.io/`, default port **10767** (configurable, 1024–65535). Bound to all interfaces, but only private, loopback and link-local peers are accepted. Connect by **IP address**: a request whose `Host` header is a name (`localhost`, `mypc.local`, …) or another port gets HTTP 403, which keeps DNS-rebinding websites out. |
 | Browsers | A request that carries an `Origin` header must come from the remote's own page (`Origin` exactly `http://<Host>`), or it gets HTTP 403. This stops any website you visit from reaching Carbon, and it also refuses pages opened from files or other servers, such as an OBS browser source. Native clients (Node, Python, …) send no `Origin` and are unaffected. |
 | Namespace | `/` |
+| Limits | At most 16 open connections per address; more are closed straight away. Request headers must arrive within 5 seconds, and idle HTTP connections close after 5 seconds. |
 | Auth | `auth: { token: string, name?: string }` in the handshake. `token` is either the 32-character developer token or the 6-digit pairing code from Settings → Remote. `name` (up to 40 characters) labels the device in Carbon. |
 | Web app | `GET /` serves the phone remote. The QR code in Settings opens `http://<pc-ip>:<port>/#token=<token>`. |
 

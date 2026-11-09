@@ -2,6 +2,8 @@
 use super::*;
 use crate::playback::sample;
 use futures_util::{SinkExt, StreamExt};
+use std::net::Ipv4Addr;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
@@ -187,6 +189,49 @@ async fn disconnects_one_device_and_frees_the_port_on_stop() {
     let port = h.server.port;
     h.server.stop().await;
     assert!(std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).is_ok());
+}
+
+/// Whether the server hangs up on `stream` within `limit`.
+async fn hung_up(stream: &mut TcpStream, limit: Duration) -> bool {
+    let mut buf = [0u8; 256];
+    loop {
+        match tokio::time::timeout(limit, stream.read(&mut buf)).await {
+            Err(_) => return false,
+            Ok(Ok(0) | Err(_)) => return true,
+            Ok(Ok(_)) => {}
+        }
+    }
+}
+
+#[tokio::test]
+async fn caps_open_connections_per_peer() {
+    let h = harness().await;
+    let addr = (Ipv4Addr::LOCALHOST, h.server.port);
+    let mut open = Vec::new();
+    for _ in 0..super::http::MAX_CONNECTIONS_PER_PEER {
+        open.push(TcpStream::connect(addr).await.unwrap());
+    }
+    let mut extra = TcpStream::connect(addr).await.unwrap();
+    assert!(hung_up(&mut extra, Duration::from_secs(2)).await, "one over the cap");
+
+    let first = &mut open[0];
+    let request = format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nConnection: close\r\n\r\n", h.server.port);
+    first.write_all(request.as_bytes()).await.unwrap();
+    let mut reply = String::new();
+    tokio::time::timeout(WAIT, first.read_to_string(&mut reply)).await.unwrap().unwrap();
+    assert!(reply.starts_with("HTTP/1.1 200"), "{reply}");
+    h.server.stop().await;
+}
+
+#[tokio::test]
+async fn hangs_up_on_clients_that_never_finish_their_headers() {
+    let h = harness().await;
+    let mut slow = TcpStream::connect((Ipv4Addr::LOCALHOST, h.server.port)).await.unwrap();
+    slow.write_all(b"GET / HTTP/1.1\r\n").await.unwrap();
+    let started = Instant::now();
+    assert!(hung_up(&mut slow, super::http::HEADER_TIMEOUT + Duration::from_secs(2)).await);
+    assert!(started.elapsed() >= super::http::HEADER_TIMEOUT - Duration::from_millis(500), "too early");
+    h.server.stop().await;
 }
 
 #[test]
