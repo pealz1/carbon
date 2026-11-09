@@ -561,6 +561,8 @@ dependencies = [
  "ebur128",
  "futures-util",
  "getrandom 0.3.4",
+ "hyper",
+ "hyper-util",
  "keyring",
  "lofty",
  "md5",
@@ -583,6 +585,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tokio",
  "tokio-tungstenite",
+ "tower",
 ]
 
 [[package]]

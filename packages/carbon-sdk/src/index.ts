@@ -62,7 +62,7 @@ function toCarbonError(error: Error): CarbonError {
 }
 
 export interface ConnectOptions {
-  /** IP address or host name of the PC running Carbon, e.g. "192.168.1.20". */
+  /** IP address of the PC running Carbon, e.g. "192.168.1.20". Carbon refuses host names. */
   host: string;
   /** Defaults to 10767. */
   port?: number;

@@ -4,6 +4,7 @@ use crate::playback::sample;
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 type Ws = WebSocketStream<MaybeTlsStream<TcpStream>>;
@@ -42,10 +43,26 @@ async fn next_text(ws: &mut Ws) -> String {
     }
 }
 
+/// The websocket upgrade, sent with `origin` like a browser would; the HTTP status if refused.
+async fn upgrade(port: u16, origin: Option<&str>) -> Result<Ws, u16> {
+    let mut request = format!("ws://127.0.0.1:{port}/socket.io/?EIO=4&transport=websocket").into_client_request().unwrap();
+    if let Some(origin) = origin {
+        request.headers_mut().insert("origin", origin.parse().unwrap());
+    }
+    match connect_async(request).await {
+        Ok((ws, _)) => Ok(ws),
+        Err(tokio_tungstenite::tungstenite::Error::Http(response)) => Err(response.status().as_u16()),
+        Err(e) => panic!("upgrade failed: {e}"),
+    }
+}
+
 /// Opens an engine.io session and sends the socket.io CONNECT with `auth`; returns the reply.
 async fn pair(port: u16, auth: &str) -> (Ws, String) {
-    let url = format!("ws://127.0.0.1:{port}/socket.io/?EIO=4&transport=websocket");
-    let (mut ws, _) = connect_async(url).await.unwrap();
+    pair_from(port, None, auth).await
+}
+
+async fn pair_from(port: u16, origin: Option<&str>, auth: &str) -> (Ws, String) {
+    let mut ws = upgrade(port, origin).await.expect("upgrade refused");
     assert!(next_text(&mut ws).await.starts_with('0'), "engine.io open packet");
     ws.send(Message::text(format!("40{auth}"))).await.unwrap();
     let reply = next_text(&mut ws).await;
@@ -69,6 +86,24 @@ async fn serves_the_remote_app_with_security_headers() {
     assert!(page.headers()["content-type"].to_str().unwrap().starts_with("text/html"));
     assert!(page.headers()["content-security-policy"].to_str().unwrap().contains("script-src 'self'"));
     assert_eq!(reqwest::get(format!("{base}/nope")).await.unwrap().status(), 404);
+    h.server.stop().await;
+}
+
+#[tokio::test]
+async fn takes_its_own_page_and_turns_away_other_websites_and_rebound_names() {
+    let h = harness().await;
+    let port = h.server.port;
+    let auth = format!(r#"{{"token":"{}"}}"#, h.server.secrets().token);
+    let (_, reply) = pair_from(port, Some(&format!("http://127.0.0.1:{port}")), &auth).await;
+    assert!(reply.starts_with("40"), "own page: {reply}");
+    assert_eq!(upgrade(port, Some("http://evil.example")).await.err(), Some(403));
+    assert_eq!(upgrade(port, Some("null")).await.err(), Some(403));
+
+    let client = reqwest::Client::new();
+    let get = |host: String| client.get(format!("http://127.0.0.1:{port}/")).header("host", host).send();
+    assert_eq!(get(format!("evil.example:{port}")).await.unwrap().status(), 403);
+    assert_eq!(get(format!("127.0.0.1:{}", port.wrapping_add(1))).await.unwrap().status(), 403);
+    assert_eq!(get(format!("127.0.0.1:{port}")).await.unwrap().status(), 200);
     h.server.stop().await;
 }
 

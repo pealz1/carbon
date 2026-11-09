@@ -2,6 +2,7 @@
 //! Remotes see what's playing and send the few commands in `protocol`; nothing else.
 mod assets;
 mod guard;
+mod http;
 pub mod protocol;
 mod server;
 

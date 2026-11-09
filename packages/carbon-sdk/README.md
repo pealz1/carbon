@@ -40,7 +40,7 @@ try {
 
 | Option | Default | |
 | --- | --- | --- |
-| `host` | required | IP address or host name of the PC running Carbon. |
+| `host` | required | IP address of the PC running Carbon. Carbon refuses host names such as `localhost`. |
 | `port` | `10767` | As set in Settings → Remote. |
 | `token` | required | Developer token (32 hex characters) or the 6-digit code. |
 | `name` | | Shown in Carbon's connected devices list (max 40 characters). |
@@ -115,7 +115,8 @@ Full details, limits and error messages: [docs/remote-protocol.md](../../docs/re
 
 - [`examples/overlay.html`](examples/overlay.html): a now-playing card for OBS (Browser Source),
   with artwork and a live progress bar. Open it as
-  `overlay.html?host=192.168.1.20&token=…`.
+  `overlay.html?host=192.168.1.20&token=…`. Carbon refuses websocket connections from web pages
+  other than its own remote, so for now this can't connect from a browser source.
 - [`examples/deck.mjs`](examples/deck.mjs): a Stream Deck-style keyboard controller for the terminal.
   `CARBON_HOST=192.168.1.20 CARBON_TOKEN=… node examples/deck.mjs`
 

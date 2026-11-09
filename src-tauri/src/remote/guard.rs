@@ -3,9 +3,10 @@
 //! Each server start gets two fresh secrets: a 128-bit token (QR code and SDK) and a 6-digit
 //! code for typing by hand. The code is short, so after too many failed attempts across all
 //! peers it stops being accepted until the window passes; the token keeps working.
+use axum::http::{HeaderMap, header};
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::time::{Duration, Instant};
 
 const WINDOW: Duration = Duration::from_secs(60);
@@ -84,6 +85,29 @@ pub fn is_lan(ip: IpAddr) -> bool {
                 || v6.is_unicast_link_local()
                 || v6.to_ipv4_mapped().is_some_and(|v4| is_lan(IpAddr::V4(v4)))
         }
+    }
+}
+
+/// `1.2.3.4`, `[::1]`, or either with `port`. A name means DNS rebinding (or a hosts-file alias).
+fn is_ip_host(host: &str, port: u16) -> bool {
+    match host.parse::<SocketAddr>() {
+        Ok(addr) => addr.port() == port,
+        Err(_) => {
+            host.parse::<Ipv4Addr>().is_ok()
+                || host.strip_prefix('[').and_then(|h| h.strip_suffix(']')).is_some_and(|h| h.parse::<Ipv6Addr>().is_ok())
+        }
+    }
+}
+
+/// Keeps other websites out: the Host must be an IP literal for this server (stops DNS
+/// rebinding), and an Origin, if sent, must be the remote's own page (stops cross-site
+/// websockets). Native clients send no Origin; they still need a secret.
+pub fn check_request(headers: &HeaderMap, port: u16) -> Result<(), Reject> {
+    let text = |name| headers.get(name).map(|v: &header::HeaderValue| v.to_str().map_err(|_| Reject::Forbidden)).transpose();
+    let host = text(header::HOST)?.filter(|h| is_ip_host(h, port)).ok_or(Reject::Forbidden)?;
+    match text(header::ORIGIN)? {
+        Some(origin) if origin.strip_prefix("http://") != Some(host) => Err(Reject::Forbidden),
+        _ => Ok(()),
     }
 }
 
@@ -211,6 +235,42 @@ mod tests {
         let mut guard = Guard::default();
         let result = guard.admit(lan(5), Some("042137"), &secrets(), MAX_DEVICES, Instant::now());
         assert_eq!(result, Err(Reject::TooManyDevices));
+    }
+
+    fn request(host: Option<&str>, origin: Option<&[u8]>) -> Result<(), Reject> {
+        let mut headers = HeaderMap::new();
+        if let Some(host) = host {
+            headers.insert(header::HOST, host.parse().unwrap());
+        }
+        if let Some(origin) = origin {
+            headers.insert(header::ORIGIN, header::HeaderValue::from_bytes(origin).unwrap());
+        }
+        check_request(&headers, 10767)
+    }
+
+    #[test]
+    fn only_takes_requests_for_an_ip_from_the_remote_itself_or_native_clients() {
+        let ok = Ok(());
+        let no = Err(Reject::Forbidden);
+        assert_eq!(request(Some("192.168.1.20:10767"), None), ok);
+        assert_eq!(request(Some("192.168.1.20"), None), ok);
+        assert_eq!(request(Some("[fe80::1]:10767"), None), ok);
+        assert_eq!(request(Some("[::1]"), None), ok);
+        assert_eq!(request(Some("192.168.1.20:10767"), Some(b"http://192.168.1.20:10767")), ok);
+        assert_eq!(request(Some("[::1]:10767"), Some(b"http://[::1]:10767")), ok);
+        // DNS rebinding, hosts-file names, another port, no Host at all
+        assert_eq!(request(Some("evil.example:10767"), None), no);
+        assert_eq!(request(Some("localhost:10767"), None), no);
+        assert_eq!(request(Some("192.168.1.20:80"), None), no);
+        assert_eq!(request(Some("::1"), None), no);
+        assert_eq!(request(None, None), no);
+        // other websites, sandboxed frames, look-alikes
+        assert_eq!(request(Some("192.168.1.20:10767"), Some(b"http://evil.example")), no);
+        assert_eq!(request(Some("192.168.1.20:10767"), Some(b"null")), no);
+        assert_eq!(request(Some("192.168.1.20:10767"), Some(b"https://192.168.1.20:10767")), no);
+        assert_eq!(request(Some("192.168.1.20:10767"), Some(b"http://192.168.1.20:10768")), no);
+        assert_eq!(request(Some("192.168.1.20:10767"), Some(b"http://192.168.1.20:10767/")), no);
+        assert_eq!(request(Some("192.168.1.20:10767"), Some(b"http://\xff")), no);
     }
 
     #[test]

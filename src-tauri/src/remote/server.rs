@@ -1,7 +1,7 @@
 //! The socket.io server (websocket transport only) and the embedded remote web app.
 //! Knows nothing about Tauri: state comes in on a watch channel, commands go out to a sink.
-use super::assets;
-use super::guard::{Guard, Reject, Secrets};
+use super::guard::{Guard, Reject, Secrets, check_request};
+use super::{assets, http};
 use super::protocol::{self, COMMAND_EVENTS, Hello, RemoteState};
 use crate::media_controls::MediaCommand;
 use axum::Router;
@@ -51,6 +51,8 @@ struct Auth {
 
 struct Shared {
     ctx: Context,
+    /// The bound port, which a request's Host must name.
+    port: u16,
     secrets: Mutex<Secrets>,
     guard: Mutex<Guard>,
     devices: Mutex<Vec<Device>>,
@@ -72,6 +74,7 @@ fn device_name(auth: Option<&str>, user_agent: Option<&str>) -> String {
 
 impl Shared {
     fn admit(&self, s: &SocketRef, auth: Option<&Auth>) -> Result<(), Reject> {
+        check_request(&s.req_parts().headers, self.port)?;
         let devices = lock(&self.devices).len();
         let secrets = lock(&self.secrets).clone();
         let offered = auth.and_then(|a| a.token.as_deref());
@@ -166,6 +169,7 @@ pub async fn start(listener: std::net::TcpListener, ctx: Context) -> Result<Serv
     let state = ctx.state.clone();
     let shared = Arc::new(Shared {
         ctx,
+        port,
         secrets: Mutex::new(Secrets::generate()?),
         guard: Mutex::default(),
         devices: Mutex::default(),
@@ -181,15 +185,7 @@ pub async fn start(listener: std::net::TcpListener, ctx: Context) -> Result<Serv
     register(&io, shared.clone());
     let app = Router::new().fallback(assets::serve).layer(layer);
     let (shutdown, signal) = oneshot::channel::<()>();
-    let serve = tokio::spawn(async move {
-        let service = app.into_make_service_with_connect_info::<SocketAddr>();
-        let graceful = axum::serve(listener, service).with_graceful_shutdown(async {
-            let _ = signal.await;
-        });
-        if let Err(e) = graceful.await {
-            eprintln!("[remote] server stopped: {e}");
-        }
-    });
+    let serve = tokio::spawn(http::serve(listener, app, port, signal));
     let broadcast = tokio::spawn(broadcast(io.clone(), state));
     Ok(Server { port, shared, io, shutdown, serve, broadcast })
 }
