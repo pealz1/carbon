@@ -75,7 +75,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Carbon ${{ github.ref_name }}
-          releaseBody: See the changelog below, and https://getcarbon.cc for setup help.
+          releaseBody: Download the installer below. New here? The setup guide is at https://getcarbon.cc/setup.
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
