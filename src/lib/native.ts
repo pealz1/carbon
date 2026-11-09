@@ -15,6 +15,15 @@ export interface Settings {
   accent: Accent;
   lyricsScale: number;
   spotifyClientId: string;
+  remoteEnabled: boolean;
+  remotePort: number;
+}
+
+export type RepeatMode = "off" | "context" | "track";
+
+export interface QueueItem {
+  title: string;
+  artists: string[];
 }
 
 export interface PlaybackInfo {
@@ -26,17 +35,44 @@ export interface PlaybackInfo {
   durationMs: number;
   positionMs: number;
   paused: boolean;
+  shuffle?: boolean;
+  repeat?: RepeatMode;
+  volume?: number;
+  queue?: QueueItem[];
 }
 
 export type MediaCommand =
   | { kind: "play" | "pause" | "toggle" | "next" | "previous" }
-  | { kind: "seek"; positionMs: number };
+  | { kind: "seek"; positionMs: number }
+  | { kind: "volume"; value: number }
+  | { kind: "shuffle"; on: boolean }
+  | { kind: "repeat"; mode: RepeatMode }
+  | { kind: "playUri"; uri: string };
 
 export interface AppInfo {
   version: string;
   installed: boolean;
   discordConfigured: boolean;
   lastfmConfigured: boolean;
+}
+
+export interface RemoteDevice {
+  id: string;
+  name: string;
+  address: string;
+  connectedAtMs: number;
+}
+
+export interface RemoteStatus {
+  running: boolean;
+  port: number | null;
+  url: string | null;
+  pairingUrl: string | null;
+  code: string | null;
+  token: string | null;
+  qrSvg: string | null;
+  devices: RemoteDevice[];
+  error: string | null;
 }
 
 export interface LastfmStatus {
@@ -60,6 +96,11 @@ export const removeSavedData = () => invoke("remove_saved_data");
 export const lastfmStatus = () => invoke<LastfmStatus>("lastfm_status");
 export const lastfmConnect = () => invoke<string>("lastfm_connect");
 export const lastfmDisconnect = () => invoke("lastfm_disconnect");
+
+export const remoteStatus = () => invoke<RemoteStatus>("remote_status");
+export const remoteRotate = () => invoke<RemoteStatus>("remote_rotate");
+export const remoteDisconnect = (id: string) => invoke("remote_disconnect", { id });
+export const onRemoteChanged = (handler: () => void): Promise<UnlistenFn> => listen("remote-changed", () => handler());
 
 /** Spotify Client IDs are 32 lowercase hex characters. Mirrors settings::is_client_id in Rust. */
 export const isClientId = (id: string): boolean => /^[0-9a-f]{32}$/.test(id);

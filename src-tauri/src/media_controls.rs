@@ -1,6 +1,6 @@
 //! Windows System Media Transport Controls: the media flyout, lock screen and hardware media
 //! keys. Button presses are forwarded to the webview player as `media-command` events.
-use crate::playback::PlaybackInfo;
+use crate::playback::{PlaybackInfo, RepeatMode};
 use serde::Serialize;
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 use std::sync::Mutex;
@@ -18,6 +18,19 @@ pub enum MediaCommand {
     Seek {
         #[serde(rename = "positionMs")]
         position_ms: u64,
+    },
+    // From the phone remote (see remote::protocol for validation).
+    Volume {
+        value: f64,
+    },
+    Shuffle {
+        on: bool,
+    },
+    Repeat {
+        mode: RepeatMode,
+    },
+    PlayUri {
+        uri: String,
     },
 }
 
@@ -118,5 +131,17 @@ mod tests {
         let json = serde_json::to_string(&MediaCommand::Seek { position_ms: 5 }).unwrap();
         assert_eq!(json, r#"{"kind":"seek","positionMs":5}"#);
         assert_eq!(serde_json::to_string(&MediaCommand::Toggle).unwrap(), r#"{"kind":"toggle"}"#);
+    }
+
+    #[test]
+    fn serialises_remote_commands_for_the_webview() {
+        let json = |c: MediaCommand| serde_json::to_string(&c).unwrap();
+        assert_eq!(json(MediaCommand::Volume { value: 0.5 }), r#"{"kind":"volume","value":0.5}"#);
+        assert_eq!(json(MediaCommand::Shuffle { on: true }), r#"{"kind":"shuffle","on":true}"#);
+        assert_eq!(json(MediaCommand::Repeat { mode: RepeatMode::Track }), r#"{"kind":"repeat","mode":"track"}"#);
+        assert_eq!(
+            json(MediaCommand::PlayUri { uri: "spotify:album:x".into() }),
+            r#"{"kind":"playUri","uri":"spotify:album:x"}"#
+        );
     }
 }

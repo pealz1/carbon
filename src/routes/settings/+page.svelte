@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import { account } from "$lib/account.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
+  import RemotePanel from "$lib/components/RemotePanel.svelte";
   import Toggle from "$lib/components/Toggle.svelte";
   import { BUILT_IN_CLIENT_ID, CARBON } from "$lib/config";
   import { describeError } from "$lib/errors";
@@ -194,6 +195,8 @@
         <p class="muted">Last.fm isn't set up in this build.</p>
       {/if}
     </section>
+
+    <RemotePanel />
 
     <section class="panel liquid" use:specular>
       <h2>System</h2>

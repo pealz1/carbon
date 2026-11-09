@@ -4,6 +4,7 @@ mod library;
 mod media_controls;
 mod oauth;
 mod playback;
+mod remote;
 mod settings;
 mod system;
 mod token_store;
@@ -30,12 +31,14 @@ fn playback_update(
     tray: State<TrayState>,
     discord: State<Discord>,
     lastfm: State<Lastfm>,
+    remote: State<remote::Remote>,
 ) -> Result<(), String> {
     if let Some(info) = &info {
         info.validate()?;
     }
     media.update(info.as_ref());
     tray.update(&app, info.as_ref());
+    remote.publish(info.as_ref());
     discord.send(discord::Msg::Playback(info.clone()));
     lastfm.send(lastfm::Msg::Playback(info));
     Ok(())
@@ -46,6 +49,13 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let prefs = settings::load(&handle);
     app.manage(Discord::spawn(prefs.discord_presence));
     app.manage(Lastfm::spawn(prefs.lastfm_scrobbling));
+    let remote = remote::Remote::new(&handle);
+    if prefs.remote_enabled
+        && let Err(e) = remote.apply(true, prefs.remote_port)
+    {
+        eprintln!("[remote] {e}");
+    }
+    app.manage(remote);
     app.manage(SettingsState(Mutex::new(prefs)));
     app.manage(LibraryState(Mutex::new(library::load(&handle))));
     app.manage(tray::build(&handle)?);
@@ -100,6 +110,9 @@ pub fn run() {
             lastfm::lastfm_status,
             lastfm::lastfm_connect,
             lastfm::lastfm_disconnect,
+            remote::remote_status,
+            remote::remote_rotate,
+            remote::remote_disconnect,
             system::app_info,
             system::uninstall,
             system::remove_saved_data,

@@ -2,6 +2,7 @@
 import { hasClientId, missingScopes, restoreSession, signIn as authSignIn, signOut as authSignOut, useClientId } from "$lib/auth";
 import { BUILT_IN_CLIENT_ID } from "$lib/config";
 import { describeError } from "$lib/errors";
+import { runMediaCommand } from "$lib/media-commands";
 import { isClientId, onMediaCommand } from "$lib/native";
 import { player } from "$lib/player.svelte";
 import { prefs } from "$lib/preferences.svelte";
@@ -126,14 +127,7 @@ class Session {
   #listenForMediaKeys(): void {
     if (this.#listening) return;
     this.#listening = true;
-    void onMediaCommand((command) => {
-      if (command.kind === "seek") return player.seek(command.positionMs);
-      if (command.kind === "next") return player.next();
-      if (command.kind === "previous") return player.previous();
-      if (command.kind === "play" && player.paused) return player.togglePlay();
-      if (command.kind === "pause" && !player.paused) return player.togglePlay();
-      if (command.kind === "toggle") return player.togglePlay();
-    });
+    void onMediaCommand((command) => runMediaCommand(command, player));
   }
 }
 

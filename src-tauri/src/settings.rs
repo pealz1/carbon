@@ -27,6 +27,9 @@ pub struct Settings {
     pub lyrics_scale: f32,
     /// The listener's own Spotify app (Spotify caps each Client ID at 5 users). Empty = built-in.
     pub spotify_client_id: String,
+    /// Phone remote / SDK server (Settings → Remote). Off unless the listener turns it on.
+    pub remote_enabled: bool,
+    pub remote_port: u16,
 }
 
 impl Default for Settings {
@@ -39,6 +42,8 @@ impl Default for Settings {
             accent: ACCENTS[0].into(),
             lyrics_scale: 1.0,
             spotify_client_id: String::new(),
+            remote_enabled: false,
+            remote_port: crate::remote::DEFAULT_PORT,
         }
     }
 }
@@ -59,6 +64,9 @@ impl Settings {
         }
         if !self.spotify_client_id.is_empty() && !is_client_id(&self.spotify_client_id) {
             return Err("that doesn't look like a Spotify Client ID (32 letters and numbers)".into());
+        }
+        if self.remote_port < 1024 {
+            return Err("the remote port must be between 1024 and 65535".into());
         }
         Ok(())
     }
@@ -107,6 +115,10 @@ pub fn settings_get(state: State<SettingsState>) -> Result<Settings, String> {
 #[tauri::command]
 pub fn settings_set(app: AppHandle, state: State<SettingsState>, settings: Settings) -> Result<Settings, String> {
     settings.validate()?;
+    // Before saving, so a port that's in use doesn't get remembered as "on".
+    if let Some(remote) = app.try_state::<crate::remote::Remote>() {
+        remote.apply(settings.remote_enabled, settings.remote_port)?;
+    }
     save(&app, &settings)?;
     *state.0.lock().map_err(|e| e.to_string())? = settings.clone();
     if let Some(discord) = app.try_state::<crate::discord::Discord>() {
@@ -145,6 +157,8 @@ mod tests {
         assert!(bad_scale.validate().is_err());
         let bad_id = Settings { spotify_client_id: "not-an-id".into(), ..Settings::default() };
         assert!(bad_id.validate().is_err());
+        let bad_port = Settings { remote_port: 80, ..Settings::default() };
+        assert!(bad_port.validate().is_err());
     }
 
     #[test]
@@ -160,5 +174,7 @@ mod tests {
         assert!(!parsed.close_to_tray);
         assert_eq!(parsed.effects, Effects::Minimal);
         assert_eq!(parsed.accent, "periwinkle");
+        assert!(!parsed.remote_enabled);
+        assert_eq!(parsed.remote_port, 10767);
     }
 }

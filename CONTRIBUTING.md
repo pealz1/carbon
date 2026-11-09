@@ -52,6 +52,8 @@ npm run tauri dev
 | `src/` | The interface (SvelteKit + TypeScript). Views in `routes/`, shared logic in `lib/`. |
 | `src/lib/spotify/` | Web API client, endpoint wrappers and response mappers. |
 | `src-tauri/src/` | The Rust core: sign-in callback, credential storage, settings, tray, Windows media controls, Discord and Last.fm. |
+| `src-tauri/remote/` | The phone remote web app, embedded in the binary. Protocol: [`docs/remote-protocol.md`](docs/remote-protocol.md). |
+| `packages/carbon-sdk/` | `@getcarbon/sdk`, the TypeScript client for the remote protocol. Has its own `npm install` and `npm test`. |
 | `website/` | The getcarbon.cc site (static, deployed to Cloudflare). |
 | `brand/` | Logo and artwork sources. |
 

@@ -11,6 +11,7 @@ import type { Track } from "$lib/spotify/types";
 export type RepeatMode = "off" | "context" | "track";
 const REPEAT_MODES: RepeatMode[] = ["off", "context", "track"];
 const VOLUME_KEY = "carbon.volume";
+const QUEUE_PREVIEW = 5;
 
 let sdkScript: Promise<void> | null = null;
 
@@ -51,6 +52,7 @@ class Player {
   #positionMs = $state(0);
   #positionAt = $state(0);
   #seekAt = 0;
+  #upNext: Spotify.SdkTrack[] = [];
   #sdk: Spotify.Player | null = null;
   #deviceId: Promise<string> | null = null;
 
@@ -114,6 +116,7 @@ class Player {
     this.shuffle = state.shuffle;
     this.repeat = REPEAT_MODES[state.repeat_mode] ?? "off";
     this.contextUri = state.context?.uri ?? null;
+    this.#upNext = state.track_window.next_tracks ?? [];
     this.error = null;
     this.#report();
   }
@@ -128,8 +131,13 @@ class Player {
           album: this.track.album?.name ?? "",
           artworkUrl: this.artwork,
           durationMs: this.durationMs,
-          positionMs: Math.min(this.#positionMs, this.durationMs),
+          // Live position: reports also happen between SDK events (volume changes).
+          positionMs: Math.min(Math.round(this.position()), this.durationMs),
           paused: this.paused,
+          shuffle: this.shuffle,
+          repeat: this.repeat,
+          volume: this.volume,
+          queue: this.#upNext.slice(0, QUEUE_PREVIEW).map((t) => ({ title: t.name, artists: t.artists.map((a) => a.name) })),
         }
       : null;
     reportPlayback(info).catch((e) => console.error("[player] native update failed", e));
@@ -209,9 +217,12 @@ class Player {
       // per-device convenience only; failing to persist is harmless
     }
     void this.#sdk?.setVolume(this.volume);
+    this.#report();
   };
 
   toggleShuffle = () => this.#run((id) => sp.setShuffle(!this.shuffle, id));
+  setShuffle = (on: boolean) => this.#run((id) => sp.setShuffle(on, id));
+  setRepeat = (mode: RepeatMode) => this.#run((id) => sp.setRepeat(mode, id));
 
   cycleRepeat = () =>
     this.#run((id) => sp.setRepeat(REPEAT_MODES[(REPEAT_MODES.indexOf(this.repeat) + 1) % REPEAT_MODES.length], id));
