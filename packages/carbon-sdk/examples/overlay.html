@@ -1,0 +1,134 @@
+<!doctype html>
+<!--
+  Now-playing overlay for OBS (Browser Source, 640×160, transparent background).
+  Build the SDK first (npm run build), serve this package folder (e.g. `npx serve .`), then open
+  http://localhost:3000/examples/overlay.html#host=192.168.1.20&token=YOUR_TOKEN
+  The token sits in the fragment so it never reaches a server log.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Carbon overlay</title>
+    <script type="importmap">
+      { "imports": { "socket.io-client": "../node_modules/socket.io-client/dist/socket.io.esm.min.js" } }
+    </script>
+    <style>
+      :root {
+        --glass: rgb(20 21 27 / 0.62);
+        --edge: rgb(255 255 255 / 0.12);
+        --text: #f1f1f4;
+        --muted: rgb(241 241 244 / 0.62);
+        --accent: oklch(78% 0.13 283);
+        --radius: 22px;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: transparent;
+        font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+        color: var(--text);
+      }
+
+      .card {
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        gap: 18px;
+        align-items: center;
+        width: 600px;
+        padding: 16px;
+        border: 1px solid var(--edge);
+        border-radius: var(--radius);
+        background: var(--glass);
+        backdrop-filter: blur(28px) saturate(1.6);
+        box-shadow: 0 24px 60px -18px rgb(0 0 0 / 0.65);
+        transition: opacity 400ms ease;
+      }
+
+      .card[data-idle="true"] {
+        opacity: 0;
+      }
+
+      img {
+        width: 112px;
+        height: 112px;
+        border-radius: 14px;
+        object-fit: cover;
+      }
+
+      img:not([src]) {
+        visibility: hidden;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 750;
+        letter-spacing: -0.03em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .artists {
+        margin: 4px 0 14px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .bar {
+        height: 5px;
+        border-radius: 999px;
+        background: rgb(255 255 255 / 0.12);
+        overflow: hidden;
+      }
+
+      .bar span {
+        display: block;
+        height: 100%;
+        background: var(--accent);
+        transform-origin: left;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card" id="card" data-idle="true">
+      <img id="cover" alt="" width="112" height="112" />
+      <div>
+        <p class="title" id="title"></p>
+        <p class="artists" id="artists"></p>
+        <div class="bar"><span id="progress"></span></div>
+      </div>
+    </div>
+    <script type="module">
+      import { connect } from "../dist/index.js";
+
+      const params = new URLSearchParams(location.hash.slice(1));
+      const $ = (id) => document.getElementById(id);
+
+      const carbon = await connect({
+        host: params.get("host") ?? "127.0.0.1",
+        port: Number(params.get("port") ?? 10767),
+        token: params.get("token") ?? "",
+        name: "OBS overlay",
+      });
+
+      function render() {
+        const state = carbon.state;
+        $("card").dataset.idle = String(!state || state.paused);
+        if (!state) return;
+        $("title").textContent = state.title;
+        $("artists").textContent = state.artists.join(", ");
+        if (state.artworkUrl && $("cover").src !== state.artworkUrl) $("cover").src = state.artworkUrl;
+        $("progress").style.transform = `scaleX(${state.durationMs ? carbon.position() / state.durationMs : 0})`;
+      }
+
+      carbon.on("state", render);
+      carbon.on("error", (error) => console.error("Carbon refused the overlay:", error.message));
+      setInterval(render, 500);
+      render();
+    </script>
+  </body>
+</html>

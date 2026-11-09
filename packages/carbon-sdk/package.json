@@ -1,0 +1,49 @@
+{
+  "name": "@getcarbon/sdk",
+  "version": "0.1.0",
+  "description": "Control Carbon, the Spotify desktop client, from scripts, stream overlays and controllers on your network.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pealz1/carbon.git",
+    "directory": "packages/carbon-sdk"
+  },
+  "homepage": "https://getcarbon.cc",
+  "keywords": [
+    "carbon",
+    "spotify",
+    "remote",
+    "socket.io",
+    "stream-overlay"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run check && npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io": "^4.8.1",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0"
+  }
+}

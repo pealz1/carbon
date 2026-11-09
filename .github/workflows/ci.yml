@@ -39,3 +39,12 @@ jobs:
         working-directory: src-tauri
       - run: cargo test
         working-directory: src-tauri
+
+      - name: SDK (install, check, test, build)
+        working-directory: packages/carbon-sdk
+        shell: bash # fails on the first failing command (pwsh only checks the last)
+        run: |
+          npm ci
+          npm run check
+          npm test
+          npm run build
