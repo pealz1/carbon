@@ -1,5 +1,5 @@
 // App-level sign-in state plus the library data the sidebar needs everywhere.
-import { hasClientId, restoreSession, signIn as authSignIn, signOut as authSignOut, useClientId } from "$lib/auth";
+import { hasClientId, missingScopes, restoreSession, signIn as authSignIn, signOut as authSignOut, useClientId } from "$lib/auth";
 import { BUILT_IN_CLIENT_ID } from "$lib/config";
 import { describeError } from "$lib/errors";
 import { isClientId, onMediaCommand } from "$lib/native";
@@ -26,6 +26,8 @@ class Session {
   error = $state<string | null>(null);
   profile = $state<Profile | null>(null);
   playlists = $state<PlaylistSummary[]>([]);
+  /** Signed in before Carbon asked for newer permissions (playlist editing, covers). */
+  needsReconsent = $state(false);
   #listening = false;
 
   async boot(): Promise<void> {
@@ -78,6 +80,12 @@ class Session {
     }
   }
 
+  /** Signs in again so Spotify can grant the permissions newer features need. */
+  async reconsent(): Promise<void> {
+    await this.signOut();
+    await this.signIn();
+  }
+
   async signOut(): Promise<void> {
     player.stop();
     this.profile = null;
@@ -104,6 +112,7 @@ class Session {
 
   /** Loads sidebar data. Failures here are shown but don't sign you out: the token is fine. */
   async #afterSignIn(): Promise<void> {
+    this.needsReconsent = missingScopes().length > 0;
     void player.start();
     try {
       const [profile] = await Promise.all([sp.me(), this.refreshPlaylists()]);

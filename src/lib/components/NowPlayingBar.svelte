@@ -3,7 +3,9 @@
   import { DEFAULT_VOLUME } from "$lib/config";
   import { formatDuration } from "$lib/format";
   import { player } from "$lib/player.svelte";
+  import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
+  import LikeButton from "./LikeButton.svelte";
   import QueuePanel from "./QueuePanel.svelte";
   import Slider from "./Slider.svelte";
   import { specular } from "$lib/liquid";
@@ -17,20 +19,7 @@
     const timer = setInterval(() => (position = player.position()), TICK_MS);
     return () => clearInterval(timer);
   });
-
-  function onKey(event: KeyboardEvent) {
-    const target = event.target as HTMLElement;
-    if (event.code !== "Space" || target.closest("input, textarea, button, a, [contenteditable]")) return;
-    event.preventDefault();
-    player.togglePlay();
-  }
 </script>
-
-<svelte:window onkeydown={onKey} />
-
-{#if player.error}
-  <p class="toast glass" role="status">{player.error}</p>
-{/if}
 
 <section class="dock liquid" use:specular aria-label="Now playing">
   <div class="track">
@@ -54,6 +43,7 @@
           {/each}
         </span>
       </div>
+      <LikeButton uri={player.track.uri} label={player.track.name} size={17} />
     {:else}
       <span class="art-blank"></span>
       <div class="meta">
@@ -95,6 +85,9 @@
     <a class="small" class:on={onNowPlaying} href={onNowPlaying ? "/" : "/now-playing"} aria-label="Lyrics and now playing">
       <Icon name="lyrics" size={18} />
     </a>
+    <button class="small" onclick={view.enterCinema} aria-label="Cinema mode" title="Cinema mode (Ctrl+Shift+C)">
+      <Icon name="screen" size={18} />
+    </button>
     <button class="small" class:on={queueOpen} onclick={() => (queueOpen = !queueOpen)} aria-label="Queue" aria-expanded={queueOpen}>
       <Icon name="queue" size={18} />
     </button>
@@ -267,18 +260,5 @@
   .volume {
     width: 110px;
     display: flex;
-  }
-
-  .toast {
-    position: absolute;
-    left: 50%;
-    bottom: calc(var(--dock-h) + var(--sp-5));
-    z-index: 6;
-    transform: translateX(-50%);
-    margin: 0;
-    padding: var(--sp-2) var(--sp-4);
-    border-radius: var(--r-pill);
-    font-size: var(--fs-small);
-    color: var(--warning);
   }
 </style>

@@ -2,9 +2,10 @@
   import { disable as autostartOff, enable as autostartOn, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { onMount } from "svelte";
+  import { account } from "$lib/account.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import Toggle from "$lib/components/Toggle.svelte";
-  import { BUILT_IN_CLIENT_ID } from "$lib/config";
+  import { BUILT_IN_CLIENT_ID, CARBON } from "$lib/config";
   import { describeError } from "$lib/errors";
   import {
     ACCENTS,
@@ -18,6 +19,7 @@
     type Effects,
     type LastfmStatus,
   } from "$lib/native";
+  import { organizer } from "$lib/organizer.svelte";
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
   import { updates } from "$lib/updates.svelte";
@@ -76,9 +78,15 @@
 
   async function removeEverything() {
     await session.signOut();
-    await removeSavedData();
-    await prefs.load();
-    notice = "Signed out and removed everything Carbon saved on this PC.";
+    await account.signOut();
+    try {
+      await removeSavedData();
+      notice = "Signed out and removed everything Carbon saved on this PC.";
+    } catch (e) {
+      notice = `Couldn't remove everything: ${describeError(e)}`;
+    }
+    // Reload so in-memory folders and settings can't write the old data back.
+    await Promise.all([prefs.load(), organizer.load()]);
     confirmRemove = false;
   }
 </script>
@@ -111,6 +119,23 @@
         Changing it signs you out.
       </p>
       <ClientIdForm initial={customId} compact />
+      {#if account.required || account.status === "signed-in"}
+        <h3>Carbon account</h3>
+        {#if account.status === "signed-in"}
+          <p class="muted">
+            {account.user ? `${account.user.email} · ${account.user.plan} plan` : "Signed in. Carbon's servers can't be reached right now."}
+          </p>
+          <div class="actions">
+            <button class="pill" onclick={() => openUrl(CARBON.accountUrl)}>Manage account</button>
+            <button class="pill" onclick={() => account.signOut()}>Sign out of Carbon</button>
+          </div>
+        {:else}
+          <button class="pill accent" onclick={() => account.signIn()} disabled={account.status === "signing-in"}>
+            {account.status === "signing-in" ? "Waiting for your browser…" : "Sign in to Carbon"}
+          </button>
+        {/if}
+        {#if account.error}<p class="warn">{account.error}</p>{/if}
+      {/if}
     </section>
 
     <section class="panel liquid" use:specular>

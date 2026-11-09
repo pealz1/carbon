@@ -1,10 +1,11 @@
 // Typed wrappers for the Web API endpoints development-mode apps can still use (Feb 2026).
 // Not available: artist top tracks, new releases, browse categories, batch /tracks|/albums|/artists.
-import { PAGE_SIZE, SEARCH_LIMIT } from "$lib/config";
-import { get, getFresh, send } from "./api";
+import { ARTIST_ALBUMS_LIMIT, PAGE_SIZE, SEARCH_LIMIT } from "$lib/config";
+import { get, getFresh, invalidate, send, sendRaw } from "./api";
 import {
   albumCard,
   artistCard,
+  chunk,
   compactTracks,
   pickImage,
   pickLargestImage,
@@ -124,26 +125,24 @@ export interface ArtistDetail {
   name: string;
   image: string | null;
   largeImage: string | null;
-  topTracks: Track[];
-  albums: Card[];
 }
 
 export async function artist(id: string): Promise<ArtistDetail> {
-  const [raw, albums] = await Promise.all([
-    get<RawArtist>(`/artists/${encodeURIComponent(id)}`),
-    get<Paging<RawAlbum>>(`/artists/${encodeURIComponent(id)}/albums?${q({ include_groups: "album,single", limit: PAGE_SIZE })}`),
-  ]);
-  // Artist top tracks were removed for dev-mode apps; an artist-filtered search is the closest substitute.
-  const songs = await get<{ tracks: Paging<RawTrack> }>(`/search?${q({ q: `artist:"${raw.name}"`, type: "track", limit: SEARCH_LIMIT })}`);
-  return {
-    id,
-    uri: raw.uri,
-    name: raw.name,
-    image: pickImage(raw.images),
-    largeImage: pickLargestImage(raw.images),
-    topTracks: compactTracks(songs.tracks.items.map((t) => toTrack(t))).filter((t) => t.artists.some((a) => a.id === id)),
-    albums: uniqueBy(albums.items.map(albumCard), (c) => c.title.toLowerCase()),
-  };
+  const raw = await get<RawArtist>(`/artists/${encodeURIComponent(id)}`);
+  return { id, uri: raw.uri, name: raw.name, image: pickImage(raw.images), largeImage: pickLargestImage(raw.images) };
+}
+
+export async function artistAlbums(id: string, offset = 0): Promise<Page<Card>> {
+  const raw = await get<Paging<RawAlbum>>(
+    `/artists/${encodeURIComponent(id)}/albums?${q({ include_groups: "album,single", limit: ARTIST_ALBUMS_LIMIT, offset })}`,
+  );
+  return { items: raw.items.map(albumCard), total: raw.total ?? null, nextOffset: nextOffset(raw, offset) };
+}
+
+/** Artist top tracks were removed for dev-mode apps; an artist-filtered search is the closest substitute. */
+export async function artistSongs(id: string, name: string): Promise<Track[]> {
+  const raw = await get<{ tracks: Paging<RawTrack> }>(`/search?${q({ q: `artist:"${name}"`, type: "track", limit: SEARCH_LIMIT })}`);
+  return compactTracks(raw.tracks.items.map((t) => toTrack(t))).filter((t) => t.artists.some((a) => a.id === id));
 }
 
 export interface SearchResults {
@@ -191,10 +190,76 @@ export async function lastPlayback(): Promise<PlaybackSnapshot | null> {
   return { contextUri: raw.context?.uri ?? null, trackUri: raw.item?.uri ?? null, deviceName: raw.device?.name ?? null, isPlaying: raw.is_playing };
 }
 
-// Library (Feb 2026 unified endpoints take Spotify URIs).
-export const isSaved = (uris: string[]) => getFresh<boolean[]>(`/me/library/contains?${q({ uris: uris.join(",") })}`);
-export const save = (uris: string[]) => send("PUT", `/me/library?${q({ uris: uris.join(",") })}`);
-export const unsave = (uris: string[]) => send("DELETE", `/me/library?${q({ uris: uris.join(",") })}`);
+// Library (Feb 2026 unified endpoints take Spotify URIs, at most 40 per request).
+const LIBRARY_BATCH = 40;
+const PLAYLIST_BATCH = 100;
+const LIBRARY_PATHS = ["/me/tracks", "/me/albums", "/me/playlists", "/me/following"];
+
+export async function isSaved(uris: string[]): Promise<boolean[]> {
+  const results: boolean[] = [];
+  for (const run of chunk(uris, LIBRARY_BATCH)) {
+    const found = await getFresh<boolean[]>(`/me/library/contains?${q({ uris: run.join(",") })}`);
+    results.push(...run.map((_, i) => found?.[i] === true));
+  }
+  return results;
+}
+
+async function changeLibrary(method: "PUT" | "DELETE", uris: string[]): Promise<void> {
+  for (const run of chunk(uris, LIBRARY_BATCH)) await send(method, `/me/library?${q({ uris: run.join(",") })}`);
+  invalidate(...LIBRARY_PATHS);
+}
+
+export const save = (uris: string[]) => changeLibrary("PUT", uris);
+export const unsave = (uris: string[]) => changeLibrary("DELETE", uris);
+
+// Playlist management. Spotify only lets an app change playlists the listener owns.
+export interface PlaylistFields {
+  name: string;
+  description: string;
+  public: boolean;
+  collaborative: boolean;
+}
+
+const playlistPath = (id: string) => `/playlists/${encodeURIComponent(id)}`;
+
+function invalidatePlaylist(id: string): void {
+  invalidate(playlistPath(id), "/me/playlists");
+}
+
+export async function createPlaylist(fields: PlaylistFields): Promise<PlaylistSummary> {
+  const raw = await send<RawPlaylist>("POST", "/me/playlists", fields);
+  invalidate("/me/playlists");
+  return toPlaylistSummary(raw);
+}
+
+export async function updatePlaylist(id: string, fields: PlaylistFields): Promise<void> {
+  await send("PUT", playlistPath(id), fields);
+  invalidatePlaylist(id);
+}
+
+/** `base64Jpeg` is the bare base64 text (no data: prefix), at most 256 KB. */
+export async function uploadPlaylistCover(id: string, base64Jpeg: string): Promise<void> {
+  await sendRaw("PUT", `${playlistPath(id)}/images`, base64Jpeg, "image/jpeg");
+  invalidatePlaylist(id);
+}
+
+/** Spotify has no delete: removing a playlist from your library unfollows it (and hides it if yours). */
+export async function deletePlaylist(id: string): Promise<void> {
+  await unsave([`spotify:playlist:${id}`]);
+  invalidatePlaylist(id);
+}
+
+export async function addToPlaylist(id: string, uris: string[]): Promise<void> {
+  for (const run of chunk(uris, PLAYLIST_BATCH)) await send("POST", `${playlistPath(id)}/items`, { uris: run });
+  invalidatePlaylist(id);
+}
+
+/** Removes every occurrence of each URI. */
+export async function removeFromPlaylist(id: string, uris: string[]): Promise<void> {
+  for (const run of chunk(uris, PLAYLIST_BATCH)) await send("DELETE", `${playlistPath(id)}/items`, { items: run.map((uri) => ({ uri })) });
+  invalidatePlaylist(id);
+}
+
 export const addToQueue = (uri: string, deviceId: string) => send("POST", `/me/player/queue?${q({ uri, device_id: deviceId })}`);
 
 // Playback on Carbon's own SDK device.

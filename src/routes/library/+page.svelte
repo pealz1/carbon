@@ -5,6 +5,9 @@
   import LoadMore from "$lib/components/LoadMore.svelte";
   import MediaCard from "$lib/components/MediaCard.svelte";
   import Status from "$lib/components/Status.svelte";
+  import { dialogs } from "$lib/dialogs.svelte";
+  import { allTags, hasTag } from "$lib/organizer";
+  import { organizer } from "$lib/organizer.svelte";
   import { Pager } from "$lib/pager.svelte";
   import { resource } from "$lib/resource.svelte";
   import { session } from "$lib/session.svelte";
@@ -22,8 +25,21 @@
   const albums = new Pager<Card>((offset) => sp.savedAlbums(offset));
   const artists = resource(() => (tab === "artists" ? sp.followedArtists() : Promise.resolve(null)));
 
+  const tags = $derived(allTags(organizer.data));
+  const tag = $derived(page.url.searchParams.get("tag"));
+  // Pinned first (in pin order), then the rest as Spotify lists them; filtered by the chosen tag.
+  const playlists = $derived.by(() => {
+    const pins = organizer.data.pins;
+    const pinned = pins.map((id) => session.playlists.find((p) => p.id === id)).filter((p) => !!p);
+    const ordered = [...pinned, ...session.playlists.filter((p) => !pins.includes(p.id))];
+    return tag ? ordered.filter((p) => hasTag(organizer.data, p.id, tag)) : ordered;
+  });
+
+  const setTag = (next: string | null) =>
+    goto(next ? `?tab=playlists&tag=${encodeURIComponent(next)}` : "?tab=playlists", { replaceState: true, noScroll: true, keepFocus: true });
+
   const playlistCards = $derived<Card[]>(
-    session.playlists.map((p) => ({
+    playlists.map((p) => ({
       kind: "playlist",
       id: p.id,
       uri: p.uri,
@@ -37,6 +53,7 @@
 
 <header class="head">
   <h1>Library</h1>
+  <button class="new" onclick={() => (dialogs.playlist = { mode: "create" })}><Icon name="plus" size={16} />New playlist</button>
   <div class="tabs" role="tablist" aria-label="Library sections">
     {#each TABS as t (t.id)}
       <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => goto(`?tab=${t.id}`, { replaceState: true, noScroll: true })}>
@@ -46,13 +63,26 @@
   </div>
 </header>
 
+{#if tab === "playlists" && tags.length}
+  <div class="filters" role="group" aria-label="Filter by tag">
+    <button class:active={!tag} aria-pressed={!tag} onclick={() => setTag(null)}>All</button>
+    {#each tags as t (t)}
+      <button class:active={tag?.toLowerCase() === t.toLowerCase()} aria-pressed={tag?.toLowerCase() === t.toLowerCase()} onclick={() => setTag(t)}>
+        <Icon name="tag" size={13} />{t}
+      </button>
+    {/each}
+  </div>
+{/if}
+
 <div class="grid">
   {#if tab === "playlists"}
+    {#if !tag}
     <a href="/liked" class="liked">
       <Icon name="heart" size={34} filled />
       <span class="liked-title">Liked Songs</span>
       <span class="liked-sub">Everything you've hearted</span>
     </a>
+    {/if}
     {#each playlistCards as card (card.id)}
       <MediaCard {card} />
     {/each}
@@ -67,7 +97,9 @@
   {/if}
 </div>
 
-{#if tab === "albums"}
+{#if tab === "playlists" && tag && !playlistCards.length}
+  <Status empty={`No playlists tagged “${tag}”.`} />
+{:else if tab === "albums"}
   {#if albums.done && !albums.items.length}<Status empty="Albums you save will show up here." />{/if}
   <LoadMore pager={albums} />
 {:else if tab === "artists"}
@@ -87,6 +119,57 @@
     font-size: var(--fs-hero);
     font-weight: 750;
     line-height: 1;
+  }
+
+  .new {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    height: 38px;
+    margin-left: auto;
+    padding: 0 var(--sp-4);
+    border-radius: var(--r-pill);
+    background: var(--glass);
+    border: 1px solid var(--glass-edge);
+    color: var(--text-muted);
+    font-weight: 650;
+    transition: color var(--dur-fast);
+  }
+
+  .new:hover {
+    color: var(--text);
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin: calc(var(--sp-3) * -1) var(--sp-2) var(--sp-4);
+  }
+
+  .filters button {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-1);
+    height: 30px;
+    padding: 0 var(--sp-3);
+    border-radius: var(--r-pill);
+    background: var(--glass);
+    border: 1px solid var(--glass-edge);
+    color: var(--text-muted);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    transition: background var(--dur-fast), color var(--dur-fast);
+  }
+
+  .filters button:hover {
+    color: var(--text);
+  }
+
+  .filters button.active {
+    background: var(--accent);
+    border-color: transparent;
+    color: var(--accent-ink);
   }
 
   .tabs {

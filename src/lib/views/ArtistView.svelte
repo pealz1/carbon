@@ -1,13 +1,23 @@
 <script lang="ts">
   import DetailHeader from "$lib/components/DetailHeader.svelte";
+  import LoadMore from "$lib/components/LoadMore.svelte";
   import Shelf from "$lib/components/Shelf.svelte";
   import Status from "$lib/components/Status.svelte";
   import TrackList from "$lib/components/TrackList.svelte";
+  import { artistMenu } from "$lib/menus";
+  import { Pager } from "$lib/pager.svelte";
   import { resource } from "$lib/resource.svelte";
   import * as sp from "$lib/spotify/endpoints";
+  import { uniqueBy } from "$lib/spotify/mappers";
+  import type { Card } from "$lib/spotify/types";
 
   let { id }: { id: string } = $props();
+
+  // Each section loads on its own so one failing call never blanks the page.
   const artist = resource(() => sp.artist(id));
+  const songs = resource(() => (artist.data ? sp.artistSongs(id, artist.data.name) : Promise.resolve(null)));
+  const albums = new Pager<Card>((offset) => sp.artistAlbums(id, offset));
+  const discography = $derived(uniqueBy(albums.items, (c) => c.title.toLowerCase()));
 </script>
 
 {#if artist.loading && !artist.data}
@@ -15,15 +25,30 @@
 {:else if artist.error}
   <Status error={artist.error} onretry={artist.reload} />
 {:else if artist.data}
-  <DetailHeader kind="Artist" title={artist.data.name} image={artist.data.largeImage} playUri={artist.data.uri} round />
-  {#if artist.data.topTracks.length}
-    <section class="popular">
-      <h2>Popular</h2>
-      <TrackList tracks={artist.data.topTracks} numbered />
-    </section>
-  {/if}
-  <Shelf title="Discography" cards={artist.data.albums} wrap />
+  {@const a = artist.data}
+  <DetailHeader
+    kind="Artist"
+    title={a.name}
+    image={a.largeImage}
+    playUri={a.uri}
+    round
+    menuItems={() => artistMenu({ kind: "artist", id: a.id, uri: a.uri, title: a.name, subtitle: "Artist", image: a.image, playUri: a.uri })}
+  />
 {/if}
+
+{#if artist.data}
+  <section class="popular">
+    <h2>Popular</h2>
+    {#if songs.data?.length}
+      <TrackList tracks={songs.data} numbered />
+    {:else}
+      <Status loading={songs.loading} error={songs.error} empty="No songs found for this artist." onretry={songs.reload} />
+    {/if}
+  </section>
+{/if}
+
+<Shelf title="Discography" cards={discography} wrap />
+<LoadMore pager={albums} />
 
 <style>
   .popular {

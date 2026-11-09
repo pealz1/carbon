@@ -24,6 +24,42 @@ describe("parseLrc", () => {
   });
 });
 
+describe("enhanced LRC", () => {
+  it("reads real word timing and strips the tags from the line text", () => {
+    const [line] = parseLrc("[00:12.00]<00:12.00>Hel<00:12.40>lo <00:12.90>world<00:13.50>\n[00:20.00]next");
+    expect(line.text).toBe("Hello world");
+    expect(line.words).toEqual([
+      { text: "Hel", startMs: 12000, endMs: 12400 },
+      { text: "lo ", startMs: 12400, endMs: 12900 },
+      { text: "world", startMs: 12900, endMs: 13500 },
+    ]);
+  });
+
+  it("handles spaced tags, untagged lead-in text and an unclosed last word", () => {
+    const [line] = parseLrc("[01:00.00] So <01:00.50> long <01:01.00> now\n[01:30.00]next");
+    expect(line.text).toBe("So long now");
+    expect(line.words).toEqual([
+      { text: "So ", startMs: 60000, endMs: 60500 },
+      { text: " long ", startMs: 60500, endMs: 61000 },
+      { text: " now", startMs: 61000, endMs: 63500 }, // capped: the next line is 29 s away
+    ]);
+    const [closeNext] = parseLrc("[00:01.00]<00:01.00>go\n[00:01.80]on");
+    expect(closeNext.words?.[0].endMs).toBe(1800);
+  });
+
+  it("shifts word timing onto each repeat of a line", () => {
+    const lines = parseLrc("[00:05.00][00:30.00]<00:05.00>la <00:05.50>la<00:06.00>");
+    expect(lines.map((l) => l.words?.map((w) => w.startMs))).toEqual([
+      [5000, 5500],
+      [30000, 30500],
+    ]);
+  });
+
+  it("treats tag-only lines as plain lines", () => {
+    expect(parseLrc("[00:01.00]<00:01.00>")).toEqual([{ timeMs: 1000, text: "" }]);
+  });
+});
+
 describe("activeLineIndex", () => {
   const lines = parseLrc("[00:01.00]a\n[00:05.00]b\n[00:09.00]c");
 

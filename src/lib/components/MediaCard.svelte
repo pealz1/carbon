@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { menu } from "$lib/menu.svelte";
+  import { cardMenu } from "$lib/menus";
   import { player } from "$lib/player.svelte";
   import type { Card } from "$lib/spotify/types";
   import Icon from "./Icon.svelte";
@@ -15,9 +17,11 @@
     if (card.kind === "track") return player.playTracks([card.playUri]);
     player.playContext(card.playUri);
   }
+
+  const openMenu = (event: MouseEvent | KeyboardEvent) => menu.open(event, cardMenu(card));
 </script>
 
-<svelte:element this={href ? "a" : "div"} {href} class="card" class:artist={card.kind === "artist"}>
+<svelte:element this={href ? "a" : "div"} {href} class="card" class:artist={card.kind === "artist"} oncontextmenu={openMenu} role={href ? undefined : "group"}>
   <div class="art">
     {#if card.image}
       <img src={card.image} alt="" width="300" height="300" loading="lazy" decoding="async" />
@@ -26,6 +30,9 @@
     {/if}
     <button class="play" class:live onclick={play} aria-label="{live && !player.paused ? 'Pause' : 'Play'} {card.title}">
       <Icon name={live && !player.paused ? "pause" : "play"} size={18} />
+    </button>
+    <button class="more" onclick={openMenu} aria-label="More options for {card.title}" aria-haspopup="menu" title="More">
+      <Icon name="more" size={16} />
     </button>
   </div>
   <span class="title">{card.title}</span>
@@ -107,6 +114,26 @@
 
   .play:hover {
     transform: scale(1.06);
+  }
+
+  .more {
+    position: absolute;
+    top: var(--sp-2);
+    right: var(--sp-2);
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-pill);
+    background: var(--glass-strong);
+    color: var(--text);
+    opacity: 0;
+    transition: opacity var(--dur-fast);
+  }
+
+  .card:hover .more,
+  .more:focus-visible {
+    opacity: 1;
   }
 
   .title {

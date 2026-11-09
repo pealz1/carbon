@@ -6,6 +6,7 @@ describe("describeError", () => {
   it("explains common Spotify statuses", () => {
     expect(describeError(new ApiError(401, "x"))).toMatch(/expired/);
     expect(describeError(new ApiError(403, "x"))).toMatch(/doesn't let/);
+    expect(describeError(new ApiError(403, "Insufficient client scope"))).toMatch(/Sign in again/);
     expect(describeError(new ApiError(404, "x"))).toMatch(/couldn't find/);
     expect(describeError(new ApiError(429, "x"))).toMatch(/rate-limiting/);
     expect(describeError(new ApiError(503, "x"))).toMatch(/trouble/);

@@ -3,6 +3,7 @@
   import Status from "$lib/components/Status.svelte";
   import TrackList from "$lib/components/TrackList.svelte";
   import { formatTotal } from "$lib/format";
+  import { albumMenu } from "$lib/menus";
   import { resource } from "$lib/resource.svelte";
   import * as sp from "$lib/spotify/endpoints";
 
@@ -16,7 +17,15 @@
 {:else if album.error}
   <Status error={album.error} onretry={album.reload} />
 {:else if album.data}
-  <DetailHeader kind={album.data.type} title={album.data.name} image={album.data.largeImage} playUri={album.data.uri}>
+  {@const a = album.data}
+  <DetailHeader
+    kind={a.type}
+    title={a.name}
+    image={a.largeImage}
+    playUri={a.uri}
+    shuffleCount={a.tracks.length}
+    menuItems={() => albumMenu({ kind: "album", id: a.id, uri: a.uri, title: a.name, subtitle: "", image: a.image, playUri: a.uri }, a.tracks)}
+  >
     {#snippet meta()}
       {#each album.data?.artists ?? [] as artist, i (artist.uri)}
         {#if i > 0}{", "}{/if}<a class="artist" href="/artist/{artist.id}">{artist.name}</a>

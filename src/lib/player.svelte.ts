@@ -3,6 +3,7 @@
 import { getAccessToken } from "$lib/auth";
 import { DEFAULT_VOLUME, PLAYER_NAME, SPOTIFY, TIMING } from "$lib/config";
 import { reportPlayback, type PlaybackInfo } from "$lib/native";
+import { acceptResync, positionFromState } from "$lib/playback-clock";
 import * as sp from "$lib/spotify/endpoints";
 import { pickLargestImage, toTrack } from "$lib/spotify/mappers";
 import type { Track } from "$lib/spotify/types";
@@ -49,6 +50,7 @@ class Player {
   contextUri = $state<string | null>(null);
   #positionMs = $state(0);
   #positionAt = $state(0);
+  #seekAt = 0;
   #sdk: Spotify.Player | null = null;
   #deviceId: Promise<string> | null = null;
 
@@ -133,18 +135,34 @@ class Player {
     reportPlayback(info).catch((e) => console.error("[player] native update failed", e));
   }
 
-  async #run(action: (deviceId: string) => Promise<unknown>): Promise<void> {
+  /** Resolves false (with `error` set) when the action failed. */
+  async #run(action: (deviceId: string) => Promise<unknown>): Promise<boolean> {
     try {
       if (!this.#deviceId) await this.start();
       await action(await this.#deviceId!);
+      return true;
     } catch (e) {
       console.error("[player]", e);
       this.error = message(e);
+      return false;
     }
   }
 
   playContext = (contextUri: string, offsetUri?: string) =>
     this.#run((id) => sp.playOn(id, { context_uri: contextUri, ...(offsetUri && { offset: { uri: offsetUri } }) }));
+
+  /** Shuffle on, then play. `count` lets the first song be random too when shuffle has to wait. */
+  shufflePlay = (contextUri: string, count?: number) =>
+    this.#run(async (id) => {
+      // Spotify refuses shuffle (404) until Carbon is the active device; then it's set after play starts.
+      const shuffled = await sp.setShuffle(true, id).then(
+        () => true,
+        () => false,
+      );
+      const offset = !shuffled && count ? { offset: { position: Math.floor(Math.random() * count) } } : {};
+      await sp.playOn(id, { context_uri: contextUri, ...offset });
+      if (!shuffled) await sp.setShuffle(true, id);
+    });
 
   playTracks = (uris: string[], index = 0) => this.#run((id) => sp.playOn(id, { uris, offset: { position: index } }));
 
@@ -165,9 +183,23 @@ class Player {
   seek = (ms: number) =>
     this.#run(async () => {
       this.#positionMs = ms;
-      this.#positionAt = performance.now();
+      this.#positionAt = this.#seekAt = performance.now();
       await this.#sdk?.seek(Math.round(ms));
+      await this.syncPosition();
     });
+
+  /** Re-reads the position from the SDK's local state (no Web API call) to correct drift. */
+  syncPosition = async (): Promise<void> => {
+    const state = await this.#sdk?.getCurrentState().catch((e) => (console.warn("[player] state read failed", e), null));
+    if (!state || state.track_window.current_track?.uri !== this.track?.uri) return;
+    const now = performance.now();
+    const expected = this.position(now);
+    const next = positionFromState(state, expected);
+    if (!acceptResync(next, expected, now - this.#seekAt)) return;
+    this.#positionMs = next;
+    this.#positionAt = now;
+    this.paused = state.paused;
+  };
 
   setVolume = (volume: number) => {
     this.volume = Math.min(1, Math.max(0, volume));

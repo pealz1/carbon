@@ -67,6 +67,8 @@ export function toPlaylistSummary(p: RawPlaylist): PlaylistSummary {
     ownerId: p.owner?.id ?? "",
     ownerName: p.owner?.display_name ?? "",
     trackCount: p.items?.total ?? p.tracks?.total ?? null,
+    public: p.public ?? null,
+    collaborative: p.collaborative ?? false,
   };
 }
 
@@ -109,6 +111,13 @@ export const trackCard = (t: Track): Card => ({
   image: t.album?.image ?? null,
   playUri: t.uri,
 });
+
+/** Splits a list into runs of at most `size` (Spotify caps URIs per request). */
+export function chunk<T>(items: T[], size: number): T[][] {
+  const runs: T[][] = [];
+  for (let i = 0; i < items.length; i += size) runs.push(items.slice(i, i + size));
+  return runs;
+}
 
 /** Drops repeated entries (same id), keeping the first occurrence. */
 export function uniqueBy<T>(items: T[], key: (item: T) => string): T[] {

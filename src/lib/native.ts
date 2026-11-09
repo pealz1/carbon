@@ -1,6 +1,7 @@
 // Bridge to Carbon's Rust core. Every call here is a Tauri command or event.
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { LibraryData } from "$lib/organizer";
 
 export type Effects = "full" | "balanced" | "minimal";
 export const ACCENTS = ["periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
@@ -48,6 +49,9 @@ export const saveSettings = (settings: Settings) => invoke<Settings>("settings_s
 export const reportPlayback = (info: PlaybackInfo | null) => invoke("playback_update", { info });
 export const onMediaCommand = (handler: (command: MediaCommand) => void): Promise<UnlistenFn> =>
   listen<MediaCommand>("media-command", (event) => handler(event.payload));
+
+export const libraryGet = () => invoke<LibraryData>("library_get");
+export const librarySet = (library: LibraryData) => invoke<LibraryData>("library_set", { library });
 
 export const appInfo = () => invoke<AppInfo>("app_info");
 export const uninstall = () => invoke("uninstall");
