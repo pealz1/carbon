@@ -3,6 +3,7 @@
 import { getAccessToken } from "$lib/auth";
 import { DEFAULT_VOLUME, PLAYER_NAME, SPOTIFY, TIMING } from "$lib/config";
 import { reportPlayback, type PlaybackInfo } from "$lib/native";
+import { positionFromState } from "$lib/playback-clock";
 import * as sp from "$lib/spotify/endpoints";
 import { pickLargestImage, toTrack } from "$lib/spotify/mappers";
 import type { Track } from "$lib/spotify/types";
@@ -183,7 +184,17 @@ class Player {
       this.#positionMs = ms;
       this.#positionAt = performance.now();
       await this.#sdk?.seek(Math.round(ms));
+      await this.syncPosition();
     });
+
+  /** Re-reads the position from the SDK's local state (no Web API call) to correct drift. */
+  syncPosition = async (): Promise<void> => {
+    const state = await this.#sdk?.getCurrentState().catch((e) => (console.warn("[player] state read failed", e), null));
+    if (!state || state.track_window.current_track?.uri !== this.track?.uri) return;
+    this.#positionMs = positionFromState(state);
+    this.#positionAt = performance.now();
+    this.paused = state.paused;
+  };
 
   setVolume = (volume: number) => {
     this.volume = Math.min(1, Math.max(0, volume));

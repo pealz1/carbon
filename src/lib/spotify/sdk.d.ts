@@ -21,6 +21,8 @@ declare namespace Spotify {
     paused: boolean;
     position: number;
     duration: number;
+    /** Epoch ms when this state was produced (not in Spotify's docs; present in practice). */
+    timestamp?: number;
     shuffle: boolean;
     repeat_mode: 0 | 1 | 2;
     track_window: { current_track: SdkTrack | null; next_tracks: SdkTrack[]; previous_tracks: SdkTrack[] };

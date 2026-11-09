@@ -1,40 +1,98 @@
 import { describe, expect, it } from "vitest";
-import { lineEnd, timeWords, wordProgress } from "./words";
+import { clampOffset, offsetFor, saveOffset } from "./lyric-offsets";
+import { positionFromState } from "./playback-clock";
+import { lineEnd, lineProgress, wordProgress } from "./words";
 
-describe("timeWords", () => {
-  it("splits a line's sung time across words by length, in order", () => {
-    const words = timeWords("a heart that's full", 10_000, 14_000);
-    expect(words.map((w) => w.text)).toEqual(["a", "heart", "that's", "full"]);
-    expect(words[0].startMs).toBe(10_000);
-    for (let i = 1; i < words.length; i++) expect(words[i].startMs).toBeGreaterThan(words[i - 1].startMs);
-    const last = words.at(-1)!;
-    expect(last.startMs + last.durationMs).toBeLessThanOrEqual(14_000 * 0.85 + 10_000 * 0.15 + 1);
-    expect(words[1].durationMs).toBeGreaterThan(words[0].durationMs);
-  });
-
-  it("handles empty lines and tiny gaps", () => {
-    expect(timeWords("   ", 0, 1000)).toEqual([]);
-    const squeezed = timeWords("one two three", 0, 10);
-    expect(squeezed.every((w) => w.durationMs >= 60)).toBe(true);
-  });
-});
+const lines = [
+  { timeMs: 1000, text: "a" },
+  { timeMs: 5000, text: "b" },
+];
 
 describe("lineEnd", () => {
   it("uses the next line's start, or a default for the last line", () => {
-    const lines = [
-      { timeMs: 1000, text: "a" },
-      { timeMs: 5000, text: "b" },
-    ];
     expect(lineEnd(lines, 0)).toBe(5000);
     expect(lineEnd(lines, 1)).toBe(9000);
   });
 });
 
-describe("wordProgress", () => {
-  const word = { text: "x", startMs: 1000, durationMs: 500 };
-  it("clamps between 0 and 1", () => {
+describe("progress", () => {
+  it("fills a word between its real start and end", () => {
+    const word = { text: "x", startMs: 1000, endMs: 1500 };
     expect(wordProgress(word, 0)).toBe(0);
     expect(wordProgress(word, 1250)).toBe(0.5);
     expect(wordProgress(word, 9999)).toBe(1);
+    expect(wordProgress({ text: "x", startMs: 10, endMs: 10 }, 11)).toBe(1);
+  });
+
+  it("fills a whole line smoothly from its start to the next line", () => {
+    expect(lineProgress(lines, 0, 1000)).toBe(0);
+    expect(lineProgress(lines, 0, 3000)).toBe(0.5);
+    expect(lineProgress(lines, 1, 7000)).toBe(0.5);
+    expect(lineProgress(lines, 1, 60_000)).toBe(1);
+  });
+});
+
+describe("lyric offsets", () => {
+  const memory = () => {
+    const data = new Map<string, string>();
+    return { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v), data };
+  };
+
+  it("rounds to quarter seconds within ±10 s", () => {
+    expect(clampOffset(130)).toBe(250);
+    expect(clampOffset(-370)).toBe(-250);
+    expect(clampOffset(99_000)).toBe(10_000);
+    expect(clampOffset(-0.1)).toBe(0);
+    expect(clampOffset(Number.NaN)).toBe(0);
+  });
+
+  it("saves per song and forgets zero", () => {
+    const store = memory();
+    expect(saveOffset("t1", 500, store)).toBe(500);
+    expect(saveOffset("t2", -260, store)).toBe(-250);
+    expect(offsetFor("t1", store)).toBe(500);
+    expect(offsetFor("t2", store)).toBe(-250);
+    saveOffset("t1", 0, store);
+    expect(offsetFor("t1", store)).toBe(0);
+    expect(JSON.parse(store.data.get("carbon.lyricsOffsets")!)).toEqual({ t2: -250 });
+  });
+
+  it("ignores junk and copes without storage", () => {
+    const store = memory();
+    store.setItem("carbon.lyricsOffsets", '{"t1":"soon","t2":123,"t3":750}');
+    expect(offsetFor("t1", store)).toBe(0);
+    expect(offsetFor("t2", store)).toBe(0);
+    expect(offsetFor("t3", store)).toBe(750);
+    store.setItem("carbon.lyricsOffsets", "not json");
+    expect(offsetFor("t3", store)).toBe(0);
+    expect(offsetFor("t3", null)).toBe(0);
+    expect(saveOffset("t3", 250, null)).toBe(250);
+  });
+
+  it("keeps the most recent songs when full", () => {
+    const store = memory();
+    for (let i = 0; i < 510; i++) saveOffset(`t${i}`, 250, store);
+    expect(offsetFor("t0", store)).toBe(0);
+    expect(offsetFor("t509", store)).toBe(250);
+    expect(Object.keys(JSON.parse(store.data.get("carbon.lyricsOffsets")!))).toHaveLength(500);
+  });
+});
+
+describe("positionFromState", () => {
+  const state = { position: 10_000, duration: 200_000, paused: false };
+
+  it("adds the time since the SDK produced the state while playing", () => {
+    expect(positionFromState({ ...state, timestamp: 1_000 }, 1_400)).toBe(10_400);
+  });
+
+  it("trusts the position as-is when paused, without a timestamp, or with a stale one", () => {
+    expect(positionFromState({ ...state, paused: true, timestamp: 1_000 }, 1_400)).toBe(10_000);
+    expect(positionFromState(state, 1_400)).toBe(10_000);
+    expect(positionFromState({ ...state, timestamp: 1_000 }, 60_000)).toBe(10_000);
+    expect(positionFromState({ ...state, timestamp: 2_000 }, 1_000)).toBe(10_000);
+  });
+
+  it("never runs past the end", () => {
+    expect(positionFromState({ ...state, position: 199_900, timestamp: 0 }, 500)).toBe(200_000);
   });
 });
