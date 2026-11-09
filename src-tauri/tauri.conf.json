@@ -13,6 +13,7 @@
     "windows": [
       {
         "label": "main",
+        "create": false,
         "title": "Carbon",
         "width": 1320,
         "height": 840,
@@ -33,10 +34,14 @@
         "script-src": "'self' https://sdk.scdn.co",
         "frame-src": "https://sdk.scdn.co",
         "connect-src": "'self' ipc: http://ipc.localhost https://api.spotify.com https://accounts.spotify.com https://lrclib.net",
-        "img-src": "'self' data: blob: https:",
+        "img-src": "'self' data: blob: https: asset: http://asset.localhost",
         "media-src": "'self' blob: https:",
         "style-src": "'self' 'unsafe-inline'",
         "font-src": "'self' data:"
+      },
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPCACHE/artwork/*"]
       }
     }
   },
