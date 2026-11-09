@@ -14,7 +14,7 @@ pub fn equal_power(t: f32) -> (f32, f32) {
 /// `done` frames into a fade of `total` frames.
 pub fn mix(out: &mut [f32], incoming: &[f32], done: u64, total: u64) {
     let total = total.max(1) as f32;
-    for (i, (o, n)) in out.chunks_exact_mut(2).zip(incoming.chunks_exact(2)).enumerate() {
+    for (i, (o, n)) in out.as_chunks_mut::<2>().0.iter_mut().zip(incoming.as_chunks::<2>().0).enumerate() {
         let (fade_out, fade_in) = equal_power((done + i as u64) as f32 / total);
         o[0] = o[0] * fade_out + n[0] * fade_in;
         o[1] = o[1] * fade_out + n[1] * fade_in;

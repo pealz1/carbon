@@ -86,7 +86,7 @@ impl Source {
             self.resampler.process(&self.raw, self.decoded_all, &mut self.ready)?;
         }
         let n = (self.ready.len() - self.cursor).min(wanted) & !1;
-        for (o, frame) in out[..n].chunks_exact_mut(2).zip(self.ready[self.cursor..self.cursor + n].chunks_exact(2)) {
+        for (o, frame) in out[..n].as_chunks_mut::<2>().0.iter_mut().zip(self.ready[self.cursor..self.cursor + n].as_chunks::<2>().0) {
             self.gain += (self.gain_target - self.gain) * GAIN_GLIDE;
             o[0] = frame[0] * self.gain;
             o[1] = frame[1] * self.gain;

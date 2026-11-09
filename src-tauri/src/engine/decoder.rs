@@ -213,7 +213,7 @@ pub mod tests {
         let mut out = Vec::new();
         while d.next_chunk(&mut out).unwrap() {}
         assert_eq!(out.len(), 22_050 / 2 * 2);
-        assert!(out.chunks_exact(2).all(|f| f[0] == f[1]));
+        assert!(out.as_chunks::<2>().0.iter().all(|f| f[0] == f[1]));
         let _ = std::fs::remove_file(path);
     }
 

@@ -130,7 +130,7 @@ mod tests {
         input[..2].copy_from_slice(&[1.0, 1.0]); // an impulse at t = 0
         let mut out = Vec::new();
         r.process(&input, true, &mut out).unwrap();
-        let peak = out.chunks_exact(2).enumerate().max_by(|a, b| a.1[0].abs().total_cmp(&b.1[0].abs())).map(|(i, _)| i).unwrap();
+        let peak = out.as_chunks::<2>().0.iter().enumerate().max_by(|a, b| a.1[0].abs().total_cmp(&b.1[0].abs())).map(|(i, _)| i).unwrap();
         assert!(peak <= 2, "impulse moved to frame {peak}");
     }
 }
