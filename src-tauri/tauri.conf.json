@@ -24,6 +24,7 @@
         "transparent": true,
         "theme": "Dark",
         "windowEffects": { "effects": ["micaDark"] },
+        "dragDropEnabled": false,
         "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,HardwareMediaKeyHandling --autoplay-policy=no-user-gesture-required"
       }
     ],

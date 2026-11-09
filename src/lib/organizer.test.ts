@@ -176,7 +176,7 @@ describe("buildTree", () => {
     lib = togglePin(togglePin(lib, "p2"), "gone");
     const tree = buildTree(lib, [playlist("p1"), playlist("p2"), playlist("p3")]);
     expect(tree.pinned.map((p) => p.id)).toEqual(["p2"]);
-    expect(tree.loose.map((p) => p.id)).toEqual(["p2", "p3"]);
+    expect(tree.loose.map((p) => p.id)).toEqual(["p3"]);
     expect(tree.folders[0].total).toBe(1);
     expect(tree.folders[0].children[0].playlists.map((p) => p.id)).toEqual(["p1"]);
     expect(tree.folders[1].playlists).toEqual([]);

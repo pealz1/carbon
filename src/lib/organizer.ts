@@ -197,7 +197,10 @@ export interface SidebarTree {
   loose: PlaylistSummary[];
 }
 
-/** Resolves ids against the listener's playlists; ids Spotify no longer returns are skipped. */
+/**
+ * Resolves ids against the listener's playlists; ids Spotify no longer returns are skipped.
+ * Pinned playlists sit at the top instead of the top-level list (folders still show them).
+ */
 export function buildTree(lib: LibraryData, playlists: PlaylistSummary[]): SidebarTree {
   const byId = new Map(playlists.map((p) => [p.id, p]));
   const resolve = (ids: string[]) => ids.map((id) => byId.get(id)).filter((p): p is PlaylistSummary => !!p);
@@ -206,7 +209,7 @@ export function buildTree(lib: LibraryData, playlists: PlaylistSummary[]): Sideb
     const own = resolve(folder.playlists);
     return { folder, playlists: own, children, total: own.length + children.reduce((n, c) => n + c.total, 0) };
   };
-  const placed = new Set<string>();
+  const placed = new Set<string>(lib.pins); // pinned ones show at the top instead
   const collect = (folders: Folder[]) => folders.forEach((f) => (f.playlists.forEach((p) => placed.add(p)), collect(f.folders)));
   collect(lib.folders);
   return { pinned: resolve(lib.pins), folders: lib.folders.map(node), loose: playlists.filter((p) => !placed.has(p.id)) };
