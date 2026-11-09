@@ -31,6 +31,10 @@ Carbon is a native Rust app that plays your music itself, looks like it belongs 
 - **Discord status.** Shows what you're listening to, with album art and a live progress bar.
 - **Last.fm scrobbling.** Built in, following Last.fm's scrobbling rules.
 - **Private by design.** No ads, no analytics, no tracking. Your Spotify sign-in lives in Windows Credential Manager.
+- **Your playlists, your way.** Create and edit playlists, change covers, like songs, and organize with folders, tags and pins.
+- **Your own files too.** A built-in audio engine plays local music gapless, with a 10-band EQ, loudness levelling and crossfade. Carbon playlists mix local files with Spotify songs.
+- **Cinema mode.** Full-screen artwork and lyrics, with controls that get out of the way.
+- **Phone remote and SDK.** Pair your phone over Wi-Fi with a QR code, or build on Carbon with [`@getcarbon/sdk`](packages/carbon-sdk).
 - **Updates itself.** Signed updates, verified before they install.
 
 <img src="docs/screenshots/home.jpg" alt="Carbon's home view: greeting, recently played albums and top tracks in a frosted glass window" width="100%">

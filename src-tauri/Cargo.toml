@@ -1,6 +1,6 @@
 [package]
 name = "carbon"
-version = "0.2.0"
+version = "0.3.0"
 description = "Carbon, a glass Spotify client"
 authors = ["pealz"]
 edition = "2024"
