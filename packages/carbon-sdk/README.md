@@ -90,7 +90,7 @@ Every failure is a `CarbonError` with a `code`:
 | `rate_limited` | Too many attempts from your address. Wait a minute. |
 | `too_many_devices` | Carbon already has 8 remotes connected. |
 | `forbidden` | You're not on Carbon's local network. |
-| `unreachable` | Nothing answered at that host and port, or the remote is off. |
+| `unreachable` | Nothing answered at that host and port, the remote is off, or Carbon refused the request (a host name instead of an IP address, or a connection from another web page). |
 | `timeout` | No answer within `timeoutMs`. |
 | `protocol_mismatch` | Carbon speaks a protocol version this SDK doesn't. |
 | `invalid_argument` | Bad option or command argument. |

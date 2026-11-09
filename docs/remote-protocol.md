@@ -37,7 +37,7 @@ A refused handshake gets a socket.io `connect_error` whose `message` is one of:
 | `unauthorized` | Missing or wrong token, or a wrong or expired code. | Get a fresh token from Settings → Remote. Retrying won't help. |
 | `rate_limited` | More than 20 attempts from this address in a minute, or the code is locked or slowed down (see below). | Wait a minute, or use the developer token. |
 | `too_many_devices` | 8 remotes are already connected. | Disconnect one in Settings → Remote. |
-| `forbidden` | The peer isn't on a private network, or the request named a host name or came from another web page. | Connect from the same LAN, by IP address. |
+| `forbidden` | A backstop: the peer isn't on a private network, or the request named a host name or came from another web page. Those are normally refused earlier, as a closed connection (off the LAN) or HTTP 403 on the upgrade. | Connect from the same LAN, by IP address. |
 
 After 10 wrong secrets from one address within a minute, that address can only use the developer
 token until the minute passes. When many addresses guess at once, code attempts from devices that
