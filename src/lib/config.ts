@@ -40,3 +40,5 @@ export const DEFAULT_VOLUME = 0.6;
 // Spotify caps search results per type at 10 for development-mode apps (Feb 2026).
 export const SEARCH_LIMIT = 10;
 export const PAGE_SIZE = 50;
+// GET /artists/{id}/albums rejects any limit above 10 (current reference docs); 50 made it fail with 400.
+export const ARTIST_ALBUMS_LIMIT = 10;

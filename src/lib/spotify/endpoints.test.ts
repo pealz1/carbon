@@ -53,18 +53,28 @@ describe("endpoints", () => {
     expect(recent.contexts).toEqual(["spotify:album:x"]);
   });
 
-  it("builds an artist page from search, keeping only that artist's songs", async () => {
-    vi.stubGlobal(
-      "fetch",
-      routes({
-        "/artists/a1/albums": { items: [{ id: "al1", name: "Album", uri: "spotify:album:al1", images: [] }], next: null },
-        "/artists/a1": { id: "a1", name: "Artist", uri: "spotify:artist:a1", images: [] },
-        "/search": { tracks: { items: [track("t1"), track("t9", "someone-else")], next: null } },
-      }),
-    );
-    const artist = await sp.artist("a1");
-    expect(artist.topTracks.map((t) => t.id)).toEqual(["t1"]);
-    expect(artist.albums).toHaveLength(1);
+  it("finds an artist's songs by search, keeping only that artist's songs", async () => {
+    vi.stubGlobal("fetch", routes({ "/search": { tracks: { items: [track("t1"), track("t9", "someone-else")], next: null } } }));
+    const songs = await sp.artistSongs("a1", "Artist");
+    expect(songs.map((t) => t.id)).toEqual(["t1"]);
+  });
+
+  it("pages an artist's albums within the endpoint's limit of 10", async () => {
+    const fetchMock = routes({
+      "/artists/a2/albums": { items: [{ id: "al1", name: "Album", uri: "spotify:album:al1", images: [] }], next: "more", total: 31 },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await sp.artistAlbums("a2", 10);
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(Number(url.searchParams.get("limit"))).toBeLessThanOrEqual(10);
+    expect(url.searchParams.get("include_groups")).toBe("album,single");
+    expect(page).toMatchObject({ total: 31, nextOffset: 11 });
+  });
+
+  it("loads artist details without depending on albums or songs", async () => {
+    vi.stubGlobal("fetch", routes({ "/artists/a3": { id: "a3", name: "Artist", uri: "spotify:artist:a3", images: [] } }));
+    await expect(sp.artist("a3")).resolves.toMatchObject({ id: "a3", name: "Artist" });
+    await expect(sp.artistAlbums("a3")).rejects.toMatchObject({ status: 404 });
   });
 
   it("returns null when nothing is playing (204)", async () => {

@@ -1,6 +1,6 @@
 // Typed wrappers for the Web API endpoints development-mode apps can still use (Feb 2026).
 // Not available: artist top tracks, new releases, browse categories, batch /tracks|/albums|/artists.
-import { PAGE_SIZE, SEARCH_LIMIT } from "$lib/config";
+import { ARTIST_ALBUMS_LIMIT, PAGE_SIZE, SEARCH_LIMIT } from "$lib/config";
 import { get, getFresh, send } from "./api";
 import {
   albumCard,
@@ -124,26 +124,24 @@ export interface ArtistDetail {
   name: string;
   image: string | null;
   largeImage: string | null;
-  topTracks: Track[];
-  albums: Card[];
 }
 
 export async function artist(id: string): Promise<ArtistDetail> {
-  const [raw, albums] = await Promise.all([
-    get<RawArtist>(`/artists/${encodeURIComponent(id)}`),
-    get<Paging<RawAlbum>>(`/artists/${encodeURIComponent(id)}/albums?${q({ include_groups: "album,single", limit: PAGE_SIZE })}`),
-  ]);
-  // Artist top tracks were removed for dev-mode apps; an artist-filtered search is the closest substitute.
-  const songs = await get<{ tracks: Paging<RawTrack> }>(`/search?${q({ q: `artist:"${raw.name}"`, type: "track", limit: SEARCH_LIMIT })}`);
-  return {
-    id,
-    uri: raw.uri,
-    name: raw.name,
-    image: pickImage(raw.images),
-    largeImage: pickLargestImage(raw.images),
-    topTracks: compactTracks(songs.tracks.items.map((t) => toTrack(t))).filter((t) => t.artists.some((a) => a.id === id)),
-    albums: uniqueBy(albums.items.map(albumCard), (c) => c.title.toLowerCase()),
-  };
+  const raw = await get<RawArtist>(`/artists/${encodeURIComponent(id)}`);
+  return { id, uri: raw.uri, name: raw.name, image: pickImage(raw.images), largeImage: pickLargestImage(raw.images) };
+}
+
+export async function artistAlbums(id: string, offset = 0): Promise<Page<Card>> {
+  const raw = await get<Paging<RawAlbum>>(
+    `/artists/${encodeURIComponent(id)}/albums?${q({ include_groups: "album,single", limit: ARTIST_ALBUMS_LIMIT, offset })}`,
+  );
+  return { items: raw.items.map(albumCard), total: raw.total ?? null, nextOffset: nextOffset(raw, offset) };
+}
+
+/** Artist top tracks were removed for dev-mode apps; an artist-filtered search is the closest substitute. */
+export async function artistSongs(id: string, name: string): Promise<Track[]> {
+  const raw = await get<{ tracks: Paging<RawTrack> }>(`/search?${q({ q: `artist:"${name}"`, type: "track", limit: SEARCH_LIMIT })}`);
+  return compactTracks(raw.tracks.items.map((t) => toTrack(t))).filter((t) => t.artists.some((a) => a.id === id));
 }
 
 export interface SearchResults {
