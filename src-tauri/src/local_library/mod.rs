@@ -12,7 +12,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
-const INDEX_FILE: &str = "library.json";
+/// Not "library.json": that name belongs to playlist folders and tags in the same directory.
+const INDEX_FILE: &str = "local-library.json";
 const ART_DIR: &str = "artwork";
 const MAX_FOLDERS: usize = 32;
 
@@ -52,15 +53,15 @@ pub struct LibraryView {
     scanning: bool,
 }
 
-pub struct Library {
+pub struct LocalLibrary {
     index: Mutex<Index>,
     scanning: AtomicBool,
     file: Option<PathBuf>,
     art_dir: Option<PathBuf>,
 }
 
-impl Library {
-    pub fn load(app: &AppHandle) -> Library {
+impl LocalLibrary {
+    pub fn load(app: &AppHandle) -> LocalLibrary {
         let file = app.path().app_data_dir().ok().map(|d| d.join(INDEX_FILE));
         let index = file
             .as_ref()
@@ -68,7 +69,7 @@ impl Library {
             .and_then(|t| serde_json::from_str::<Index>(&t).map_err(|e| eprintln!("[library] index unreadable, starting fresh: {e}")).ok())
             .unwrap_or_default();
         let art_dir = app.path().app_cache_dir().ok().map(|d| d.join(ART_DIR));
-        Library { index: Mutex::new(index), scanning: AtomicBool::new(false), file, art_dir }
+        LocalLibrary { index: Mutex::new(index), scanning: AtomicBool::new(false), file, art_dir }
     }
 
     fn view(&self) -> Result<LibraryView, String> {
@@ -143,11 +144,11 @@ fn add_folder(folders: &[String], folder: &Path) -> Result<Vec<String>, String> 
 }
 
 fn spawn_scan(app: &AppHandle) -> Result<(), String> {
-    let library = app.state::<Library>();
+    let library = app.state::<LocalLibrary>();
     if library.scanning.swap(true, Ordering::AcqRel) {
         return Ok(()); // the running scan starts over if the folders changed under it
     }
-    let _ = app.emit("library-changed", ());
+    let _ = app.emit("local-library-changed", ());
     let handle = app.clone();
     std::thread::Builder::new()
         .name("carbon-library-scan".into())
@@ -161,7 +162,7 @@ fn spawn_scan(app: &AppHandle) -> Result<(), String> {
 
 /// Scans until the folder list stops changing underneath it (a folder added mid-scan).
 fn run_scan(app: &AppHandle) {
-    let library = app.state::<Library>();
+    let library = app.state::<LocalLibrary>();
     loop {
         let Ok((folders, previous)) = library.index.lock().map(|index| {
             (index.folders.clone(), index.tracks.iter().map(|t| (t.path.clone(), t.clone())).collect::<HashMap<_, _>>())
@@ -172,7 +173,7 @@ fn run_scan(app: &AppHandle) {
         let files = scan::find_audio(&roots);
         let total = files.len();
         let tracks = scan::scan(&files, &previous, library.art_dir.as_deref(), |done| {
-            let _ = app.emit("library-progress", (done, total));
+            let _ = app.emit("local-library-progress", (done, total));
         });
         let Ok(mut index) = library.index.lock() else { break };
         if index.folders != folders {
@@ -183,21 +184,21 @@ fn run_scan(app: &AppHandle) {
         break;
     }
     library.scanning.store(false, Ordering::Release);
-    let _ = app.emit("library-changed", ());
+    let _ = app.emit("local-library-changed", ());
 }
 
 #[tauri::command]
-pub fn library_get(library: State<Library>) -> Result<LibraryView, String> {
+pub fn local_library_get(library: State<LocalLibrary>) -> Result<LibraryView, String> {
     library.view()
 }
 
 /// Opens the Windows folder picker. The path comes from the OS dialog, never from the webview.
 #[tauri::command]
-pub async fn library_add_folder(app: AppHandle) -> Result<bool, String> {
+pub async fn local_library_add_folder(app: AppHandle) -> Result<bool, String> {
     let Some(picked) = app.dialog().file().set_title("Add a music folder").blocking_pick_folder() else { return Ok(false) };
     let folder = picked.into_path().map_err(|_| "That folder can't be opened.".to_string())?;
     {
-        let library = app.state::<Library>();
+        let library = app.state::<LocalLibrary>();
         let mut index = library.index.lock().map_err(|e| e.to_string())?;
         index.folders = add_folder(&index.folders, &folder)?;
         library.save(&index);
@@ -207,7 +208,7 @@ pub async fn library_add_folder(app: AppHandle) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn library_remove_folder(app: AppHandle, library: State<Library>, folder: String) -> Result<(), String> {
+pub fn local_library_remove_folder(app: AppHandle, library: State<LocalLibrary>, folder: String) -> Result<(), String> {
     {
         let mut index = library.index.lock().map_err(|e| e.to_string())?;
         if !index.folders.contains(&folder) {
@@ -217,12 +218,12 @@ pub fn library_remove_folder(app: AppHandle, library: State<Library>, folder: St
         index.tracks.retain(|t| !Path::new(&t.path).starts_with(&folder));
         library.save(&index);
     }
-    let _ = app.emit("library-changed", ());
+    let _ = app.emit("local-library-changed", ());
     Ok(())
 }
 
 #[tauri::command]
-pub fn library_rescan(app: AppHandle) -> Result<(), String> {
+pub fn local_library_rescan(app: AppHandle) -> Result<(), String> {
     spawn_scan(&app)
 }
 

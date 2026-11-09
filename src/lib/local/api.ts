@@ -81,13 +81,13 @@ export const engine = {
 };
 
 export const library = {
-  get: () => invoke<LibraryView>("library_get"),
-  addFolder: () => invoke<boolean>("library_add_folder"),
-  removeFolder: (folder: string) => invoke("library_remove_folder", { folder }),
-  rescan: () => invoke("library_rescan"),
-  onChanged: (handler: () => void) => listen("library-changed", handler),
+  get: () => invoke<LibraryView>("local_library_get"),
+  addFolder: () => invoke<boolean>("local_library_add_folder"),
+  removeFolder: (folder: string) => invoke("local_library_remove_folder", { folder }),
+  rescan: () => invoke("local_library_rescan"),
+  onChanged: (handler: () => void) => listen("local-library-changed", handler),
   onProgress: (handler: (done: number, total: number) => void) =>
-    listen<[number, number]>("library-progress", (e) => handler(e.payload[0], e.payload[1])),
+    listen<[number, number]>("local-library-progress", (e) => handler(e.payload[0], e.payload[1])),
 };
 
 export const playlists = {

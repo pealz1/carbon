@@ -14,7 +14,7 @@ mod source;
 pub mod spotify_eq;
 mod timeline;
 
-use crate::library::Library;
+use crate::local_library::LocalLibrary;
 use dsp::Params;
 use dsp::eq::{self, Bands, Preset};
 use output::Shared;
@@ -84,7 +84,7 @@ impl Engine {
 #[tauri::command]
 pub fn engine_play(
     engine: State<Engine>,
-    library: State<Library>,
+    library: State<LocalLibrary>,
     ids: Vec<String>,
     index: usize,
     repeat: Repeat,

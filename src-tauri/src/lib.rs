@@ -2,7 +2,7 @@ mod carbon_playlists;
 mod discord;
 mod engine;
 mod lastfm;
-mod library;
+mod local_library;
 mod media_controls;
 mod oauth;
 mod playback;
@@ -50,7 +50,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(SettingsState(Mutex::new(prefs)));
     app.manage(tray::build(&handle)?);
     let sound = engine::sound::load(&handle);
-    app.manage(library::Library::load(&handle));
+    app.manage(local_library::LocalLibrary::load(&handle));
     app.manage(carbon_playlists::Store::load(&handle));
     app.manage(engine::spotify_eq::SpotifyEqInjected(sound.spotify_eq));
     let window = engine::spotify_eq::create_main_window(app, sound.spotify_eq)?;
@@ -116,10 +116,10 @@ pub fn run() {
             engine::sound_curve,
             engine::sound_devices,
             engine::spotify_eq::sound_spotify_eq_injected,
-            library::library_get,
-            library::library_add_folder,
-            library::library_remove_folder,
-            library::library_rescan,
+            local_library::local_library_get,
+            local_library::local_library_add_folder,
+            local_library::local_library_remove_folder,
+            local_library::local_library_rescan,
             carbon_playlists::carbon_playlists,
             carbon_playlists::carbon_playlist_create,
             carbon_playlists::carbon_playlist_rename,
