@@ -3,7 +3,8 @@
 //! Each server start gets two fresh secrets: a 128-bit token (QR code and SDK) and a 6-digit
 //! code for typing by hand. The code is short, so a peer that keeps getting it wrong may only use
 //! the token until the window passes, and many failures across the LAN space code attempts out
-//! for everyone who hasn't paired yet. The token always works.
+//! for everyone who hasn't paired yet. The code is replaced after 10 minutes unused; the token
+//! always works until the secrets are rotated.
 use axum::http::{HeaderMap, header};
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
@@ -22,6 +23,7 @@ const BACKOFF_STEP: Duration = Duration::from_millis(250);
 const MAX_BACKOFF: Duration = Duration::from_secs(10);
 const MAX_TRACKED_IPS: usize = 1024;
 pub const MAX_DEVICES: usize = 8;
+pub const CODE_TTL: Duration = Duration::from_secs(10 * 60);
 const CODE_SPACE: u32 = 1_000_000;
 // Largest multiple of CODE_SPACE below u32::MAX, so `n % CODE_SPACE` is unbiased.
 const CODE_LIMIT: u32 = u32::MAX - u32::MAX % CODE_SPACE;
@@ -53,6 +55,8 @@ impl fmt::Display for Reject {
 pub struct Secrets {
     pub token: String,
     pub code: String,
+    /// When the code was issued or last paired a remote.
+    code_used: Instant,
 }
 
 fn random_bytes<const N: usize>() -> Result<[u8; N], String> {
@@ -61,16 +65,29 @@ fn random_bytes<const N: usize>() -> Result<[u8; N], String> {
     Ok(bytes)
 }
 
+fn new_code() -> Result<String, String> {
+    loop {
+        let n = u32::from_le_bytes(random_bytes::<4>()?);
+        if n < CODE_LIMIT {
+            return Ok(format!("{:06}", n % CODE_SPACE));
+        }
+    }
+}
+
 impl Secrets {
-    pub fn generate() -> Result<Self, String> {
+    pub fn generate(now: Instant) -> Result<Self, String> {
         let token = random_bytes::<16>()?.iter().map(|b| format!("{b:02x}")).collect();
-        let code = loop {
-            let n = u32::from_le_bytes(random_bytes::<4>()?);
-            if n < CODE_LIMIT {
-                break format!("{:06}", n % CODE_SPACE);
-            }
-        };
-        Ok(Self { token, code })
+        Ok(Self { token, code: new_code()?, code_used: now })
+    }
+
+    /// Replaces a code that has gone unused for CODE_TTL; the token stays. True if it did.
+    pub fn renew_code(&mut self, now: Instant) -> Result<bool, String> {
+        if now.duration_since(self.code_used) < CODE_TTL {
+            return Ok(false);
+        }
+        self.code = new_code()?;
+        self.code_used = now;
+        Ok(true)
     }
 
     fn is_token(&self, offered: &str) -> bool {
@@ -175,7 +192,7 @@ impl Guard {
         &mut self,
         ip: Option<IpAddr>,
         offered: Option<&str>,
-        secrets: &Secrets,
+        secrets: &mut Secrets,
         devices: usize,
         now: Instant,
     ) -> Result<(), Reject> {
@@ -193,11 +210,13 @@ impl Guard {
             if peer.failures.len() >= MAX_FAILURES_PER_IP || (paused && !peer.trusted) {
                 return Err(Reject::RateLimited);
             }
-            if !secrets.is_code(offered) {
+            let live = now.duration_since(secrets.code_used) < CODE_TTL;
+            if !(secrets.is_code(offered) && live) {
                 peer.failures.push_back(now);
                 self.failed(now);
                 return Err(Reject::Unauthorized);
             }
+            secrets.code_used = now;
         }
         peer.trusted = true;
         if devices >= MAX_DEVICES {
@@ -251,7 +270,8 @@ mod tests {
     use super::*;
 
     fn secrets() -> Secrets {
-        Secrets { token: "0123456789abcdef0123456789abcdef".into(), code: "042137".into() }
+        let code_used = Instant::now();
+        Secrets { token: "0123456789abcdef0123456789abcdef".into(), code: "042137".into(), code_used }
     }
 
     fn lan(n: u8) -> Option<IpAddr> {
@@ -260,8 +280,8 @@ mod tests {
 
     #[test]
     fn generates_fresh_well_formed_secrets() {
-        let a = Secrets::generate().unwrap();
-        let b = Secrets::generate().unwrap();
+        let a = Secrets::generate(Instant::now()).unwrap();
+        let b = Secrets::generate(Instant::now()).unwrap();
         assert_eq!(a.token.len(), 32);
         assert!(a.token.chars().all(|c| c.is_ascii_hexdigit()));
         assert_eq!(a.code.len(), 6);
@@ -273,11 +293,11 @@ mod tests {
     fn accepts_the_token_or_the_code() {
         let mut guard = Guard::default();
         let now = Instant::now();
-        assert_eq!(guard.admit(lan(2), Some("042137"), &secrets(), 0, now), Ok(()));
-        assert_eq!(guard.admit(lan(2), Some(&secrets().token), &secrets(), 0, now), Ok(()));
-        assert_eq!(guard.admit(lan(2), Some("042138"), &secrets(), 0, now), Err(Reject::Unauthorized));
-        assert_eq!(guard.admit(lan(2), None, &secrets(), 0, now), Err(Reject::Unauthorized));
-        assert_eq!(guard.admit(lan(2), Some(""), &secrets(), 0, now), Err(Reject::Unauthorized));
+        assert_eq!(guard.admit(lan(2), Some("042137"), &mut secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(2), Some(&secrets().token), &mut secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(2), Some("042138"), &mut secrets(), 0, now), Err(Reject::Unauthorized));
+        assert_eq!(guard.admit(lan(2), None, &mut secrets(), 0, now), Err(Reject::Unauthorized));
+        assert_eq!(guard.admit(lan(2), Some(""), &mut secrets(), 0, now), Err(Reject::Unauthorized));
     }
 
     #[test]
@@ -285,8 +305,8 @@ mod tests {
         let mut guard = Guard::default();
         let now = Instant::now();
         let public = Some(IpAddr::from([8, 8, 8, 8]));
-        assert_eq!(guard.admit(public, Some("042137"), &secrets(), 0, now), Err(Reject::Forbidden));
-        assert_eq!(guard.admit(None, Some("042137"), &secrets(), 0, now), Err(Reject::Forbidden));
+        assert_eq!(guard.admit(public, Some("042137"), &mut secrets(), 0, now), Err(Reject::Forbidden));
+        assert_eq!(guard.admit(None, Some("042137"), &mut secrets(), 0, now), Err(Reject::Forbidden));
         assert!(is_lan("10.0.0.5".parse().unwrap()));
         assert!(is_lan("127.0.0.1".parse().unwrap()));
         assert!(is_lan("fe80::1".parse().unwrap()));
@@ -299,11 +319,11 @@ mod tests {
         let mut guard = Guard::default();
         let now = Instant::now();
         for _ in 0..MAX_ATTEMPTS_PER_IP {
-            assert_eq!(guard.admit(lan(3), Some("042137"), &secrets(), 0, now), Ok(()));
+            assert_eq!(guard.admit(lan(3), Some("042137"), &mut secrets(), 0, now), Ok(()));
         }
-        assert_eq!(guard.admit(lan(3), Some("042137"), &secrets(), 0, now), Err(Reject::RateLimited));
-        assert_eq!(guard.admit(lan(4), Some("042137"), &secrets(), 0, now), Ok(()));
-        assert_eq!(guard.admit(lan(3), Some("042137"), &secrets(), 0, now + WINDOW), Ok(()));
+        assert_eq!(guard.admit(lan(3), Some("042137"), &mut secrets(), 0, now), Err(Reject::RateLimited));
+        assert_eq!(guard.admit(lan(4), Some("042137"), &mut secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(3), Some("042137"), &mut secrets(), 0, now + WINDOW), Ok(()));
     }
 
     /// `count` wrong codes from each of `peers` addresses starting at 10.0.0.0.
@@ -311,7 +331,7 @@ mod tests {
         for n in 0..peers {
             let ip = IpAddr::from([10, 0, (n >> 8) as u8, n as u8]);
             for _ in 0..count {
-                assert_ne!(guard.admit(Some(ip), Some("000000"), &secrets(), 0, now), Ok(()));
+                assert_ne!(guard.admit(Some(ip), Some("000000"), &mut secrets(), 0, now), Ok(()));
             }
         }
     }
@@ -321,45 +341,66 @@ mod tests {
         let mut guard = Guard::default();
         let now = Instant::now();
         for _ in 0..MAX_FAILURES_PER_IP {
-            assert_eq!(guard.admit(lan(10), Some("000000"), &secrets(), 0, now), Err(Reject::Unauthorized));
+            assert_eq!(guard.admit(lan(10), Some("000000"), &mut secrets(), 0, now), Err(Reject::Unauthorized));
         }
-        assert_eq!(guard.admit(lan(10), Some("042137"), &secrets(), 0, now), Err(Reject::RateLimited));
-        assert_eq!(guard.admit(lan(10), Some(&secrets().token), &secrets(), 0, now), Ok(()));
-        assert_eq!(guard.admit(lan(11), Some("042137"), &secrets(), 0, now), Ok(()), "everyone else unaffected");
-        assert_eq!(guard.admit(lan(10), Some("042137"), &secrets(), 0, now + WINDOW), Ok(()));
+        assert_eq!(guard.admit(lan(10), Some("042137"), &mut secrets(), 0, now), Err(Reject::RateLimited));
+        assert_eq!(guard.admit(lan(10), Some(&secrets().token), &mut secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(11), Some("042137"), &mut secrets(), 0, now), Ok(()), "everyone else unaffected");
+        assert_eq!(guard.admit(lan(10), Some("042137"), &mut secrets(), 0, now + WINDOW), Ok(()));
     }
 
     #[test]
     fn slows_the_code_lan_wide_but_never_the_token_or_paired_peers() {
         let mut guard = Guard::default();
         let start = Instant::now();
-        assert_eq!(guard.admit(lan(1), Some(&secrets().token), &secrets(), 0, start), Ok(()));
+        assert_eq!(guard.admit(lan(1), Some(&secrets().token), &mut secrets(), 0, start), Ok(()));
         let now = start + WINDOW; // the paired peer's own window has passed; it stays trusted
         guess(&mut guard, GLOBAL_FAILURES / MAX_FAILURES_PER_IP + 1, MAX_FAILURES_PER_IP, now);
-        assert_eq!(guard.admit(lan(99), Some("042137"), &secrets(), 0, now), Err(Reject::RateLimited));
-        assert_eq!(guard.admit(lan(98), Some(&secrets().token), &secrets(), 0, now), Ok(()));
-        assert_eq!(guard.admit(lan(1), Some("042137"), &secrets(), 0, now), Ok(()));
-        assert_eq!(guard.admit(lan(99), Some("042137"), &secrets(), 0, now + MAX_BACKOFF), Ok(()), "only slowed");
+        assert_eq!(guard.admit(lan(99), Some("042137"), &mut secrets(), 0, now), Err(Reject::RateLimited));
+        assert_eq!(guard.admit(lan(98), Some(&secrets().token), &mut secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(1), Some("042137"), &mut secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(99), Some("042137"), &mut secrets(), 0, now + MAX_BACKOFF), Ok(()), "only slowed");
     }
 
     #[test]
     fn a_full_table_forgets_strangers_before_paired_peers() {
         let mut guard = Guard::default();
         let start = Instant::now();
-        assert_eq!(guard.admit(lan(1), Some(&secrets().token), &secrets(), 0, start), Ok(()));
+        assert_eq!(guard.admit(lan(1), Some(&secrets().token), &mut secrets(), 0, start), Ok(()));
         let now = start + Duration::from_secs(1);
         guess(&mut guard, MAX_TRACKED_IPS, 1, now);
         assert_eq!(guard.peers.len(), MAX_TRACKED_IPS);
-        assert_eq!(guard.admit(lan(2), Some(&secrets().token), &secrets(), 0, now), Ok(()), "a newcomer still gets in");
+        assert_eq!(guard.admit(lan(2), Some(&secrets().token), &mut secrets(), 0, now), Ok(()), "a newcomer still gets in");
         assert_eq!(guard.peers.len(), MAX_TRACKED_IPS);
         // Still trusted, so the backoff the flood caused doesn't apply to it.
-        assert_eq!(guard.admit(lan(1), Some("042137"), &secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(1), Some("042137"), &mut secrets(), 0, now), Ok(()));
+    }
+
+    #[test]
+    fn replaces_the_code_after_ten_minutes_unused_but_keeps_the_token() {
+        let start = Instant::now();
+        let mut s = Secrets::generate(start).unwrap();
+        let token = s.token.clone();
+        assert!(!s.renew_code(start + CODE_TTL - Duration::from_secs(1)).unwrap());
+        assert!(s.renew_code(start + CODE_TTL).unwrap());
+        assert_eq!(s.token, token);
+        assert!(!s.renew_code(start + CODE_TTL).unwrap(), "fresh again");
+
+        let mut guard = Guard::default();
+        let mut s = secrets();
+        let used = s.code_used + CODE_TTL - Duration::from_secs(60);
+        assert_eq!(guard.admit(lan(5), Some("042137"), &mut s, 0, used), Ok(()));
+        assert!(!s.renew_code(used + Duration::from_secs(60)).unwrap(), "using it keeps it alive");
+        let stale = used + CODE_TTL;
+        assert_eq!(guard.admit(lan(5), Some("042137"), &mut s, 0, stale), Err(Reject::Unauthorized));
+        let token = s.token.clone();
+        assert_eq!(guard.admit(lan(5), Some(&token), &mut s, 0, stale), Ok(()));
     }
 
     #[test]
     fn caps_devices() {
         let mut guard = Guard::default();
-        let result = guard.admit(lan(5), Some("042137"), &secrets(), MAX_DEVICES, Instant::now());
+        let result = guard.admit(lan(5), Some("042137"), &mut secrets(), MAX_DEVICES, Instant::now());
         assert_eq!(result, Err(Reject::TooManyDevices));
     }
 

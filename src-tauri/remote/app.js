@@ -7,6 +7,7 @@ import {
   deviceLabel,
   formatTime,
   isCode,
+  isToken,
   nextRepeat,
   positionAt,
   tokenFromHash,
@@ -71,6 +72,12 @@ function connect(token) {
     setLink("on", "Connected");
     ui.pair.hidden = true;
     ui.player.hidden = false;
+  });
+  // Paired with the code, which expires: keep the token Carbon sends instead.
+  socket.on("hello", (hello) => {
+    if (!isToken(hello?.token)) return;
+    storeToken(hello.token);
+    socket.auth.token = hello.token;
   });
   socket.on("state", (next) => {
     state = next;

@@ -20,6 +20,9 @@ const URI_KINDS: [&str; 4] = ["track", "album", "playlist", "artist"];
 pub struct Hello {
     pub app_version: String,
     pub protocol_version: u32,
+    /// Only for a remote that paired with the code, which expires: the token to reconnect with.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }
 
 /// The `state` payload. An explicit allowlist, so new PlaybackInfo fields never leak to remotes.

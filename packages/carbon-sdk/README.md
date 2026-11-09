@@ -42,7 +42,7 @@ try {
 | --- | --- | --- |
 | `host` | required | IP address of the PC running Carbon. Carbon refuses host names such as `localhost`. |
 | `port` | `10767` | As set in Settings → Remote. |
-| `token` | required | Developer token (32 hex characters) or the 6-digit code. |
+| `token` | required | Developer token (32 hex characters) or the 6-digit code. The code changes after 10 minutes unused, so scripts should use the token. |
 | `name` | | Shown in Carbon's connected devices list (max 40 characters). |
 | `timeoutMs` | `10000` | How long to wait for the first connection. |
 | `autoReconnect` | `true` | Reconnect after network drops (with backoff). |

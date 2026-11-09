@@ -102,13 +102,20 @@
       <div class="pair-text">
         <p class="eyebrow">Pairing code</p>
         <p class="code" aria-label="Pairing code {status.code?.split('').join(' ')}">{code}</p>
-        <p class="muted">Scan with your phone's camera, or open <span class="url">{status.url}</span> and type the code.</p>
+        <p class="muted">
+          Scan with your phone's camera, or open <span class="url">{status.url}</span> and type the code. The code changes after
+          10 minutes unused.
+        </p>
       </div>
     </div>
     <div class="actions">
       <button class="pill" onclick={rotate}>New code</button>
       <button class="pill" onclick={copyToken}>{copied ? "Copied" : "Copy developer token"}</button>
     </div>
+    <p class="muted">
+      The remote talks plain, unencrypted HTTP over your network, so only use it on networks you trust. New code signs every
+      remote out.
+    </p>
 
     <p class="eyebrow">Connected · {status.devices.length}</p>
     {#if status.devices.length}

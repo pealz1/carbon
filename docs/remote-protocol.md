@@ -19,8 +19,14 @@ The server is **off by default**. Turn it on in **Settings → Remote**.
 | Web app | `GET /` serves the phone remote. The QR code in Settings opens `http://<pc-ip>:<port>/#token=<token>`. |
 
 Both secrets are created fresh every time the server starts (when the setting is turned on, or when
-Carbon starts with it on) and live only in memory. **New code** in Settings replaces them and signs
-every connected remote out.
+Carbon starts with it on) and live only in memory. The 6-digit code is replaced after **10 minutes**
+without a successful connection; remotes that connect with it get the token in `hello` to reconnect
+with. The token keeps working until **New code** in Settings replaces both secrets, which signs every
+connected remote out.
+
+**Plain HTTP.** The remote and this protocol are unencrypted HTTP and WebSocket on your network, so
+anyone on the same network can watch the traffic, the token included. Use it on networks you trust,
+and press **New code** to sign everything out if a secret may have leaked.
 
 ### Connection errors
 
@@ -28,10 +34,10 @@ A refused handshake gets a socket.io `connect_error` whose `message` is one of:
 
 | Message | Meaning | What to do |
 | --- | --- | --- |
-| `unauthorized` | Missing or wrong token or code. | Get a fresh token from Settings → Remote. Retrying won't help. |
+| `unauthorized` | Missing or wrong token, or a wrong or expired code. | Get a fresh token from Settings → Remote. Retrying won't help. |
 | `rate_limited` | More than 20 attempts from this address in a minute, or the code is locked or slowed down (see below). | Wait a minute, or use the developer token. |
 | `too_many_devices` | 8 remotes are already connected. | Disconnect one in Settings → Remote. |
-| `forbidden` | The peer isn't on a private network. | Connect from the same LAN. |
+| `forbidden` | The peer isn't on a private network, or the request named a host name or came from another web page. | Connect from the same LAN, by IP address. |
 
 After 10 wrong secrets from one address within a minute, that address can only use the developer
 token until the minute passes. When many addresses guess at once, code attempts from devices that
@@ -49,6 +55,9 @@ Sent once, right after connecting.
 ```
 
 `protocolVersion` changes only on breaking changes. Clients should refuse a version they don't know.
+
+A client that connected with the 6-digit code also gets `"token": "<32 hex characters>"`, the
+developer token. Store it and reconnect with it: the code expires.
 
 ### `state`
 

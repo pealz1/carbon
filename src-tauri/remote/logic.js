@@ -12,6 +12,9 @@ export function tokenFromHash(hash) {
 
 export const isCode = (text) => /^\d{6}$/.test(String(text ?? "").trim());
 
+/** A developer token, as Carbon hands to remotes that paired with the (expiring) code. */
+export const isToken = (value) => typeof value === "string" && /^[0-9a-f]{32}$/.test(value);
+
 export function formatTime(ms) {
   const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;

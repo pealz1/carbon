@@ -75,10 +75,22 @@ fn device_name(auth: Option<&str>, user_agent: Option<&str>) -> String {
 impl Shared {
     fn admit(&self, s: &SocketRef, auth: Option<&Auth>) -> Result<(), Reject> {
         check_request(&s.req_parts().headers, self.port)?;
+        let now = Instant::now();
         let devices = lock(&self.devices).len();
-        let secrets = lock(&self.secrets).clone();
+        let mut secrets = self.fresh_secrets(now);
         let offered = auth.and_then(|a| a.token.as_deref());
-        lock(&self.guard).admit(peer_ip(s), offered, &secrets, devices, Instant::now())
+        lock(&self.guard).admit(peer_ip(s), offered, &mut secrets, devices, now)
+    }
+
+    /// The secrets, with a code that has gone unused too long replaced (and Settings told).
+    fn fresh_secrets(&self, now: Instant) -> MutexGuard<'_, Secrets> {
+        let mut secrets = lock(&self.secrets);
+        match secrets.renew_code(now) {
+            Ok(true) => (self.ctx.on_change)(),
+            Ok(false) => {}
+            Err(e) => eprintln!("[remote] couldn't replace the pairing code: {e}"),
+        }
+        secrets
     }
 
     fn connected(self: &Arc<Self>, s: SocketRef, auth: Option<Auth>) {
@@ -90,7 +102,12 @@ impl Shared {
             connected_at_ms: SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64),
         };
         lock(&self.devices).push(device);
-        let hello = Hello { app_version: self.ctx.app_version.clone(), protocol_version: protocol::PROTOCOL_VERSION };
+        let offered = auth.as_ref().and_then(|a| a.token.as_deref()).unwrap_or_default();
+        let token = {
+            let secrets = lock(&self.secrets);
+            secrets.is_code(offered).then(|| secrets.token.clone())
+        };
+        let hello = Hello { app_version: self.ctx.app_version.clone(), protocol_version: protocol::PROTOCOL_VERSION, token };
         let current = self.ctx.state.borrow().clone();
         if s.emit("hello", &hello).and_then(|_| s.emit("state", &current)).is_err() {
             eprintln!("[remote] could not greet {}", s.id);
@@ -185,7 +202,7 @@ pub async fn start(listener: std::net::TcpListener, ctx: Context) -> Result<Serv
     let shared = Arc::new(Shared {
         ctx,
         port,
-        secrets: Mutex::new(Secrets::generate()?),
+        secrets: Mutex::new(Secrets::generate(Instant::now())?),
         guard: Mutex::default(),
         devices: Mutex::default(),
     });
@@ -219,7 +236,7 @@ impl Server {
     }
 
     pub fn secrets(&self) -> Secrets {
-        lock(&self.shared.secrets).clone()
+        self.shared.fresh_secrets(Instant::now()).clone()
     }
 
     pub fn devices(&self) -> Vec<Device> {
@@ -228,7 +245,7 @@ impl Server {
 
     /// New secrets, and every paired remote has to pair again.
     pub fn rotate(&self) -> Result<(), String> {
-        *lock(&self.shared.secrets) = Secrets::generate()?;
+        *lock(&self.shared.secrets) = Secrets::generate(Instant::now())?;
         *lock(&self.shared.guard) = Guard::default(); // nobody is in good standing with the new secrets
         for socket in self.io.sockets() {
             let _ = socket.disconnect();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { artistLine, describeConnectError, deviceLabel, formatTime, isCode, nextRepeat, positionAt, tokenFromHash } from "./logic.js";
+import { artistLine, describeConnectError, deviceLabel, formatTime, isCode, isToken, nextRepeat, positionAt, tokenFromHash } from "./logic.js";
 
 describe("phone remote logic", () => {
   it("reads the pairing secret from the QR fragment", () => {
@@ -14,6 +14,13 @@ describe("phone remote logic", () => {
     expect(isCode(" 042137 ")).toBe(true);
     expect(isCode("42137")).toBe(false);
     expect(isCode("04213a")).toBe(false);
+  });
+
+  it("recognises the token Carbon hands back for the code", () => {
+    expect(isToken("0123456789abcdef0123456789abcdef")).toBe(true);
+    expect(isToken("042137")).toBe(false);
+    expect(isToken("0123456789ABCDEF0123456789ABCDEF")).toBe(false);
+    expect(isToken(undefined)).toBe(false);
   });
 
   it("formats times", () => {

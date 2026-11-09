@@ -110,6 +110,17 @@ async fn takes_its_own_page_and_turns_away_other_websites_and_rebound_names() {
 }
 
 #[tokio::test]
+async fn hands_the_token_to_remotes_that_typed_the_expiring_code() {
+    let h = harness().await;
+    let secrets = h.server.secrets();
+    let (mut ws, reply) = pair(h.server.port, &format!(r#"{{"token":"{}"}}"#, secrets.code)).await;
+    assert!(reply.starts_with("40"), "{reply}");
+    let hello = next_text(&mut ws).await;
+    assert!(hello.contains(&format!(r#""token":"{}""#, secrets.token)), "{hello}");
+    h.server.stop().await;
+}
+
+#[tokio::test]
 async fn rejects_missing_and_wrong_secrets() {
     let h = harness().await;
     let (_, reply) = pair(h.server.port, r#"{"token":"123456"}"#).await;
