@@ -171,6 +171,12 @@
     </section>
 
     <section class="panel liquid" use:specular>
+      <h2>Sound</h2>
+      <p class="muted">EQ, loudness, crossfade and output device for local files played by Carbon's own engine.</p>
+      <a class="pill" href="/sound">Open Sound settings</a>
+    </section>
+
+    <section class="panel liquid" use:specular>
       <h2>System</h2>
       <Toggle checked={startup} label="Open at startup" description="Starts quietly in the tray when you sign in to Windows." onchange={toggleStartup} />
       <Toggle checked={s.closeToTray} label="Keep playing when closed" description="Closing the window keeps Carbon in the tray. Quit from the tray icon." onchange={(v) => prefs.update({ closeToTray: v })} />
@@ -200,7 +206,7 @@
         <button class="link" onclick={() => openUrl("https://getcarbon.cc/privacy")}>Privacy</button>
       </div>
       {#if confirmRemove}
-        <p class="warn">This signs you out of Spotify and Last.fm and resets every setting.</p>
+        <p class="warn">This signs you out of Spotify and Last.fm, resets every setting and forgets your local library and Carbon playlists. Your music files stay where they are.</p>
         <div class="actions">
           <button class="pill danger" onclick={removeEverything}>Yes, remove it all</button>
           <button class="pill" onclick={() => (confirmRemove = false)}>Cancel</button>
@@ -308,6 +314,8 @@
   }
 
   .pill {
+    display: inline-flex;
+    align-items: center;
     align-self: flex-start;
     height: 38px;
     padding: 0 var(--sp-4);

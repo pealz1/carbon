@@ -10,13 +10,14 @@
   import Sidebar from "$lib/components/Sidebar.svelte";
   import SignIn from "$lib/components/SignIn.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
+  import { sound } from "$lib/local/sound.svelte";
   import { player } from "$lib/player.svelte";
   import { session } from "$lib/session.svelte";
 
   let { children }: { children: Snippet } = $props();
   let main = $state<HTMLElement>();
 
-  onMount(() => void session.boot());
+  onMount(() => void Promise.all([session.boot(), sound.boot()]));
   afterNavigate(() => main?.scrollTo({ top: 0 }));
 
   // Native page transitions; sidebar, title bar and dock are named so they stay put.
