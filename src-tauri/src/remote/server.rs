@@ -214,6 +214,7 @@ impl Server {
     /// New secrets, and every paired remote has to pair again.
     pub fn rotate(&self) -> Result<(), String> {
         *lock(&self.shared.secrets) = Secrets::generate()?;
+        *lock(&self.shared.guard) = Guard::default(); // nobody is in good standing with the new secrets
         for socket in self.io.sockets() {
             let _ = socket.disconnect();
         }

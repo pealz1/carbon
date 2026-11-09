@@ -1,8 +1,9 @@
 //! Who may connect: LAN peers holding the pairing secret, within rate limits.
 //!
 //! Each server start gets two fresh secrets: a 128-bit token (QR code and SDK) and a 6-digit
-//! code for typing by hand. The code is short, so after too many failed attempts across all
-//! peers it stops being accepted until the window passes; the token keeps working.
+//! code for typing by hand. The code is short, so a peer that keeps getting it wrong may only use
+//! the token until the window passes, and many failures across the LAN space code attempts out
+//! for everyone who hasn't paired yet. The token always works.
 use axum::http::{HeaderMap, header};
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
@@ -11,7 +12,14 @@ use std::time::{Duration, Instant};
 
 const WINDOW: Duration = Duration::from_secs(60);
 const MAX_ATTEMPTS_PER_IP: usize = 20;
-const MAX_FAILURES: usize = 10;
+/// Wrong secrets from one peer per window before it may only use the token.
+const MAX_FAILURES_PER_IP: usize = 10;
+/// Wrong secrets from the whole LAN per window before code attempts are spaced out. Well above the
+/// per-peer limit, so one device alone never slows anyone else down.
+const GLOBAL_FAILURES: usize = 30;
+const BACKOFF_STEP: Duration = Duration::from_millis(250);
+/// The backoff only ever slows the code down; it never turns it off.
+const MAX_BACKOFF: Duration = Duration::from_secs(10);
 const MAX_TRACKED_IPS: usize = 1024;
 pub const MAX_DEVICES: usize = 8;
 const CODE_SPACE: u32 = 1_000_000;
@@ -62,11 +70,12 @@ impl Secrets {
         Ok(Self { token, code })
     }
 
-    fn matches(&self, offered: &str, code_allowed: bool) -> bool {
-        // Evaluate both so timing doesn't reveal which one was close.
-        let token = constant_time_eq(offered.as_bytes(), self.token.as_bytes());
-        let code = constant_time_eq(offered.as_bytes(), self.code.as_bytes());
-        token | (code & code_allowed)
+    fn is_token(&self, offered: &str) -> bool {
+        constant_time_eq(offered.as_bytes(), self.token.as_bytes())
+    }
+
+    pub fn is_code(&self, offered: &str) -> bool {
+        constant_time_eq(offered.as_bytes(), self.code.as_bytes())
     }
 }
 
@@ -111,14 +120,25 @@ pub fn check_request(headers: &HeaderMap, port: u16) -> Result<(), Reject> {
     }
 }
 
+struct Peer {
+    attempts: VecDeque<Instant>,
+    failures: VecDeque<Instant>,
+    /// Has paired: outlives its window, is the last to be forgotten when the table is full, and
+    /// skips the LAN-wide backoff.
+    trusted: bool,
+    seen: Instant,
+}
+
 #[derive(Default)]
 pub struct Guard {
-    attempts: HashMap<IpAddr, VecDeque<Instant>>,
+    peers: HashMap<IpAddr, Peer>,
     failures: VecDeque<Instant>,
+    code_paused_until: Option<Instant>,
 }
 
 impl Guard {
-    /// Decides one connection attempt. Every attempt counts towards the per-peer limit.
+    /// Decides one connection attempt. Every attempt counts towards the per-peer limit; the token
+    /// is never locked out.
     pub fn admit(
         &mut self,
         ip: Option<IpAddr>,
@@ -129,31 +149,67 @@ impl Guard {
     ) -> Result<(), Reject> {
         let ip = ip.filter(|ip| is_lan(*ip)).ok_or(Reject::Forbidden)?;
         self.prune(now);
-        if !self.attempts.contains_key(&ip) && self.attempts.len() >= MAX_TRACKED_IPS {
+        let paused = self.code_paused_until.is_some_and(|until| now < until);
+        let peer = self.peer(ip, now);
+        if peer.attempts.len() >= MAX_ATTEMPTS_PER_IP {
             return Err(Reject::RateLimited);
         }
-        let tries = self.attempts.entry(ip).or_default();
-        if tries.len() >= MAX_ATTEMPTS_PER_IP {
-            return Err(Reject::RateLimited);
+        peer.attempts.push_back(now);
+        let offered = offered.unwrap_or_default();
+        if !secrets.is_token(offered) {
+            // Not compared at all, so these attempts can't count as guesses.
+            if peer.failures.len() >= MAX_FAILURES_PER_IP || (paused && !peer.trusted) {
+                return Err(Reject::RateLimited);
+            }
+            if !secrets.is_code(offered) {
+                peer.failures.push_back(now);
+                self.failed(now);
+                return Err(Reject::Unauthorized);
+            }
         }
-        tries.push_back(now);
-        let code_allowed = self.failures.len() < MAX_FAILURES;
-        if !offered.is_some_and(|o| secrets.matches(o, code_allowed)) {
-            self.failures.push_back(now);
-            return Err(Reject::Unauthorized);
-        }
+        peer.trusted = true;
         if devices >= MAX_DEVICES {
             return Err(Reject::TooManyDevices);
         }
         Ok(())
     }
 
+    /// The record for `ip`. A full table forgets the stalest stranger, or failing that the stalest
+    /// trusted peer, so a flood of new addresses can't push out paired devices or lock anyone out.
+    fn peer(&mut self, ip: IpAddr, now: Instant) -> &mut Peer {
+        if !self.peers.contains_key(&ip) && self.peers.len() >= MAX_TRACKED_IPS {
+            let stalest = self.peers.iter().min_by_key(|(_, p)| (p.trusted, p.seen)).map(|(ip, _)| *ip);
+            if let Some(stalest) = stalest {
+                self.peers.remove(&stalest);
+            }
+        }
+        let peer = self.peers.entry(ip).or_insert_with(|| Peer {
+            attempts: VecDeque::new(),
+            failures: VecDeque::new(),
+            trusted: false,
+            seen: now,
+        });
+        peer.seen = now;
+        peer
+    }
+
+    /// Past GLOBAL_FAILURES, each failure doubles the wait before the code is checked again.
+    fn failed(&mut self, now: Instant) {
+        self.failures.push_back(now);
+        let excess = self.failures.len().saturating_sub(GLOBAL_FAILURES);
+        if excess > 0 {
+            let wait = BACKOFF_STEP.saturating_mul(2u32.saturating_pow(excess as u32)).min(MAX_BACKOFF);
+            self.code_paused_until = Some(now + wait);
+        }
+    }
+
     fn prune(&mut self, now: Instant) {
         let fresh = |t: &Instant| now.duration_since(*t) < WINDOW;
         self.failures.retain(fresh);
-        self.attempts.retain(|_, tries| {
-            tries.retain(fresh);
-            !tries.is_empty()
+        self.peers.retain(|_, peer| {
+            peer.attempts.retain(fresh);
+            peer.failures.retain(fresh);
+            peer.trusted || !peer.attempts.is_empty()
         });
     }
 }
@@ -218,16 +274,54 @@ mod tests {
         assert_eq!(guard.admit(lan(3), Some("042137"), &secrets(), 0, now + WINDOW), Ok(()));
     }
 
+    /// `count` wrong codes from each of `peers` addresses starting at 10.0.0.0.
+    fn guess(guard: &mut Guard, peers: usize, count: usize, now: Instant) {
+        for n in 0..peers {
+            let ip = IpAddr::from([10, 0, (n >> 8) as u8, n as u8]);
+            for _ in 0..count {
+                assert_ne!(guard.admit(Some(ip), Some("000000"), &secrets(), 0, now), Ok(()));
+            }
+        }
+    }
+
     #[test]
-    fn locks_the_code_after_failures_from_anywhere() {
+    fn locks_the_code_for_the_guessing_peer_only() {
         let mut guard = Guard::default();
         let now = Instant::now();
-        for n in 0..MAX_FAILURES as u8 {
-            assert_eq!(guard.admit(lan(10 + n), Some("000000"), &secrets(), 0, now), Err(Reject::Unauthorized));
+        for _ in 0..MAX_FAILURES_PER_IP {
+            assert_eq!(guard.admit(lan(10), Some("000000"), &secrets(), 0, now), Err(Reject::Unauthorized));
         }
-        assert_eq!(guard.admit(lan(99), Some("042137"), &secrets(), 0, now), Err(Reject::Unauthorized));
-        assert_eq!(guard.admit(lan(99), Some(&secrets().token), &secrets(), 0, now), Ok(()));
-        assert_eq!(guard.admit(lan(99), Some("042137"), &secrets(), 0, now + WINDOW), Ok(()));
+        assert_eq!(guard.admit(lan(10), Some("042137"), &secrets(), 0, now), Err(Reject::RateLimited));
+        assert_eq!(guard.admit(lan(10), Some(&secrets().token), &secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(11), Some("042137"), &secrets(), 0, now), Ok(()), "everyone else unaffected");
+        assert_eq!(guard.admit(lan(10), Some("042137"), &secrets(), 0, now + WINDOW), Ok(()));
+    }
+
+    #[test]
+    fn slows_the_code_lan_wide_but_never_the_token_or_paired_peers() {
+        let mut guard = Guard::default();
+        let start = Instant::now();
+        assert_eq!(guard.admit(lan(1), Some(&secrets().token), &secrets(), 0, start), Ok(()));
+        let now = start + WINDOW; // the paired peer's own window has passed; it stays trusted
+        guess(&mut guard, GLOBAL_FAILURES / MAX_FAILURES_PER_IP + 1, MAX_FAILURES_PER_IP, now);
+        assert_eq!(guard.admit(lan(99), Some("042137"), &secrets(), 0, now), Err(Reject::RateLimited));
+        assert_eq!(guard.admit(lan(98), Some(&secrets().token), &secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(1), Some("042137"), &secrets(), 0, now), Ok(()));
+        assert_eq!(guard.admit(lan(99), Some("042137"), &secrets(), 0, now + MAX_BACKOFF), Ok(()), "only slowed");
+    }
+
+    #[test]
+    fn a_full_table_forgets_strangers_before_paired_peers() {
+        let mut guard = Guard::default();
+        let start = Instant::now();
+        assert_eq!(guard.admit(lan(1), Some(&secrets().token), &secrets(), 0, start), Ok(()));
+        let now = start + Duration::from_secs(1);
+        guess(&mut guard, MAX_TRACKED_IPS, 1, now);
+        assert_eq!(guard.peers.len(), MAX_TRACKED_IPS);
+        assert_eq!(guard.admit(lan(2), Some(&secrets().token), &secrets(), 0, now), Ok(()), "a newcomer still gets in");
+        assert_eq!(guard.peers.len(), MAX_TRACKED_IPS);
+        // Still trusted, so the backoff the flood caused doesn't apply to it.
+        assert_eq!(guard.admit(lan(1), Some("042137"), &secrets(), 0, now), Ok(()));
     }
 
     #[test]

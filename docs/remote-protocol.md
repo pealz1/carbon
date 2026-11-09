@@ -29,12 +29,14 @@ A refused handshake gets a socket.io `connect_error` whose `message` is one of:
 | Message | Meaning | What to do |
 | --- | --- | --- |
 | `unauthorized` | Missing or wrong token or code. | Get a fresh token from Settings → Remote. Retrying won't help. |
-| `rate_limited` | More than 20 attempts from this address in a minute. | Wait a minute. |
+| `rate_limited` | More than 20 attempts from this address in a minute, or the code is locked or slowed down (see below). | Wait a minute, or use the developer token. |
 | `too_many_devices` | 8 remotes are already connected. | Disconnect one in Settings → Remote. |
 | `forbidden` | The peer isn't on a private network. | Connect from the same LAN. |
 
-After 10 failed attempts within a minute (from anyone), the 6-digit code stops being accepted until
-the minute passes. The developer token keeps working.
+After 10 wrong secrets from one address within a minute, that address can only use the developer
+token until the minute passes. When many addresses guess at once, code attempts from devices that
+haven't connected before are spaced out, by up to 10 seconds. Both answer `rate_limited` without
+checking the code. The developer token always works.
 
 ## Server → client
 
