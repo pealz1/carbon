@@ -19,6 +19,7 @@
     type Effects,
     type LastfmStatus,
   } from "$lib/native";
+  import { organizer } from "$lib/organizer.svelte";
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
   import { updates } from "$lib/updates.svelte";
@@ -77,9 +78,15 @@
 
   async function removeEverything() {
     await session.signOut();
-    await removeSavedData();
-    await prefs.load();
-    notice = "Signed out and removed everything Carbon saved on this PC.";
+    await account.signOut();
+    try {
+      await removeSavedData();
+      notice = "Signed out and removed everything Carbon saved on this PC.";
+    } catch (e) {
+      notice = `Couldn't remove everything: ${describeError(e)}`;
+    }
+    // Reload so in-memory folders and settings can't write the old data back.
+    await Promise.all([prefs.load(), organizer.load()]);
     confirmRemove = false;
   }
 </script>

@@ -92,9 +92,12 @@ describe("player additions", () => {
     expect(player.position()).toBe(42_000);
   });
 
-  it("resyncs right after a seek", async () => {
+  it("resyncs right after a seek, but not back to where it was", async () => {
     getCurrentState.mockResolvedValueOnce(state(61_000, { paused: true }));
     await player.seek(60_000);
     expect(player.position()).toBe(61_000);
+    getCurrentState.mockResolvedValueOnce(state(10_000, { paused: true }));
+    await player.seek(90_000);
+    expect(player.position()).toBe(90_000);
   });
 });

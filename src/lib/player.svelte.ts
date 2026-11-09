@@ -3,7 +3,7 @@
 import { getAccessToken } from "$lib/auth";
 import { DEFAULT_VOLUME, PLAYER_NAME, SPOTIFY, TIMING } from "$lib/config";
 import { reportPlayback, type PlaybackInfo } from "$lib/native";
-import { positionFromState } from "$lib/playback-clock";
+import { acceptResync, positionFromState } from "$lib/playback-clock";
 import * as sp from "$lib/spotify/endpoints";
 import { pickLargestImage, toTrack } from "$lib/spotify/mappers";
 import type { Track } from "$lib/spotify/types";
@@ -50,6 +50,7 @@ class Player {
   contextUri = $state<string | null>(null);
   #positionMs = $state(0);
   #positionAt = $state(0);
+  #seekAt = 0;
   #sdk: Spotify.Player | null = null;
   #deviceId: Promise<string> | null = null;
 
@@ -182,7 +183,7 @@ class Player {
   seek = (ms: number) =>
     this.#run(async () => {
       this.#positionMs = ms;
-      this.#positionAt = performance.now();
+      this.#positionAt = this.#seekAt = performance.now();
       await this.#sdk?.seek(Math.round(ms));
       await this.syncPosition();
     });
@@ -191,8 +192,12 @@ class Player {
   syncPosition = async (): Promise<void> => {
     const state = await this.#sdk?.getCurrentState().catch((e) => (console.warn("[player] state read failed", e), null));
     if (!state || state.track_window.current_track?.uri !== this.track?.uri) return;
-    this.#positionMs = positionFromState(state);
-    this.#positionAt = performance.now();
+    const now = performance.now();
+    const expected = this.position(now);
+    const next = positionFromState(state, expected);
+    if (!acceptResync(next, expected, now - this.#seekAt)) return;
+    this.#positionMs = next;
+    this.#positionAt = now;
     this.paused = state.paused;
   };
 

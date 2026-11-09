@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clampOffset, offsetFor, saveOffset } from "./lyric-offsets";
-import { positionFromState } from "./playback-clock";
+import { acceptResync, positionFromState } from "./playback-clock";
 import { lineEnd, lineProgress, wordProgress } from "./words";
 
 const lines = [
@@ -81,18 +81,32 @@ describe("lyric offsets", () => {
 describe("positionFromState", () => {
   const state = { position: 10_000, duration: 200_000, paused: false };
 
-  it("adds the time since the SDK produced the state while playing", () => {
-    expect(positionFromState({ ...state, timestamp: 1_000 }, 1_400)).toBe(10_400);
+  it("adds the state's age when position was measured at the timestamp", () => {
+    // Carbon's clock says ~10.4 s: the aged reading agrees, the raw one is 400 ms behind.
+    expect(positionFromState({ ...state, timestamp: 1_000 }, 10_380, 1_400)).toBe(10_400);
   });
 
-  it("trusts the position as-is when paused, without a timestamp, or with a stale one", () => {
-    expect(positionFromState({ ...state, paused: true, timestamp: 1_000 }, 1_400)).toBe(10_000);
-    expect(positionFromState(state, 1_400)).toBe(10_000);
-    expect(positionFromState({ ...state, timestamp: 1_000 }, 60_000)).toBe(10_000);
-    expect(positionFromState({ ...state, timestamp: 2_000 }, 1_000)).toBe(10_000);
+  it("keeps the position as-is when it's already current and the timestamp only marks the last change", () => {
+    // 5 s since the last state change; Carbon's clock agrees with the raw position.
+    expect(positionFromState({ ...state, timestamp: 1_000 }, 10_050, 6_000)).toBe(10_000);
+  });
+
+  it("trusts the position when paused, without a timestamp, or with a stale or future one", () => {
+    expect(positionFromState({ ...state, paused: true, timestamp: 1_000 }, 99, 1_400)).toBe(10_000);
+    expect(positionFromState(state, 99, 1_400)).toBe(10_000);
+    expect(positionFromState({ ...state, timestamp: 1_000 }, 99, 60_000)).toBe(10_000);
+    expect(positionFromState({ ...state, timestamp: 2_000 }, 99, 1_000)).toBe(10_000);
   });
 
   it("never runs past the end", () => {
-    expect(positionFromState({ ...state, position: 199_900, timestamp: 0 }, 500)).toBe(200_000);
+    expect(positionFromState({ ...state, position: 199_900, timestamp: 0 }, 200_000, 500)).toBe(200_000);
+  });
+});
+
+describe("acceptResync", () => {
+  it("ignores a stale pre-seek reading for a moment after seeking", () => {
+    expect(acceptResync(10_000, 60_100, 300)).toBe(false);
+    expect(acceptResync(60_400, 60_100, 300)).toBe(true);
+    expect(acceptResync(10_000, 60_100, 1_500)).toBe(true);
   });
 });
