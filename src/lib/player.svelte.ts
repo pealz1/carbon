@@ -129,7 +129,8 @@ class Player {
           album: this.track.album?.name ?? "",
           artworkUrl: this.artwork,
           durationMs: this.durationMs,
-          positionMs: Math.min(this.#positionMs, this.durationMs),
+          // Live position: reports also happen between SDK events (volume changes).
+          positionMs: Math.min(Math.round(this.position()), this.durationMs),
           paused: this.paused,
           shuffle: this.shuffle,
           repeat: this.repeat,
