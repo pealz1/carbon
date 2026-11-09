@@ -1,7 +1,9 @@
 <script lang="ts">
   import { formatDuration } from "$lib/format";
+  import { menu } from "$lib/menu.svelte";
+  import { trackMenu } from "$lib/menus";
   import { player } from "$lib/player.svelte";
-  import type { Track } from "$lib/spotify/types";
+  import type { PlaylistSummary, Track } from "$lib/spotify/types";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
 
@@ -12,6 +14,8 @@
     showArt = true,
     numbered = false,
     compact = false,
+    removeFrom,
+    onremove,
   }: {
     tracks: Track[];
     /** Play inside this album/playlist/collection so next/prev follow it. */
@@ -20,7 +24,13 @@
     showArt?: boolean;
     numbered?: boolean;
     compact?: boolean;
+    /** Lets the menu remove songs from this playlist (only pass for playlists you can edit). */
+    removeFrom?: Pick<PlaylistSummary, "id" | "name">;
+    onremove?: (uri: string) => void;
   } = $props();
+
+  const openMenu = (event: MouseEvent | KeyboardEvent, track: Track) =>
+    menu.open(event, trackMenu(track, { removeFrom, onRemoved: () => onremove?.(track.uri) }));
 
   function play(index: number) {
     const track = tracks[index];
@@ -32,7 +42,7 @@
 <ol class="tracks" class:compact class:with-album={showAlbum}>
   {#each tracks as track, i (track.uri + i)}
     {@const current = player.isCurrent(track.uri)}
-    <li class="row" class:current ondblclick={() => play(i)}>
+    <li class="row" class:current ondblclick={() => play(i)} oncontextmenu={(e) => openMenu(e, track)}>
       <button class="lead" onclick={() => play(i)} aria-label="Play {track.name}">
         {#if current && !player.paused}
           <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -64,6 +74,9 @@
       {/if}
       <LikeButton uri={track.uri} label={track.name} />
       <span class="duration tabular">{formatDuration(track.durationMs)}</span>
+      <button class="more" onclick={(e) => openMenu(e, track)} aria-label="More options for {track.name}" aria-haspopup="menu" title="More">
+        <Icon name="more" size={16} />
+      </button>
     </li>
   {/each}
 </ol>
@@ -77,7 +90,7 @@
 
   .row {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) 32px 52px;
+    grid-template-columns: 36px minmax(0, 1fr) 32px 52px 32px;
     align-items: center;
     gap: var(--sp-3);
     height: 56px;
@@ -89,12 +102,12 @@
   }
 
   .with-album .row {
-    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 32px 52px;
+    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 32px 52px 32px;
   }
 
   .compact .row {
     height: 50px;
-    grid-template-columns: 28px minmax(0, 1fr) 28px 44px;
+    grid-template-columns: 28px minmax(0, 1fr) 28px 44px 28px;
     gap: var(--sp-2);
   }
 
@@ -226,13 +239,31 @@
     color: var(--text-muted);
   }
 
-  .row :global(.like:not(.on)) {
+  .row :global(.like:not(.on)),
+  .more {
     opacity: 0;
   }
 
   .row:hover :global(.like),
-  .row :global(.like:focus-visible) {
+  .row :global(.like:focus-visible),
+  .row:hover .more,
+  .more:focus-visible {
     opacity: 1;
+  }
+
+  .more {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-pill);
+    color: var(--text-muted);
+    transition: opacity var(--dur-fast);
+  }
+
+  .more:hover {
+    color: var(--text);
+    background: var(--glass-active);
   }
 
   .duration {

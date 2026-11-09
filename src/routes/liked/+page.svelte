@@ -16,7 +16,7 @@
   $effect(() => saved.remember(liked.items.map((t) => t.uri), true));
 </script>
 
-<DetailHeader kind="Playlist" title="Liked Songs" image={null} playUri={contextUri}>
+<DetailHeader kind="Playlist" title="Liked Songs" image={null} playUri={contextUri} shuffleCount={liked.total ?? undefined}>
   {#snippet meta()}
     {session.profile?.name}{liked.total !== null ? ` · ${liked.total.toLocaleString()} songs` : ""}
   {/snippet}

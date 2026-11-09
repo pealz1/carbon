@@ -4,6 +4,7 @@
   import Shelf from "$lib/components/Shelf.svelte";
   import Status from "$lib/components/Status.svelte";
   import TrackList from "$lib/components/TrackList.svelte";
+  import { artistMenu } from "$lib/menus";
   import { Pager } from "$lib/pager.svelte";
   import { resource } from "$lib/resource.svelte";
   import * as sp from "$lib/spotify/endpoints";
@@ -24,7 +25,15 @@
 {:else if artist.error}
   <Status error={artist.error} onretry={artist.reload} />
 {:else if artist.data}
-  <DetailHeader kind="Artist" title={artist.data.name} image={artist.data.largeImage} playUri={artist.data.uri} round />
+  {@const a = artist.data}
+  <DetailHeader
+    kind="Artist"
+    title={a.name}
+    image={a.largeImage}
+    playUri={a.uri}
+    round
+    menuItems={() => artistMenu({ kind: "artist", id: a.id, uri: a.uri, title: a.name, subtitle: "Artist", image: a.image, playUri: a.uri })}
+  />
 {/if}
 
 {#if artist.data}

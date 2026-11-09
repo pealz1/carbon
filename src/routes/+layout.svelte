@@ -4,20 +4,29 @@
   import { page } from "$app/state";
   import { onMount, type Snippet } from "svelte";
   import Ambient from "$lib/components/Ambient.svelte";
+  import ContextMenu from "$lib/components/ContextMenu.svelte";
+  import FolderDialog from "$lib/components/FolderDialog.svelte";
   import LiquidFilter from "$lib/components/LiquidFilter.svelte";
   import Logo from "$lib/components/Logo.svelte";
   import NowPlayingBar from "$lib/components/NowPlayingBar.svelte";
+  import PlaylistDialog from "$lib/components/PlaylistDialog.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
   import SignIn from "$lib/components/SignIn.svelte";
+  import TagsDialog from "$lib/components/TagsDialog.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
   import Toasts from "$lib/components/Toasts.svelte";
+  import { dialogs } from "$lib/dialogs.svelte";
+  import { organizer } from "$lib/organizer.svelte";
   import { player } from "$lib/player.svelte";
   import { session } from "$lib/session.svelte";
 
   let { children }: { children: Snippet } = $props();
   let main = $state<HTMLElement>();
 
-  onMount(() => void session.boot());
+  onMount(() => {
+    void session.boot();
+    void organizer.load();
+  });
   afterNavigate(() => main?.scrollTo({ top: 0 }));
 
   // Native page transitions; sidebar, title bar and dock are named so they stay put.
@@ -68,6 +77,16 @@
       <NowPlayingBar />
     </div>
   </div>
+  <ContextMenu />
+  {#if dialogs.playlist}
+    {#key dialogs.playlist}<PlaylistDialog request={dialogs.playlist} />{/key}
+  {/if}
+  {#if dialogs.folder}
+    {#key dialogs.folder}<FolderDialog request={dialogs.folder} />{/key}
+  {/if}
+  {#if dialogs.tags}
+    {#key dialogs.tags}<TagsDialog playlist={dialogs.tags} />{/key}
+  {/if}
 {/if}
 
 <style>
