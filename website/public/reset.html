@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Choose a new password · Carbon</title>
+  <meta name="description" content="Reset your Carbon password with the code we emailed you.">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://getcarbon.cc/reset">
+  <meta name="theme-color" content="#08090c">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=2">
+  <link rel="stylesheet" href="/assets/auth.css?v=2">
+  <script src="/assets/tilt.js?v=2" defer></script>
+  <script type="module" src="/assets/auth/reset.js?v=2"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+      <a class="btn btn--quiet btn--sm" href="/login">Sign in</a>
+    </div>
+  </header>
+
+  <main id="main" class="auth-main">
+    <div class="wrap auth-shell">
+      <div class="auth-card">
+        <section data-step="reset" aria-labelledby="reset-title">
+          <h1 id="reset-title" tabindex="-1">Choose a new password</h1>
+          <p class="sub">Enter the 6-digit code from your email and a new password. This signs out all your sessions and apps.</p>
+          <form class="stack" data-form="reset" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="r-email">Email</label>
+              <input class="input" id="r-email" name="email" type="email" autocomplete="username" maxlength="254" required data-field="email" aria-describedby="r-email-err" aria-errormessage="r-email-err">
+              <p class="field__error" id="r-email-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="r-code">Reset code</label>
+              <div class="code">
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <input class="code__input" id="r-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required data-field="code" aria-describedby="r-code-err" aria-errormessage="r-code-err">
+              </div>
+              <p class="field__error" id="r-code-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="r-pw">New password</label>
+              <div class="input-wrap">
+                <input class="input" id="r-pw" name="password" type="password" autocomplete="new-password" maxlength="128" required data-field="password" aria-describedby="r-pw-rules r-pw-err" aria-errormessage="r-pw-err">
+                <button class="reveal" type="button" data-reveal aria-controls="r-pw" aria-pressed="false" aria-label="Show password">
+                  <svg class="ico ico--show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="ico ico--hide" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1Q11.3 5 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                </button>
+              </div>
+              <div class="meter" data-meter data-score="0" aria-hidden="true"><i></i><i></i><i></i><i></i><span></span></div>
+              <ul class="rules" id="r-pw-rules" data-rules>
+                <li data-rule="length">10 to 128 characters<span class="sr-only"> (not met)</span></li>
+                <li data-rule="letter">At least one letter<span class="sr-only"> (not met)</span></li>
+                <li data-rule="number">At least one number<span class="sr-only"> (not met)</span></li>
+                <li data-rule="email">Not your email name<span class="sr-only"> (not met)</span></li>
+              </ul>
+              <p class="field__error" id="r-pw-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="r-confirm">Confirm new password</label>
+              <input class="input" id="r-confirm" name="confirm" type="password" autocomplete="new-password" maxlength="128" required data-field="confirm" aria-describedby="r-confirm-err" aria-errormessage="r-confirm-err">
+              <p class="field__error" id="r-confirm-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Change password</span></button>
+          </form>
+          <p class="alt">No code? <button class="text-btn" type="button" data-resend><span data-label>Resend code</span></button></p>
+        </section>
+      </div>
+
+      <aside class="auth-art" data-tilt="4" aria-hidden="true">
+        <img src="/assets/carbon-mark.svg" width="300" height="300" alt="">
+        <p>Resetting your password signs out every session and app.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="auth-foot">
+    <div class="wrap">
+      <p>© 2026 Carbon. Not affiliated with Spotify.</p>
+      <p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a></p>
+    </div>
+  </footer>
+</body>
+</html>

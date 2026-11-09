@@ -3,230 +3,361 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Carbon — a free, open-source Spotify client for Windows</title>
-  <meta name="description" content="Carbon is a free, open-source Spotify client for Windows 10 and 11. Built in Rust, about 4 MB, with a liquid-glass interface, synced lyrics, Discord presence and Last.fm scrobbling.">
+  <title>Carbon: a free, open-source Spotify client for Windows</title>
+  <meta name="description" content="Carbon is a free, open-source Spotify client for Windows 10 and 11, built in Rust. A liquid-glass interface, word-synced lyrics, media keys, Discord and Last.fm, and signed updates.">
   <link rel="canonical" href="https://getcarbon.cc/">
-  <meta name="theme-color" content="#0b0c0f">
+  <meta name="theme-color" content="#08090c">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&amp;family=Instrument+Sans:wght@400..600&amp;display=swap">
-  <link rel="stylesheet" href="/assets/site.css?v=1">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=2">
+  <link rel="stylesheet" href="/assets/devices.css?v=2">
+  <link rel="stylesheet" href="/assets/home.css?v=2">
+  <script src="/assets/nav-auth.js?v=2" defer></script>
+  <script src="/assets/tilt.js?v=2" defer></script>
+  <script src="/assets/home.js?v=2" defer></script>
+  <script src="/assets/hex.js?v=2" defer></script>
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Carbon">
-  <meta property="og:title" content="Carbon — a free, open-source Spotify client for Windows">
-  <meta property="og:description" content="A ~4 MB Rust app with a liquid-glass interface. Synced lyrics, Discord presence, Last.fm scrobbling, media keys.">
+  <meta property="og:title" content="Carbon: your music, in liquid glass">
+  <meta property="og:description" content="A free, open-source Spotify client for Windows 10 and 11. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
   <meta property="og:url" content="https://getcarbon.cc/">
-  <meta property="og:image" content="https://getcarbon.cc/assets/og.png">
+  <meta property="og:image" content="https://getcarbon.cc/assets/og.png?v=2">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="The Carbon logo and app window on a dark graphite background.">
+  <meta property="og:image:alt" content="The Carbon logo beside the Carbon app window on a laptop screen.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Carbon — a free, open-source Spotify client for Windows">
-  <meta name="twitter:description" content="A ~4 MB Rust app with a liquid-glass interface. Synced lyrics, Discord presence, Last.fm scrobbling, media keys.">
-  <meta name="twitter:image" content="https://getcarbon.cc/assets/og.png">
-  <meta name="twitter:image:alt" content="The Carbon logo and app window on a dark graphite background.">
+  <meta name="twitter:title" content="Carbon: your music, in liquid glass">
+  <meta name="twitter:description" content="A free, open-source Spotify client for Windows 10 and 11. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
+  <meta name="twitter:image" content="https://getcarbon.cc/assets/og.png?v=2">
+  <meta name="twitter:image:alt" content="The Carbon logo beside the Carbon app window on a laptop screen.">
 </head>
-<body>
+<body class="home">
   <a class="skip" href="#main">Skip to content</a>
 
   <header class="site-header">
-    <nav class="wrap nav" aria-label="Primary">
-      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="34" height="34" alt="">carbon</a>
-      <ul class="nav__links">
-        <li class="hide-sm"><a href="#features">Features</a></li>
-        <li><a href="/setup">Setup</a></li>
-        <li class="hide-sm"><a href="#faq">FAQ</a></li>
-      </ul>
-      <a class="btn btn--primary btn--sm" href="https://github.com/pealz1/carbon/releases/latest">Download</a>
-    </nav>
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+      <nav class="nav" aria-label="Primary">
+        <a class="nav__link" href="#features"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg><span class="nav__label">Features</span></a>
+        <a class="nav__link" href="#download"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg><span class="nav__label">Download</span></a>
+        <a class="nav__link" href="#faq"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/></svg><span class="nav__label">FAQ</span></a>
+        <a class="nav__link" href="https://github.com/pealz1/carbon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg><span class="nav__label">GitHub</span></a>
+      </nav>
+      <div class="auth">
+        <a class="btn btn--quiet btn--sm" href="/login" data-auth-out>Sign in</a>
+        <a class="btn btn--primary btn--sm auth__create" href="/signup" data-auth-out>Create account</a>
+        <a class="avatar" href="/account" data-auth-in hidden><span data-avatar-initial aria-hidden="true">C</span><span class="sr-only">Your account</span></a>
+      </div>
+    </div>
   </header>
 
   <main id="main">
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero__light" aria-hidden="true"><span></span><span></span><span></span></div>
-      <div class="wrap hero__grid">
-        <h1 class="hero__title" id="hero-title">
-          <span class="hero__line">Your music,</span>
-          <span class="hero__line hero__line--indent">under <em class="iris">glass.</em></span>
-        </h1>
-        <div class="hero__copy">
-          <p class="lead">Carbon is a free, open-source Spotify client for Windows. It’s a ~4&nbsp;MB Rust app with a liquid-glass interface, and it plays your music itself.</p>
-          <div class="cta-row">
-            <a class="btn btn--primary" href="https://github.com/pealz1/carbon/releases/latest">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
+      <div class="wrap hero__top">
+        <h1 class="hero__title" id="hero-title">Your music,<br>in liquid glass.</h1>
+        <div class="hero__aside">
+          <p class="hero__lead">Carbon is a free, open-source Spotify client for Windows 10 and 11. Built in Rust, it plays your library itself, fills lyrics word by word and keeps your sign-in on your PC.</p>
+          <div class="cta">
+            <a class="btn btn--primary btn--lg" href="https://github.com/pealz1/carbon/releases/latest" data-tilt="10">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
               Download for Windows
             </a>
-            <a class="btn btn--ghost" href="https://github.com/pealz1/carbon">
-              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
-              View on GitHub
+            <a class="btn btn--glass btn--lg" href="https://github.com/pealz1/carbon" data-tilt="10">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg>
+              View source
             </a>
           </div>
-          <p class="fineprint"><span>Requires Spotify Premium</span><span>Windows 10/11</span><span>Free &amp; open source</span></p>
+          <ul class="facts">
+            <li>Free</li>
+            <li>Requires Spotify Premium</li>
+            <li>Windows 10 &amp; 11</li>
+          </ul>
         </div>
-        <figure class="shot">
-          <div class="shot__frame glass">
-            <img src="/assets/screenshot-home.png?v=2" width="1336" height="849" fetchpriority="high"
-                 alt="Carbon's home screen: a frosted sidebar with your playlists, a large greeting, a row of recently played albums, an On repeat track list, and a glass player bar along the bottom.">
-          </div>
-          <figcaption class="shot__tags">
-            <span class="tag tag--a glass">~4 MB, built in Rust</span>
-            <span class="tag tag--b glass">Plays with Spotify’s official SDK</span>
-          </figcaption>
-        </figure>
       </div>
-    </section>
 
-    <section class="section" id="features" aria-labelledby="features-title">
-      <div class="wrap">
-        <header class="section-head">
-          <p class="kicker"><span class="kicker__n">01</span> The player</p>
-          <h2 class="h1" id="features-title">A real player,<br>not a remote.</h2>
-          <p>Carbon streams through Spotify’s official Web Playback SDK, so the music plays right inside the app.</p>
-        </header>
+      <div class="stage" data-stage>
+        <div class="stage__floor" aria-hidden="true"></div>
 
-        <div class="bento">
-          <article class="panel panel--player glass">
-            <div>
-              <h3>Every control, under glass</h3>
-              <p>Play and pause, seek, shuffle, repeat, your queue and volume. Everything you reach for, in one bar.</p>
+        <figure class="laptop" data-depth="0.6">
+          <div class="laptop__lid">
+            <div class="laptop__screen">
+              <picture class="laptop__shot is-shown" data-shot="home">
+                <source type="image/webp" srcset="/assets/shot-home-760.webp 760w, /assets/shot-home.webp 1336w" sizes="(max-width: 760px) 94vw, 900px">
+                <img src="/assets/shot-home.jpg" width="1336" height="849" fetchpriority="high" decoding="async"
+                     alt="Carbon's home view: a greeting, recently played albums and an On repeat list inside a frosted glass window.">
+              </picture>
+              <picture class="laptop__shot" data-shot="now">
+                <source type="image/webp" srcset="/assets/shot-now-760.webp 760w, /assets/shot-now.webp 1600w" sizes="(max-width: 760px) 94vw, 900px">
+                <img src="/assets/shot-now.jpg" width="1600" height="906" decoding="async"
+                     alt="Carbon's now playing view: album art beside synced lyrics, with the current line filling word by word.">
+              </picture>
             </div>
-            <div class="transport" aria-hidden="true">
-              <div class="transport__keys">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="is-on"><path d="M3 7h3.5c2 0 3.2 1 4.3 2.7l2.4 4.6C14.3 16 15.5 17 17.5 17H21M3 17h3.5c1.4 0 2.4-.5 3.2-1.4m4.6-7.2c.8-.9 1.8-1.4 3.2-1.4H21m-2.5-2.5L21 7l-2.5 2.5m0 5L21 17l-2.5 2.5"/></svg>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6v12l-9-6zM6 6h2v12H6z"/></svg>
-                <span class="transport__play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg></span>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6v12l9-6zM16 6h2v12h-2z"/></svg>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l3 3-3 3M4 11V9a3 3 0 0 1 3-3h13M7 21l-3-3 3-3m16-2v2a3 3 0 0 1-3 3H4"/></svg>
+          </div>
+          <div class="laptop__base" aria-hidden="true"></div>
+          <figcaption class="sr-only">Carbon for Windows on a laptop.</figcaption>
+        </figure>
+
+        <figure class="phones" data-depth="1.6">
+          <div class="phone phone--back" aria-hidden="true">
+            <div class="phone__screen m-home">
+              <div class="m-status"><span>10:24</span><span class="m-status__icons"><i></i><i></i><i></i></span></div>
+              <p class="m-greet">Good evening</p>
+              <div class="m-chips"><span class="is-on">Playlists</span><span>Albums</span><span>Artists</span></div>
+              <div class="m-grid">
+                <div class="m-card"><span class="m-cover m-cover--a"></span><span>Night Shift</span></div>
+                <div class="m-card"><span class="m-cover m-cover--b"></span><span>Slow Hours</span></div>
+                <div class="m-card"><span class="m-cover m-cover--c"></span><span>Liked Songs</span></div>
+                <div class="m-card"><span class="m-cover m-cover--d"></span><span>Run Club</span></div>
               </div>
-              <div class="transport__track"><span>1:24</span><span class="transport__bar"></span><span>3:46</span></div>
+              <p class="m-h">Jump back in</p>
+              <div class="m-row"><span class="m-cover m-cover--e"></span><span><b>Halflight</b><small>Oren Vale</small></span></div>
+              <div class="m-row"><span class="m-cover m-cover--f"></span><span><b>Static Bloom</b><small>The Quiet Arcade</small></span></div>
+              <div class="m-mini"><span class="m-cover m-cover--a"></span><span><b>Glasshouse</b><small>Mara Ilse</small></span><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></div>
+              <div class="m-tabs"><i class="is-on"></i><i></i><i></i></div>
             </div>
-          </article>
-
-          <article class="panel panel--lyrics glass">
-            <h3>Lyrics that keep time</h3>
-            <p>Time-synced lyrics from LRCLIB follow the song line by line.</p>
-            <div class="lyrics" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-          </article>
-
-          <article class="panel panel--library">
-            <h3>Your whole library</h3>
-            <ul class="words">
-              <li>Home</li><li>Search</li><li>Library</li><li>Liked Songs</li><li>Playlists</li><li>Albums</li><li>Artists</li>
-            </ul>
-          </article>
-        </div>
-
-        <div class="desk">
-          <header class="section-head">
-            <h3 class="h1">At home on Windows.</h3>
-            <p>The small things that make it feel native.</p>
-          </header>
-          <ol class="desk__list">
-            <li><strong>Discord Rich Presence</strong><span>Your profile shows “Listening to…” while Discord is open.</span></li>
-            <li><strong>Last.fm scrobbling</strong><span>Connect once in Settings and your plays scrobble.</span></li>
-            <li><strong>Media keys &amp; overlay</strong><span>Keyboard media keys and the Windows media overlay.</span></li>
-            <li><strong>System tray</strong><span>Control playback from the tray.</span></li>
-            <li><strong>Launch at startup</strong><span>Have Carbon start with Windows if you like.</span></li>
-            <li><strong>Auto-updates</strong><span>New versions arrive without a trip to the website.</span></li>
-            <li><strong>Secure sign-in</strong><span>Your Spotify sign-in is kept in Windows Credential Manager.</span></li>
-          </ol>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="fast" aria-labelledby="fast-title">
-      <div class="wrap fast__grid">
-        <p class="kicker"><span class="kicker__n">02</span> Why it’s fast</p>
-        <p class="fast__num" aria-hidden="true"><em>About</em>4<small>MB</small></p>
-        <div class="fast__copy">
-          <h2 class="h1" id="fast-title">Light by construction.</h2>
-          <p>Carbon is written in Rust on Tauri 2, which uses the web engine already built into Windows instead of shipping its own browser. The whole app is about 4&nbsp;MB. Spotify’s own desktop app runs to hundreds.</p>
-        </div>
-        <figure class="weigh">
-          <figcaption class="sr-only">App size: Carbon is about 4 MB; Spotify’s desktop app is hundreds of MB.</figcaption>
-          <div class="weigh__row" aria-hidden="true">
-            <span class="weigh__label">Carbon <b>~4 MB</b></span>
-            <span class="weigh__bar weigh__bar--carbon"></span>
           </div>
-          <div class="weigh__row" aria-hidden="true">
-            <span class="weigh__label">Spotify’s app <b>hundreds of MB</b></span>
-            <span class="weigh__bar weigh__bar--other"></span>
+
+          <div class="phone phone--front" aria-hidden="true">
+            <div class="phone__screen m-now">
+              <div class="m-status"><span>10:24</span><span class="m-status__icons"><i></i><i></i><i></i></span></div>
+              <p class="m-from">Playing from <b>Night Shift</b></p>
+              <div class="m-art"></div>
+              <div class="m-meta"><p><b>Glasshouse</b><small>Mara Ilse</small></p><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg></div>
+              <div class="m-bar"><span></span></div>
+              <div class="m-times"><span>1:12</span><span>3:48</span></div>
+              <div class="m-transport">
+                <svg viewBox="0 0 24 24"><path d="M18 6v12l-9-6zM6 6h2v12H6z"/></svg>
+                <span class="m-play"><svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg></span>
+                <svg viewBox="0 0 24 24"><path d="M6 6v12l9-6zM16 6h2v12h-2z"/></svg>
+              </div>
+              <div class="m-lyrics">
+                <p>and every light on the street</p>
+                <p class="is-now"><span>turns gold</span> when you sing</p>
+                <p>so I leave the window open</p>
+              </div>
+            </div>
           </div>
+          <figcaption class="phones__label">Carbon for mobile <span>· coming soon</span></figcaption>
         </figure>
       </div>
-    </section>
 
-    <section class="section setup-teaser" id="setup" aria-labelledby="setup-title">
-      <div class="wrap">
-        <header class="section-head">
-          <p class="kicker"><span class="kicker__n">03</span> Setup</p>
-          <h2 class="h1" id="setup-title">Three steps.<br>About two minutes.</h2>
-          <p>Spotify’s 2026 developer rules limit each developer app to 5 users. So instead of sharing one, every listener makes a free Client ID of their own.</p>
-        </header>
-        <ol class="steps">
-          <li class="step">
-            <h3>Open the dashboard</h3>
-            <p>Log in at developer.spotify.com/dashboard with your Premium account.</p>
-          </li>
-          <li class="step">
-            <h3>Create an app</h3>
-            <p>Any name. Redirect URI <code>http://127.0.0.1:8888/callback</code>. Tick Web API and Web Playback SDK.</p>
-          </li>
-          <li class="step">
-            <h3>Paste your Client ID</h3>
-            <p>Copy it from the app’s Settings and paste it into Carbon on first launch.</p>
-          </li>
-        </ol>
-        <a class="link-arrow" href="/setup">Read the full setup guide
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg>
-        </a>
-      </div>
-    </section>
-
-    <section class="section" id="plus" aria-labelledby="plus-title">
-      <div class="wrap">
-        <div class="plus__card">
-          <p class="kicker"><span class="kicker__n">04</span> Support Carbon</p>
-          <div class="plus__head">
-            <h2 class="plus__title" id="plus-title">Carbon+</h2>
-            <span class="badge">Coming soon</span>
-          </div>
-          <p class="plus__price"><strong>$4.99</strong> one time</p>
-          <p>A one-time upgrade that unlocks extra, non-essential features and supports development. The core app stays free.</p>
+      <div class="wrap stage__controls">
+        <div class="seg" role="group" aria-label="Laptop screen">
+          <button class="btn btn--seg" type="button" aria-pressed="true" data-show="home">Home</button>
+          <button class="btn btn--seg" type="button" aria-pressed="false" data-show="now">Now playing</button>
         </div>
       </div>
     </section>
 
-    <section class="section" id="faq" aria-labelledby="faq-title">
+    <section class="why" id="features" aria-labelledby="why-title">
+      <div class="wrap">
+        <div class="why__head">
+          <h2 id="why-title">Why Carbon</h2>
+          <p>Press and hold any panel for the details.</p>
+        </div>
+
+        <div class="tiles">
+          <article class="tile tile--player" data-tilt="7" data-hold-root>
+            <div class="tile__glass" aria-hidden="true"><span class="tile__spec"></span></div>
+            <div class="tile__body">
+              <h3>Plays music itself</h3>
+              <p>Spotify’s official Web Playback SDK runs inside Carbon, so no Spotify app has to stay open.</p>
+            </div>
+            <div class="tile__art art-player" aria-hidden="true">
+              <span class="art-player__cover"></span>
+              <span class="art-player__meta"><b>Glasshouse</b><small>Mara Ilse</small></span>
+              <span class="art-player__keys">
+                <svg viewBox="0 0 24 24"><path d="M18 6v12l-9-6zM6 6h2v12H6z"/></svg>
+                <i><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></i>
+                <svg viewBox="0 0 24 24"><path d="M6 6v12l9-6zM16 6h2v12h-2z"/></svg>
+              </span>
+              <span class="art-player__track"><small>1:12</small><span><i></i></span><small>3:48</small></span>
+            </div>
+            <div class="tile__detail" id="detail-player"><p>Play, pause, seek, shuffle, repeat, your queue and volume sit in one glass bar, and playback carries on from the tray when you close the window. Requires Spotify Premium.</p></div>
+            <button class="tile__trigger" type="button" aria-expanded="false" aria-controls="detail-player"><span class="sr-only">More about the built-in player</span></button>
+            <span class="tile__hint" aria-hidden="true">Hold</span>
+            <span class="tile__progress" aria-hidden="true"></span>
+          </article>
+
+          <article class="tile tile--lyrics" data-tilt="7" data-hold-root>
+            <div class="tile__glass" aria-hidden="true"><span class="tile__spec"></span></div>
+            <div class="tile__body">
+              <h3>Liquid lyrics</h3>
+              <p>Time-synced lyrics fill word by word as they’re sung.</p>
+            </div>
+            <div class="tile__art art-lyrics" aria-hidden="true">
+              <p>the radio hums in another room</p>
+              <p class="is-now"><span>and every light</span> on the street</p>
+              <p>turns gold when you sing</p>
+            </div>
+            <div class="tile__detail" id="detail-lyrics"><p>Click any line to jump to that moment in the song. Lyrics come from LRCLIB, an open, community-maintained lyrics library.</p></div>
+            <button class="tile__trigger" type="button" aria-expanded="false" aria-controls="detail-lyrics"><span class="sr-only">More about liquid lyrics</span></button>
+            <span class="tile__hint" aria-hidden="true">Hold</span>
+            <span class="tile__progress" aria-hidden="true"></span>
+          </article>
+
+          <article class="tile tile--private" data-tilt="7" data-hold-root>
+            <div class="tile__glass" aria-hidden="true"><span class="tile__spec"></span></div>
+            <div class="tile__art art-private" aria-hidden="true">
+              <svg viewBox="0 0 100 100"><path class="art-private__hex" d="M83 31 50 12 17 31v38l33 19 33-19"/><rect x="38" y="46" width="24" height="19" rx="4"/><path d="M43 46v-5a7 7 0 0 1 14 0v5"/></svg>
+            </div>
+            <div class="tile__body">
+              <h3>Private by design</h3>
+              <p>No ads, no analytics, no tracking. Your Spotify sign-in stays in Windows Credential Manager.</p>
+            </div>
+            <div class="tile__detail" id="detail-private"><p>You sign in on Spotify’s own page, so Carbon never sees your Spotify password. A Carbon account stores only your email and a salted password hash.</p></div>
+            <button class="tile__trigger" type="button" aria-expanded="false" aria-controls="detail-private"><span class="sr-only">More about privacy</span></button>
+            <span class="tile__hint" aria-hidden="true">Hold</span>
+            <span class="tile__progress" aria-hidden="true"></span>
+          </article>
+
+          <article class="tile tile--native" data-tilt="7" data-hold-root>
+            <div class="tile__glass" aria-hidden="true"><span class="tile__spec"></span></div>
+            <div class="tile__body">
+              <h3>Feels native on Windows</h3>
+              <p>Media keys, the Windows media overlay, a tray icon with controls, and launch at startup.</p>
+            </div>
+            <div class="tile__art art-native" aria-hidden="true">
+              <span class="art-native__keys">
+                <kbd><svg viewBox="0 0 24 24"><path d="M18 6v12l-9-6zM6 6h2v12H6z"/></svg></kbd>
+                <kbd class="is-down"><svg viewBox="0 0 24 24"><path d="M5 5.5v13l9-6.5zM15 5.5h2.5v13H15zM19.5 5.5H22v13h-2.5z"/></svg></kbd>
+                <kbd><svg viewBox="0 0 24 24"><path d="M6 6v12l9-6zM16 6h2v12h-2z"/></svg></kbd>
+              </span>
+              <span class="art-native__tray">
+                <span class="art-native__row"><img src="/assets/carbon-mark.svg" width="18" height="18" alt="">Carbon</span>
+                <span class="art-native__row">Launch at startup<i class="switch is-on"></i></span>
+                <span class="art-native__row">Keep playing when closed<i class="switch is-on"></i></span>
+              </span>
+            </div>
+            <div class="tile__detail" id="detail-native"><p>Close the window and the music keeps going from the tray. Launching Carbon again brings back the window you already have instead of opening a second copy.</p></div>
+            <button class="tile__trigger" type="button" aria-expanded="false" aria-controls="detail-native"><span class="sr-only">More about Windows integration</span></button>
+            <span class="tile__hint" aria-hidden="true">Hold</span>
+            <span class="tile__progress" aria-hidden="true"></span>
+          </article>
+
+          <article class="tile tile--social" data-tilt="7" data-hold-root>
+            <div class="tile__glass" aria-hidden="true"><span class="tile__spec"></span></div>
+            <div class="tile__body">
+              <h3>Discord and Last.fm</h3>
+              <p>Show what’s playing on your Discord profile, with album art and a live progress bar. Scrobble to Last.fm by its rules.</p>
+            </div>
+            <div class="tile__art art-social" aria-hidden="true">
+              <span class="art-social__card">
+                <small>Listening to Carbon</small>
+                <span class="art-social__now"><span class="m-cover m-cover--b"></span><span><b>Slow Hours</b><small>Oren Vale</small><span class="art-social__bar"><i></i></span></span></span>
+              </span>
+              <span class="art-social__scrobble"><i></i>Scrobbled</span>
+            </div>
+            <div class="tile__detail" id="detail-social"><p>Discord presence appears only while the Discord desktop app is running. Nothing reaches Last.fm until you connect your account in Settings.</p></div>
+            <button class="tile__trigger" type="button" aria-expanded="false" aria-controls="detail-social"><span class="sr-only">More about Discord and Last.fm</span></button>
+            <span class="tile__hint" aria-hidden="true">Hold</span>
+            <span class="tile__progress" aria-hidden="true"></span>
+          </article>
+
+          <article class="tile tile--open" data-tilt="7" data-hold-root>
+            <div class="tile__glass" aria-hidden="true"><span class="tile__spec"></span></div>
+            <div class="tile__body">
+              <h3>Open source, signed updates</h3>
+              <p>Every line is on GitHub under the MIT license. Updates are signed and verified before they install.</p>
+            </div>
+            <div class="tile__art art-open" aria-hidden="true">
+              <code><span class="art-open__p">$</span> git clone github.com/pealz1/carbon</code>
+              <code><span class="art-open__ok">✓</span> update signature verified</code>
+              <code><span class="art-open__p">›</span> license: MIT</code>
+            </div>
+            <div class="tile__detail" id="detail-open"><p>Read the code, build it yourself with Node.js and Rust, or check each release’s notes before you update.</p></div>
+            <button class="tile__trigger" type="button" aria-expanded="false" aria-controls="detail-open"><span class="sr-only">More about open source and updates</span></button>
+            <span class="tile__hint" aria-hidden="true">Hold</span>
+            <span class="tile__progress" aria-hidden="true"></span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="voices" id="community" aria-labelledby="voices-title" data-quotes hidden>
+      <div class="wrap">
+        <h2 id="voices-title">What the community says</h2>
+        <ul class="voices__list" data-quotes-list></ul>
+      </div>
+    </section>
+
+    <section class="get" id="download" aria-labelledby="get-title">
+      <div class="get__stage" data-hex-stage>
+        <img class="get__still" src="/assets/hex-still.webp?v=2" width="720" height="720" alt="" loading="lazy" decoding="async">
+        <canvas class="get__canvas" data-hex aria-hidden="true"></canvas>
+      </div>
+      <div class="wrap get__body">
+        <h2 id="get-title">Get Carbon for Windows.</h2>
+        <p class="get__lead">Free and open source. On first launch you’ll create your own Spotify Client ID; the setup guide walks you through it in about two minutes.</p>
+        <div class="cta cta--center">
+          <a class="btn btn--primary btn--lg" href="https://github.com/pealz1/carbon/releases/latest" data-tilt="10">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
+            Download for Windows
+          </a>
+          <a class="btn btn--glass btn--lg" href="/setup" data-tilt="10">Setup guide</a>
+        </div>
+        <dl class="reqs">
+          <div><dt>System</dt><dd>Windows 10 or 11</dd></div>
+          <div><dt>Account</dt><dd>Spotify Premium</dd></div>
+          <div><dt>Price</dt><dd>Free</dd></div>
+          <div><dt>License</dt><dd>MIT</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="plus" id="plus" aria-labelledby="plus-title">
+      <div class="wrap">
+        <div class="plus__panel" data-tilt="3">
+          <p class="plus__price"><span class="plus__amount">$4.99</span><span class="plus__once">once</span></p>
+          <div class="plus__copy">
+            <div class="plus__head">
+              <h2 id="plus-title">Carbon+</h2>
+              <p class="plus__status"><span aria-hidden="true"></span>Coming soon</p>
+            </div>
+            <p>A one-time upgrade that adds extra features and funds Carbon’s development. No subscription, and the core app stays free.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq" id="faq" aria-labelledby="faq-title">
       <div class="wrap faq__grid">
         <div class="faq__head">
-          <p class="kicker"><span class="kicker__n">05</span> FAQ</p>
-          <h2 class="h1" id="faq-title">Fair questions.</h2>
-          <p class="prose">Something else? <a href="https://github.com/pealz1/carbon/issues">Ask on GitHub</a>.</p>
+          <h2 id="faq-title">Questions, answered.</h2>
+          <p>Something else? <a class="link" href="https://github.com/pealz1/carbon/issues">Ask on GitHub</a> or email <a class="link" href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</p>
         </div>
         <div class="faq__list">
           <details class="qa">
-            <summary>Do I need Spotify Premium?</summary>
-            <div class="qa__a"><p>Yes. Carbon plays music with Spotify’s official Web Playback SDK, which only works with Premium accounts. Spotify also requires Premium to create the developer app used during setup.</p></div>
+            <summary>Do I need Spotify Premium?<span class="qa__icon" aria-hidden="true"></span></summary>
+            <div class="qa__a"><p>Yes. Carbon plays music through Spotify’s official Web Playback SDK, which works only with Premium accounts. Spotify also requires Premium to create the developer app used during setup.</p></div>
           </details>
           <details class="qa">
-            <summary>Why do I need my own Client ID?</summary>
-            <div class="qa__a prose"><p>Spotify’s 2026 developer rules limit each developer app (each Client ID) to 5 users, so one shared ID would fill up almost immediately. Instead, every listener creates their own. It’s free and takes about two minutes: <a href="/setup">follow the setup guide</a>.</p></div>
+            <summary>Do I need a Carbon account?<span class="qa__icon" aria-hidden="true"></span></summary>
+            <div class="qa__a"><p>Yes. Once Carbon accounts launch, a free Carbon account will be required to use the app. It’s separate from Spotify: an email address and a password, with a code emailed to you each time you sign in.</p></div>
           </details>
           <details class="qa">
-            <summary>Is my login safe?</summary>
-            <div class="qa__a prose"><p>You sign in on Spotify’s own page, so your password goes to Spotify, not to Carbon. The sign-in token Carbon receives is stored locally in Windows Credential Manager. Carbon has no servers, and it never needs your Client secret.</p><p>Details are in the <a href="/privacy">privacy policy</a>.</p></div>
+            <summary>Why do I need my own Spotify Client ID?<span class="qa__icon" aria-hidden="true"></span></summary>
+            <div class="qa__a"><p>Spotify’s 2026 developer rules limit each developer app to five users, so a shared ID would fill up almost immediately. You create your own instead. It’s free and takes about two minutes with the <a class="link" href="/setup">setup guide</a>.</p></div>
           </details>
           <details class="qa">
-            <summary>Is there a Mac or Linux version?</summary>
-            <div class="qa__a prose"><p>Windows first. Carbon is built for Windows 10 and 11 today. The source is <a href="https://github.com/pealz1/carbon">on GitHub</a> if you want to follow along.</p></div>
+            <summary>Is my Spotify login safe?<span class="qa__icon" aria-hidden="true"></span></summary>
+            <div class="qa__a"><p>You sign in on Spotify’s own page, so your Spotify password never reaches Carbon. The token Carbon receives stays on your PC in Windows Credential Manager, and Carbon never needs your Client secret. The <a class="link" href="/privacy">privacy policy</a> has the details.</p></div>
           </details>
           <details class="qa">
-            <summary>Is it really free?</summary>
-            <div class="qa__a"><p>Yes, and open source. Carbon+ will be an optional one-time $4.99 upgrade for extras; the core app stays free.</p></div>
+            <summary>Is Carbon really free?<span class="qa__icon" aria-hidden="true"></span></summary>
+            <div class="qa__a"><p>Yes, and open source under the MIT license. Carbon+ will be an optional one-time $4.99 upgrade for extra features. The core app stays free.</p></div>
+          </details>
+          <details class="qa">
+            <summary>Why does Windows show a SmartScreen warning?<span class="qa__icon" aria-hidden="true"></span></summary>
+            <div class="qa__a"><p>The installer isn’t signed with a paid code-signing certificate yet, so Windows may warn you the first time. Choose <strong>More info</strong>, then <strong>Run anyway</strong>. App updates are signed separately and verified before they install.</p></div>
+          </details>
+          <details class="qa">
+            <summary>Is there a Mac, Linux or phone version?<span class="qa__icon" aria-hidden="true"></span></summary>
+            <div class="qa__a"><p>Not yet. Carbon is built for Windows 10 and 11 today, and Carbon for mobile is in development. Follow progress on <a class="link" href="https://github.com/pealz1/carbon">GitHub</a>.</p></div>
           </details>
         </div>
       </div>
@@ -234,23 +365,44 @@
   </main>
 
   <footer class="site-footer">
-    <div class="wrap footer__grid">
-      <div class="footer__brand">
-        <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="34" height="34" alt="" loading="lazy">carbon</a>
-        <p>A free, open-source Spotify client for Windows.</p>
+    <div class="wrap">
+      <div class="foot">
+        <div class="foot__brand">
+          <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt="" loading="lazy"><span class="brand__word">carbon</span></a>
+          <p>A free, open-source Spotify client for Windows.</p>
+        </div>
+        <nav aria-labelledby="f-product">
+          <h2 id="f-product">Product</h2>
+          <ul>
+            <li><a href="https://github.com/pealz1/carbon/releases/latest">Download</a></li>
+            <li><a href="/setup">Setup guide</a></li>
+            <li><a href="/#plus">Carbon+</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-account">
+          <h2 id="f-account">Account</h2>
+          <ul>
+            <li><a href="/login">Sign in</a></li>
+            <li><a href="/signup">Create account</a></li>
+            <li><a href="/account">Your account</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-project">
+          <h2 id="f-project">Project</h2>
+          <ul>
+            <li><a href="https://github.com/pealz1/carbon">Source code</a></li>
+            <li><a href="https://github.com/pealz1/carbon/issues">Report an issue</a></li>
+            <li><a href="/terms">Terms of use</a></li>
+            <li><a href="/privacy">Privacy policy</a></li>
+          </ul>
+        </nav>
       </div>
-      <nav aria-label="Footer">
-        <ul class="footer__links">
-          <li><a href="https://github.com/pealz1/carbon/releases/latest">Download</a></li>
-          <li><a href="/setup">Setup guide</a></li>
-          <li><a href="/privacy">Privacy</a></li>
-          <li><a href="https://github.com/pealz1/carbon">Source code</a></li>
-          <li><a href="https://github.com/pealz1/carbon/issues">Report an issue</a></li>
-        </ul>
-      </nav>
-      <p class="disclaimer">Carbon is an independent project. It is not affiliated with, endorsed by, or sponsored by Spotify. Spotify is a trademark of Spotify AB.</p>
+      <div class="foot__legal">
+        <p>Carbon is an independent project by pealz. It isn’t affiliated with, endorsed by or sponsored by Spotify. Spotify is a trademark of Spotify AB.</p>
+        <p>© 2026 Carbon</p>
+      </div>
     </div>
-    <p class="footer__mega" aria-hidden="true">carbon</p>
   </footer>
 </body>
 </html>

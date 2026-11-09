@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create your account · Carbon</title>
+  <meta name="description" content="Create a free Carbon account.">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://getcarbon.cc/signup">
+  <meta name="theme-color" content="#08090c">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=2">
+  <link rel="stylesheet" href="/assets/auth.css?v=2">
+  <script src="/assets/tilt.js?v=2" defer></script>
+  <script type="module" src="/assets/auth/signup.js?v=2"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+      <a class="btn btn--quiet btn--sm" href="/login">Sign in</a>
+    </div>
+  </header>
+
+  <main id="main" class="auth-main">
+    <div class="wrap auth-shell">
+      <div class="auth-card">
+        <section aria-labelledby="signup-title">
+          <h1 id="signup-title" tabindex="-1">Create your account</h1>
+          <p class="sub">A free Carbon account. It’s separate from Spotify and never sees your Spotify password.</p>
+          <form class="stack" data-form="signup" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="su-email">Email</label>
+              <input class="input" id="su-email" name="email" type="email" autocomplete="email" maxlength="254" required data-field="email" aria-describedby="su-email-err" aria-errormessage="su-email-err">
+              <p class="field__error" id="su-email-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="su-pw">Password</label>
+              <div class="input-wrap">
+                <input class="input" id="su-pw" name="password" type="password" autocomplete="new-password" maxlength="128" required data-field="password" aria-describedby="su-pw-rules su-pw-err" aria-errormessage="su-pw-err">
+                <button class="reveal" type="button" data-reveal aria-controls="su-pw" aria-pressed="false" aria-label="Show password">
+                  <svg class="ico ico--show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="ico ico--hide" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1Q11.3 5 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                </button>
+              </div>
+              <div class="meter" data-meter data-score="0" aria-hidden="true"><i></i><i></i><i></i><i></i><span></span></div>
+              <ul class="rules" id="su-pw-rules" data-rules>
+                <li data-rule="length">10 to 128 characters<span class="sr-only"> (not met)</span></li>
+                <li data-rule="letter">At least one letter<span class="sr-only"> (not met)</span></li>
+                <li data-rule="number">At least one number<span class="sr-only"> (not met)</span></li>
+                <li data-rule="email">Not your email name<span class="sr-only"> (not met)</span></li>
+              </ul>
+              <p class="field__error" id="su-pw-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="su-confirm">Confirm password</label>
+              <input class="input" id="su-confirm" name="confirm" type="password" autocomplete="new-password" maxlength="128" required data-field="confirm" aria-describedby="su-confirm-err" aria-errormessage="su-confirm-err">
+              <p class="field__error" id="su-confirm-err"></p>
+            </div>
+            <div class="field">
+              <label class="check" for="su-terms">
+                <input id="su-terms" name="terms" type="checkbox" required data-field="terms" aria-describedby="su-terms-err" aria-errormessage="su-terms-err">
+                <span>I agree to the <a class="link" href="/terms">Terms of Use</a> and <a class="link" href="/privacy">Privacy Policy</a>, and I’m at least 13.</span>
+              </label>
+              <p class="field__error" id="su-terms-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Create account</span></button>
+          </form>
+          <p class="alt">Already have an account? <a class="link" href="/login">Sign in</a></p>
+        </section>
+      </div>
+
+      <aside class="auth-art" data-tilt="4" aria-hidden="true">
+        <img src="/assets/carbon-mark.svg" width="300" height="300" alt="">
+        <p>Free, and the core app stays free. Your Spotify sign-in never leaves your PC.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="auth-foot">
+    <div class="wrap">
+      <p>© 2026 Carbon. Not affiliated with Spotify.</p>
+      <p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a></p>
+    </div>
+  </footer>
+</body>
+</html>

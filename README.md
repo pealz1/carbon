@@ -30,7 +30,7 @@ Carbon is a native Rust app that plays your music itself, looks like it belongs 
 - **Feels native.** Media keys, the Windows media overlay, a tray icon with controls, launch at startup, keep playing when closed.
 - **Discord status.** Shows what you're listening to, with album art and a live progress bar.
 - **Last.fm scrobbling.** Built in, following Last.fm's scrobbling rules.
-- **Private by design.** No servers, no analytics. Your sign-in lives in Windows Credential Manager.
+- **Private by design.** No ads, no analytics, no tracking. Your Spotify sign-in lives in Windows Credential Manager.
 - **Updates itself.** Signed updates, verified before they install.
 
 <img src="docs/screenshots/home.jpg" alt="Carbon's home view: greeting, recently played albums and top tracks in a frosted glass window" width="100%">

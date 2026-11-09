@@ -5,69 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Page not found · Carbon</title>
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#0b0c0f">
+  <meta name="theme-color" content="#08090c">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&amp;family=Instrument+Sans:wght@400..600&amp;display=swap">
-  <link rel="stylesheet" href="/assets/site.css?v=1">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Carbon">
-  <meta property="og:title" content="Carbon — a free, open-source Spotify client for Windows">
-  <meta property="og:description" content="A ~4 MB Rust app with a liquid-glass interface. Synced lyrics, Discord presence, Last.fm scrobbling, media keys.">
-  <meta property="og:image" content="https://getcarbon.cc/assets/og.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="The Carbon logo and app window on a dark graphite background.">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Carbon — a free, open-source Spotify client for Windows">
-  <meta name="twitter:description" content="A ~4 MB Rust app with a liquid-glass interface. Synced lyrics, Discord presence, Last.fm scrobbling, media keys.">
-  <meta name="twitter:image" content="https://getcarbon.cc/assets/og.png">
-  <meta name="twitter:image:alt" content="The Carbon logo and app window on a dark graphite background.">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=2">
+  <link rel="stylesheet" href="/assets/doc.css?v=2">
+  <script src="/assets/nav-auth.js?v=2" defer></script>
+  <script src="/assets/tilt.js?v=2" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
 
   <header class="site-header">
-    <nav class="wrap nav" aria-label="Primary">
-      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="34" height="34" alt="">carbon</a>
-      <ul class="nav__links">
-        <li class="hide-sm"><a href="/#features">Features</a></li>
-        <li><a href="/setup">Setup</a></li>
-        <li class="hide-sm"><a href="/#faq">FAQ</a></li>
-      </ul>
-      <a class="btn btn--primary btn--sm" href="https://github.com/pealz1/carbon/releases/latest">Download</a>
-    </nav>
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+      <nav class="nav" aria-label="Primary">
+        <a class="nav__link" href="/#features"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg><span class="nav__label">Features</span></a>
+        <a class="nav__link" href="/#download"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg><span class="nav__label">Download</span></a>
+        <a class="nav__link" href="/#faq"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/></svg><span class="nav__label">FAQ</span></a>
+        <a class="nav__link" href="https://github.com/pealz1/carbon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg><span class="nav__label">GitHub</span></a>
+      </nav>
+      <div class="auth">
+        <a class="btn btn--quiet btn--sm" href="/login" data-auth-out>Sign in</a>
+        <a class="btn btn--primary btn--sm auth__create" href="/signup" data-auth-out>Create account</a>
+        <a class="avatar" href="/account" data-auth-in hidden><span data-avatar-initial aria-hidden="true">C</span><span class="sr-only">Your account</span></a>
+      </div>
+    </div>
   </header>
 
   <main id="main" class="wrap lost">
-    <p class="lost__code" aria-hidden="true">404</p>
-    <h1 class="page-title">This track<br>skipped.</h1>
-    <p class="lead">The page you wanted isn’t here. The link may be old, or it never existed.</p>
-    <div class="cta-row">
-      <a class="btn btn--primary" href="/">Back to the homepage</a>
-      <a class="btn btn--ghost" href="/setup">Setup guide</a>
+    <img class="lost__mark" src="/assets/carbon-mark.svg" width="200" height="200" alt="">
+    <h1>This track<br>skipped.</h1>
+    <p>The page you wanted isn’t here. The link may be out of date, or the page never existed.</p>
+    <div class="cta">
+      <a class="btn btn--primary btn--lg" href="/" data-tilt="10">Back to the homepage</a>
+      <a class="btn btn--glass btn--lg" href="/setup" data-tilt="10">Setup guide</a>
     </div>
   </main>
 
-  <footer class="site-footer">
-    <div class="wrap footer__grid">
-      <div class="footer__brand">
-        <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="34" height="34" alt="" loading="lazy">carbon</a>
-        <p>A free, open-source Spotify client for Windows.</p>
-      </div>
-      <nav aria-label="Footer">
-        <ul class="footer__links">
-          <li><a href="https://github.com/pealz1/carbon/releases/latest">Download</a></li>
-          <li><a href="/setup">Setup guide</a></li>
-          <li><a href="/privacy">Privacy</a></li>
-          <li><a href="https://github.com/pealz1/carbon">Source code</a></li>
-          <li><a href="https://github.com/pealz1/carbon/issues">Report an issue</a></li>
-        </ul>
-      </nav>
-      <p class="disclaimer">Carbon is an independent project. It is not affiliated with, endorsed by, or sponsored by Spotify. Spotify is a trademark of Spotify AB.</p>
+  <footer class="auth-foot">
+    <div class="wrap">
+      <p>Carbon is an independent project. Not affiliated with Spotify.</p>
+      <p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a></p>
     </div>
   </footer>
 </body>

@@ -1,0 +1,408 @@
+/* Hero device showcase: laptop with real screenshots, plus phone mock screens drawn in HTML/CSS. */
+
+.stage {
+  --pw: 15cqw;
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
+  max-width: 1440px;
+  margin: var(--s-7) auto 0;
+  aspect-ratio: 100 / 50;
+}
+
+/* Hairline horizon the devices stand on, with a soft contact shadow. */
+.stage__floor {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 92%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-cyan) 22%, var(--c-violet) 50%, var(--c-pink) 78%, transparent);
+  opacity: .55;
+}
+
+.stage__floor::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: -3cqw;
+  height: 6cqw;
+  background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--c-black) 75%, transparent), transparent);
+}
+
+/* ---------- Laptop ---------- */
+
+.laptop {
+  position: absolute;
+  left: 9cqw;
+  top: 0;
+  width: 66cqw;
+  transform: perspective(2600px) rotateY(8deg) rotateX(2deg);
+  transform-origin: 20% 60%;
+}
+
+.laptop__lid {
+  position: relative;
+  padding: 1.05cqw 1.05cqw 1.6cqw;
+  border-radius: 1.5cqw 1.5cqw .4cqw .4cqw;
+  background: linear-gradient(180deg, #1a1c22, #0c0d10 30%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--c-white) 13%, transparent) inset,
+    0 3cqw 6cqw -2cqw var(--c-black);
+}
+
+/* Camera dot */
+.laptop__lid::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: .38cqw;
+  width: .38cqw;
+  height: .38cqw;
+  border-radius: 50%;
+  background: #2b2f39;
+  transform: translateX(-50%);
+}
+
+.laptop__screen {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  border-radius: .45cqw;
+  background:
+    radial-gradient(70% 80% at 78% 8%, color-mix(in srgb, var(--c-violet) 34%, transparent), transparent 60%),
+    radial-gradient(60% 70% at 8% 100%, color-mix(in srgb, var(--c-cyan) 16%, transparent), transparent 60%),
+    linear-gradient(160deg, #161926, #07080b);
+}
+
+.laptop__shot {
+  position: absolute;
+  inset: 3.2% 3% 4.2%;
+  opacity: 0;
+  transition: opacity .5s var(--ease-out);
+}
+
+.laptop__shot.is-shown { opacity: 1; }
+
+.laptop__shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1.2cqw 1.6cqw color-mix(in srgb, var(--c-black) 70%, transparent));
+}
+
+.laptop__base {
+  position: relative;
+  height: 1.35cqw;
+  margin: 0 -5.5%;
+  border-radius: .2cqw .2cqw 1.4cqw 1.4cqw;
+  background: linear-gradient(180deg, #4a4e59, #23252c 35%, #121317);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--c-white) 30%, transparent) inset;
+}
+
+.laptop__base::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 13%;
+  height: 42%;
+  border-radius: 0 0 .7cqw .7cqw;
+  background: #191a1f;
+  transform: translateX(-50%);
+}
+
+/* ---------- Phones ---------- */
+
+.phones {
+  position: absolute;
+  left: 66cqw;
+  top: 7cqw;
+  width: 31cqw;
+  height: 41cqw;
+}
+
+.phone {
+  position: absolute;
+  width: var(--pw);
+  aspect-ratio: 9 / 19.4;
+  padding: calc(var(--pw) * .032);
+  border-radius: calc(var(--pw) * .16);
+  background: linear-gradient(140deg, #4a4d57, #16171c 28%, #25272e 62%, #0c0d10);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--c-white) 16%, transparent) inset,
+    0 calc(var(--pw) * .2) calc(var(--pw) * .32) calc(var(--pw) * -.1) var(--c-black);
+  font-size: calc(var(--pw) * .052);
+  line-height: 1.25;
+  color: var(--c-text);
+}
+
+/* Side keys */
+.phone::before,
+.phone::after {
+  content: "";
+  position: absolute;
+  right: calc(var(--pw) * -.012);
+  width: calc(var(--pw) * .016);
+  border-radius: 2px;
+  background: #2c2e36;
+}
+
+.phone::before { top: 22%; height: 9%; }
+.phone::after { top: 34%; height: 5%; }
+
+.phone--back {
+  left: 0;
+  top: 0;
+  transform: perspective(1600px) rotateY(22deg) rotateZ(-3deg);
+}
+
+.phone--front {
+  left: 12.5cqw;
+  top: 4.5cqw;
+  transform: perspective(1600px) rotateY(-16deg) rotateZ(2.5deg);
+}
+
+.phone__screen {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  border-radius: calc(var(--pw) * .13);
+  background: var(--c-bg);
+}
+
+/* Punch-hole camera */
+.phone__screen::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 1.05em;
+  z-index: 2;
+  width: .95em;
+  height: .95em;
+  border-radius: 50%;
+  background: #000;
+  box-shadow: 0 0 0 .14em #15161a;
+  transform: translateX(-50%);
+}
+
+.phone svg { width: 1em; height: 1em; fill: currentColor; }
+
+.phones__label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1.2cqw;
+  font: 500 clamp(.7rem, .55rem + .35vw, .82rem) / 1.2 var(--f-mono);
+  color: var(--c-text-2);
+  text-align: center;
+}
+
+.phones__label span { color: var(--c-violet); }
+
+/* Mock screen pieces (sized in em from the phone width) */
+
+.m-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .95em 1.5em .3em;
+  font-size: .85em;
+  font-weight: 600;
+}
+
+.m-status__icons { display: flex; gap: .25em; }
+.m-status__icons i { width: .9em; height: .55em; border-radius: .15em; background: var(--c-text); opacity: .85; }
+.m-status__icons i:first-child { width: .55em; }
+
+.m-cover {
+  display: block;
+  flex: none;
+  width: 3em;
+  aspect-ratio: 1;
+  border-radius: .4em;
+}
+
+.m-cover--a { background: conic-gradient(from 210deg at 32% 68%, var(--c-pink), var(--c-violet), #2b1f5c, var(--c-pink)); }
+.m-cover--b { background: radial-gradient(circle at 70% 30%, var(--c-cyan), #1f6f8b 45%, #0b1e2c); }
+.m-cover--c { background: linear-gradient(135deg, var(--c-violet), #4a3bc4); }
+.m-cover--d { background: radial-gradient(circle, #1a1b20 0 30%, var(--c-paper) 31% 60%, #1a1b20 61%); }
+.m-cover--e { background: radial-gradient(circle at 30% 30%, var(--c-warn), #d2563c 50%, #2a0f12); }
+.m-cover--f { background: linear-gradient(160deg, var(--c-ok), #1e5a54 60%, #0b1614); }
+
+.m-home {
+  padding-inline: 1.15em;
+  background: linear-gradient(180deg, #1d1a30, #0d0e13 42%);
+}
+
+.m-home .m-status { margin-inline: -1.15em; }
+
+.m-greet {
+  margin: 1.2em 0 .7em;
+  font-size: 1.85em;
+  font-weight: 700;
+  font-stretch: 112%;
+  letter-spacing: -.03em;
+  line-height: 1;
+}
+
+.m-chips { display: flex; gap: .4em; margin-bottom: .9em; font-size: .8em; font-weight: 600; }
+.m-chips span { padding: .35em .8em; border-radius: 1em; background: color-mix(in srgb, var(--c-white) 9%, transparent); }
+.m-chips .is-on { background: var(--c-paper); color: var(--c-ink); }
+
+.m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45em; }
+
+.m-card {
+  display: flex;
+  align-items: center;
+  gap: .5em;
+  overflow: hidden;
+  border-radius: .45em;
+  background: color-mix(in srgb, var(--c-white) 7%, transparent);
+  font-size: .82em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.m-card .m-cover { width: 3.1em; border-radius: 0; }
+
+.m-h { margin: 1.2em 0 .6em; font-size: 1.1em; font-weight: 700; }
+
+.m-row,
+.m-mini { display: flex; align-items: center; gap: .65em; margin-bottom: .55em; }
+
+.m-row b,
+.m-mini b,
+.m-meta b { display: block; font-weight: 600; }
+
+.m-row small,
+.m-mini small,
+.m-meta small { display: block; color: var(--c-text-2); font-size: .85em; }
+
+.m-mini {
+  position: absolute;
+  left: .7em;
+  right: .7em;
+  bottom: 4.1em;
+  margin: 0;
+  padding: .45em;
+  border: 1px solid color-mix(in srgb, var(--c-white) 13%, transparent);
+  border-radius: .8em;
+  background: color-mix(in srgb, #2a2a3a 88%, transparent);
+  font-size: .9em;
+}
+
+.m-mini .m-cover { width: 2.6em; }
+.m-mini svg { margin-left: auto; margin-right: .4em; width: 1.4em; height: 1.4em; }
+
+.m-tabs {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 3.4em;
+  border-top: 1px solid var(--c-line);
+  background: #0b0c10;
+}
+
+.m-tabs i { width: 1.25em; height: 1.25em; border: .16em solid var(--c-text-3); border-radius: .35em; }
+.m-tabs i:nth-child(2) { border-radius: 50%; }
+.m-tabs .is-on { border-color: var(--c-text); background: var(--c-text); }
+
+.m-now {
+  padding-inline: 1.35em;
+  background: radial-gradient(130% 60% at 50% 18%, #5b3f92, #22183b 48%, #0c0b12 82%);
+}
+
+.m-now .m-status { margin-inline: -1.35em; }
+
+.m-from {
+  margin: .9em 0 1.1em;
+  font-size: .8em;
+  color: color-mix(in srgb, var(--c-white) 72%, transparent);
+  text-align: center;
+}
+
+.m-from b { color: var(--c-text); font-weight: 600; }
+
+.m-art {
+  aspect-ratio: 1;
+  border-radius: .8em;
+  background:
+    radial-gradient(40% 40% at 64% 38%, color-mix(in srgb, var(--c-white) 90%, transparent), transparent 70%),
+    conic-gradient(from 200deg at 40% 62%, var(--c-pink), var(--c-violet), #241b52, var(--c-cyan), var(--c-pink));
+  box-shadow: 0 1.4em 2.4em -1em var(--c-black);
+}
+
+.m-meta { display: flex; justify-content: space-between; align-items: center; margin: 1.2em 0 .8em; }
+.m-meta b { font-size: 1.35em; letter-spacing: -.01em; }
+.m-meta svg { width: 1.5em; height: 1.5em; fill: var(--c-pink); }
+
+.m-bar { height: .28em; border-radius: 1em; background: color-mix(in srgb, var(--c-white) 20%, transparent); }
+.m-bar span { display: block; width: 32%; height: 100%; border-radius: inherit; background: var(--c-text); }
+
+.m-times { display: flex; justify-content: space-between; margin-top: .35em; font: .7em var(--f-mono); color: var(--c-text-2); }
+
+.m-transport { display: flex; justify-content: center; align-items: center; gap: 2em; margin-top: .6em; }
+.m-transport svg { width: 1.7em; height: 1.7em; }
+
+.m-play {
+  display: grid;
+  place-items: center;
+  width: 3.6em;
+  height: 3.6em;
+  border-radius: 50%;
+  background: var(--c-paper);
+  color: var(--c-ink);
+}
+
+.m-lyrics { margin-top: 1.1em; font-size: 1.12em; font-weight: 700; line-height: 1.3; letter-spacing: -.01em; }
+.m-lyrics p { opacity: .55; }
+.m-lyrics .is-now { opacity: 1; color: color-mix(in srgb, var(--c-text) 55%, transparent); }
+
+/* The sung part of the current line fills solid, as it does in the app. */
+.m-lyrics .is-now span,
+.art-lyrics .is-now span { color: var(--c-white); }
+
+/* ---------- Screen switcher ---------- */
+
+.stage__controls { display: flex; justify-content: center; margin-top: var(--s-6); }
+
+.seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--c-line-2);
+  border-radius: 13px;
+  background: var(--c-glass);
+}
+
+.btn--seg {
+  min-height: 38px;
+  padding: 0 1rem;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--c-text-2);
+  font-size: var(--t-small);
+}
+
+.btn--seg[aria-pressed="true"] { background: var(--c-paper); color: var(--c-ink); }
+
+/* ---------- Narrow stages ---------- */
+
+@container (max-width: 640px) {
+  .stage__floor { top: 60%; }
+  .laptop { left: 2cqw; width: 92cqw; transform: none; }
+  .phones { left: 30cqw; top: 46cqw; width: 66cqw; height: 72cqw; }
+  .phone { --pw: 30cqw; }
+  .phone--front { left: 30cqw; top: 6cqw; }
+  .phones__label { bottom: -4cqw; }
+}
+
+@media (max-width: 640px) {
+  .stage { aspect-ratio: 100 / 122; }
+}

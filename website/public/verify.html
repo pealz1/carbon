@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verify your email · Carbon</title>
+  <meta name="description" content="Confirm your email address to activate your Carbon account.">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://getcarbon.cc/verify">
+  <meta name="theme-color" content="#08090c">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=2">
+  <link rel="stylesheet" href="/assets/auth.css?v=2">
+  <script src="/assets/tilt.js?v=2" defer></script>
+  <script type="module" src="/assets/auth/verify.js?v=2"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+      <a class="btn btn--quiet btn--sm" href="/login">Sign in</a>
+    </div>
+  </header>
+
+  <main id="main" class="auth-main">
+    <div class="wrap auth-shell">
+      <div class="auth-card">
+        <section data-step="verify" aria-labelledby="verify-title">
+          <h1 id="verify-title" tabindex="-1">Verify your email</h1>
+          <p class="sub" data-known hidden>Enter the 6-digit code we sent to <b data-verify-email></b>. It expires in 10 minutes.</p>
+          <p class="sub" data-unknown hidden>Enter your email and the 6-digit code we sent you. Codes expire after 10 minutes.</p>
+          <form class="stack" data-form="verify" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field" data-email-field>
+              <label class="field__label" for="v-email">Email</label>
+              <input class="input" id="v-email" name="email" type="email" autocomplete="email" maxlength="254" data-field="email" aria-describedby="v-email-err" aria-errormessage="v-email-err">
+              <p class="field__error" id="v-email-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="v-code">Verification code</label>
+              <div class="code">
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <input class="code__input" id="v-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required data-field="code" aria-describedby="v-code-err" aria-errormessage="v-code-err">
+              </div>
+              <p class="field__error" id="v-code-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Verify email</span></button>
+          </form>
+          <p class="alt">Didn’t get it? Check your spam folder, or <button class="text-btn" type="button" data-resend><span data-label>Resend code</span></button></p>
+          <p class="alt">Wrong address? <a class="link" href="/signup">Start again</a></p>
+        </section>
+      </div>
+
+      <aside class="auth-art" data-tilt="4" aria-hidden="true">
+        <img src="/assets/carbon-mark.svg" width="300" height="300" alt="">
+        <p>One code, ten minutes, five tries.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="auth-foot">
+    <div class="wrap">
+      <p>© 2026 Carbon. Not affiliated with Spotify.</p>
+      <p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reset your password · Carbon</title>
+  <meta name="description" content="Get a code to reset your Carbon password.">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://getcarbon.cc/forgot">
+  <meta name="theme-color" content="#08090c">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=2">
+  <link rel="stylesheet" href="/assets/auth.css?v=2">
+  <script src="/assets/tilt.js?v=2" defer></script>
+  <script type="module" src="/assets/auth/forgot.js?v=2"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+      <a class="btn btn--quiet btn--sm" href="/login">Sign in</a>
+    </div>
+  </header>
+
+  <main id="main" class="auth-main">
+    <div class="wrap auth-shell">
+      <div class="auth-card">
+        <section aria-labelledby="forgot-title">
+          <h1 id="forgot-title" tabindex="-1">Forgot your password?</h1>
+          <p class="sub">Enter your account email. If it matches an account, we’ll send a code to reset your password.</p>
+          <form class="stack" data-form="forgot" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="f-email">Email</label>
+              <input class="input" id="f-email" name="email" type="email" autocomplete="email" maxlength="254" required data-field="email" aria-describedby="f-email-err" aria-errormessage="f-email-err">
+              <p class="field__error" id="f-email-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Send reset code</span></button>
+          </form>
+          <p class="alt">Already have a code? <a class="link" href="/reset">Enter it</a></p>
+          <p class="alt">Remembered it? <a class="link" href="/login">Sign in</a></p>
+        </section>
+      </div>
+
+      <aside class="auth-art" data-tilt="4" aria-hidden="true">
+        <img src="/assets/carbon-mark.svg" width="300" height="300" alt="">
+        <p>Resetting your password signs out every session and app.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="auth-foot">
+    <div class="wrap">
+      <p>© 2026 Carbon. Not affiliated with Spotify.</p>
+      <p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a></p>
+    </div>
+  </footer>
+</body>
+</html>

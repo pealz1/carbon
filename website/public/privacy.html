@@ -3,107 +3,313 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Privacy policy · Carbon</title>
-  <meta name="description" content="Carbon has no servers and collects no analytics. Here is exactly what the app sends, to whom, and why.">
+  <title>Privacy Policy · Carbon</title>
+  <meta name="description" content="What Carbon collects for accounts, what stays on your PC, which services receive what, and your rights. No ads, no analytics, no tracking cookies.">
   <link rel="canonical" href="https://getcarbon.cc/privacy">
-  <meta name="theme-color" content="#0b0c0f">
+  <meta name="theme-color" content="#08090c">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&amp;family=Instrument+Sans:wght@400..600&amp;display=swap">
-  <link rel="stylesheet" href="/assets/site.css?v=1">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=2">
+  <link rel="stylesheet" href="/assets/doc.css?v=2">
+  <script src="/assets/nav-auth.js?v=2" defer></script>
+  <script src="/assets/toc.js?v=2" defer></script>
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Carbon">
-  <meta property="og:title" content="Carbon privacy policy">
-  <meta property="og:description" content="No servers, no analytics. What Carbon sends, to whom, and why.">
+  <meta property="og:title" content="Carbon Privacy Policy">
+  <meta property="og:description" content="What Carbon collects, what stays on your PC, and your rights. No ads, no analytics, no tracking cookies.">
   <meta property="og:url" content="https://getcarbon.cc/privacy">
-  <meta property="og:image" content="https://getcarbon.cc/assets/og.png">
+  <meta property="og:image" content="https://getcarbon.cc/assets/og.png?v=2">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="The Carbon logo and app window on a dark graphite background.">
+  <meta property="og:image:alt" content="The Carbon logo beside the Carbon app window on a laptop screen.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Carbon privacy policy">
-  <meta name="twitter:description" content="No servers, no analytics. What Carbon sends, to whom, and why.">
-  <meta name="twitter:image" content="https://getcarbon.cc/assets/og.png">
-  <meta name="twitter:image:alt" content="The Carbon logo and app window on a dark graphite background.">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
 
   <header class="site-header">
-    <nav class="wrap nav" aria-label="Primary">
-      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="34" height="34" alt="">carbon</a>
-      <ul class="nav__links">
-        <li class="hide-sm"><a href="/#features">Features</a></li>
-        <li><a href="/setup">Setup</a></li>
-        <li class="hide-sm"><a href="/#faq">FAQ</a></li>
-      </ul>
-      <a class="btn btn--primary btn--sm" href="https://github.com/pealz1/carbon/releases/latest">Download</a>
-    </nav>
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+      <nav class="nav" aria-label="Primary">
+        <a class="nav__link" href="/#features"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg><span class="nav__label">Features</span></a>
+        <a class="nav__link" href="/#download"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg><span class="nav__label">Download</span></a>
+        <a class="nav__link" href="/#faq"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/></svg><span class="nav__label">FAQ</span></a>
+        <a class="nav__link" href="https://github.com/pealz1/carbon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg><span class="nav__label">GitHub</span></a>
+      </nav>
+      <div class="auth">
+        <a class="btn btn--quiet btn--sm" href="/login" data-auth-out>Sign in</a>
+        <a class="btn btn--primary btn--sm auth__create" href="/signup" data-auth-out>Create account</a>
+        <a class="avatar" href="/account" data-auth-in hidden><span data-avatar-initial aria-hidden="true">C</span><span class="sr-only">Your account</span></a>
+      </div>
+    </div>
   </header>
 
   <main id="main" class="wrap">
-    <section class="page-hero" aria-labelledby="page-title">
-      <h1 class="page-title" id="page-title">Privacy, in<br>plain words.</h1>
-      <p class="updated">Last updated 8 November 2026</p>
-      <p class="short glass">Carbon has no servers and collects no analytics. It talks directly from your PC to the services below, and only for the reasons given.</p>
-    </section>
+    <header class="doc-hero">
+      <h1>Privacy Policy</h1>
+      <p class="doc-meta">Last updated: November 9, 2026</p>
+      <p class="doc-note">This policy is written in plain language. <strong>The short version:</strong> Carbon has no ads, no analytics and no tracking cookies. Your Spotify sign-in, settings and listening stay on your PC. For a Carbon account we keep your email, a hashed password and the security records needed to protect it, and we never sell your information.</p>
+    </header>
 
-    <div class="policy prose">
-      <section aria-labelledby="p-spotify">
-        <h2 id="p-spotify">Spotify sign-in</h2>
-        <div>
-          <p>You sign in with Spotify, on Spotify’s own page. Carbon never sees your password. The sign-in tokens Carbon receives are stored locally on your PC in Windows Credential Manager.</p>
-          <p>Your music, library and playback come from Spotify and are covered by <a href="https://www.spotify.com/legal/privacy-policy/">Spotify’s privacy policy</a>.</p>
-        </div>
-      </section>
-      <section aria-labelledby="p-lyrics">
-        <h2 id="p-lyrics">Lyrics (LRCLIB)</h2>
-        <p>To find synced lyrics, Carbon sends the current track’s title, artist, album and duration to <a href="https://lrclib.net">LRCLIB</a>.</p>
-      </section>
-      <section aria-labelledby="p-discord">
-        <h2 id="p-discord">Discord</h2>
-        <p>If the Discord desktop app is running, Carbon passes what’s playing to it on your PC so your profile can show “Listening to…”. Discord then shares that status the way it normally does.</p>
-      </section>
-      <section aria-labelledby="p-lastfm">
-        <h2 id="p-lastfm">Last.fm</h2>
-        <p>Last.fm receives scrobbles (the tracks you play) only if you connect your Last.fm account in Carbon’s Settings.</p>
-      </section>
-      <section aria-labelledby="p-updates">
-        <h2 id="p-updates">Updates (GitHub)</h2>
-        <p>To check for new versions, Carbon contacts GitHub, where Carbon’s releases are published.</p>
-      </section>
-      <section aria-labelledby="p-site">
-        <h2 id="p-site">This website</h2>
-        <p>getcarbon.cc uses no analytics and sets no cookies of its own. It is hosted on Cloudflare and loads its fonts from Google Fonts, so those services receive standard request information such as your IP address.</p>
-      </section>
-      <section aria-labelledby="p-contact">
-        <h2 id="p-contact">Questions</h2>
-        <p>Open an issue on <a href="https://github.com/pealz1/carbon/issues">GitHub</a>.</p>
-      </section>
+    <div class="doc">
+      <details class="toc" data-toc open>
+        <summary>On this page</summary>
+        <nav aria-label="Privacy sections">
+          <ol>
+            <li><a href="#scope">Who we are</a></li>
+            <li><a href="#collect">What we collect</a></li>
+            <li><a href="#device">What stays on your PC</a></li>
+            <li><a href="#services">Services Carbon talks to</a></li>
+            <li><a href="#use">How we use information</a></li>
+            <li><a href="#share">Who we share it with</a></li>
+            <li><a href="#cookies">Cookies and browser storage</a></li>
+            <li><a href="#retention">How long we keep it</a></li>
+            <li><a href="#security">How we protect it</a></li>
+            <li><a href="#rights">Your rights and choices</a></li>
+            <li><a href="#california">California residents</a></li>
+            <li><a href="#gdpr">EEA, UK and Swiss residents</a></li>
+            <li><a href="#children">Children</a></li>
+            <li><a href="#transfers">International transfers</a></li>
+            <li><a href="#changes">Changes to this policy</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ol>
+        </nav>
+      </details>
+
+      <article class="prose">
+        <section id="scope" aria-labelledby="scope-h">
+          <h2 id="scope-h">Who we are</h2>
+          <p>Carbon is an independent project by pealz, and is responsible for the information described here (the “controller”, in GDPR terms). This policy covers the Carbon desktop app, Carbon accounts and the account service at api.getcarbon.cc, Carbon+, and the website at getcarbon.cc. Contact us at <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</p>
+          <p>Carbon is not affiliated with Spotify. What Spotify collects when you use its service is covered by <a href="https://www.spotify.com/legal/privacy-policy/">Spotify’s privacy policy</a>.</p>
+        </section>
+
+        <section id="collect" aria-labelledby="collect-h">
+          <h2 id="collect-h">What we collect</h2>
+          <h3>Account information</h3>
+          <ul>
+            <li>Your email address, whether you have verified it, and when you created your account.</li>
+            <li>Your password, stored only as a salted hash. We never store or see your password in readable form.</li>
+            <li>Your plan (Free or Carbon+).</li>
+          </ul>
+          <h3>Security records</h3>
+          <ul>
+            <li>Short-lived request counters keyed to your IP address or email, used to rate-limit requests.</li>
+            <li>A security log of account events, such as sign-ups, sign-ins, failed sign-ins, lockouts, password changes and app authorizations, each with the time and the IP address it came from. We use it to lock accounts after repeated failed sign-ins and to detect fraud and abuse.</li>
+            <li>One-time codes and backup codes, stored only as hashes, along with how many attempts have been made.</li>
+          </ul>
+          <h3>Sessions and devices</h3>
+          <p>For each browser or Carbon app signed in to your account, we keep a session record: whether it is a web or app session, when it was created and last used, and the IP address and browser or app identifier (user agent) it signed in from. You can see and end these sessions on your <a href="/account">account page</a>.</p>
+          <h3>Purchases</h3>
+          <p>When Carbon+ launches, we will keep a record of your purchase (what you bought, when and the amount) and any refund. The payment provider processes your payment details; we do not receive your full card number.</p>
+          <h3>Messages you send us</h3>
+          <p>If you email us, we keep your message and our reply so we can help you.</p>
+          <h3>What we do not collect</h3>
+          <p>We do not collect your Spotify password, your listening history, your library or playlists, your Last.fm or Discord credentials, analytics, telemetry or advertising identifiers.</p>
+        </section>
+
+        <section id="device" aria-labelledby="device-h">
+          <h2 id="device-h">What stays on your PC</h2>
+          <p>The Carbon app keeps the following on your computer and does not send it to us:</p>
+          <ul>
+            <li>your Spotify sign-in tokens and your Carbon app sign-in token, stored in Windows Credential Manager;</li>
+            <li>your Spotify Client ID and app settings;</li>
+            <li>your Last.fm connection, if you set one up.</li>
+          </ul>
+          <p>You sign in to Spotify on Spotify’s own page, so Carbon never sees your Spotify password.</p>
+        </section>
+
+        <section id="services" aria-labelledby="services-h">
+          <h2 id="services-h">Services Carbon talks to</h2>
+          <p>The app connects directly from your PC to these services, only for the reasons given:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Service</th><th scope="col">What it receives</th><th scope="col">When</th></tr></thead>
+              <tbody>
+                <tr><td>Spotify</td><td>Your sign-in and playback requests</td><td>Whenever you use the app</td></tr>
+                <tr><td>LRCLIB</td><td>The current track’s title, artist, album and duration</td><td>When Carbon looks up lyrics</td></tr>
+                <tr><td>Discord</td><td>What you are playing, passed to the Discord app on your PC, which shares it as your status</td><td>Only while the Discord desktop app is running</td></tr>
+                <tr><td>Last.fm</td><td>The tracks you play (scrobbles)</td><td>Only after you connect Last.fm in Settings</td></tr>
+                <tr><td>GitHub</td><td>A standard request for update information</td><td>When Carbon checks for and downloads updates</td></tr>
+                <tr><td>Carbon accounts</td><td>Your account requests, as described above</td><td>When you sign in or manage your account</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Each of these services handles the information it receives under its own privacy policy. Like any internet request, each one also sees your IP address.</p>
+        </section>
+
+        <section id="use" aria-labelledby="use-h">
+          <h2 id="use-h">How we use information</h2>
+          <ul>
+            <li><strong>To run your account:</strong> creating it, verifying your email, signing you in with two-step codes, keeping you signed in, and showing your sessions.</li>
+            <li><strong>To keep accounts secure:</strong> rate limiting, lockouts, detecting suspicious sign-ins and preventing abuse.</li>
+            <li><strong>To send account email:</strong> verification and sign-in codes, password reset codes, and important notices about your account or these policies. We do not send marketing email without your consent.</li>
+            <li><strong>To provide Carbon+:</strong> recording purchases, unlocking features and handling refunds.</li>
+            <li><strong>To help you:</strong> answering support requests.</li>
+            <li><strong>To meet legal obligations:</strong> such as tax records for purchases, or responding to valid legal requests.</li>
+          </ul>
+          <p>We do not use your information for advertising, and we do not build profiles of your listening.</p>
+        </section>
+
+        <section id="share" aria-labelledby="share-h">
+          <h2 id="share-h">Who we share it with</h2>
+          <p>We do not sell your personal information or share it for cross-context behavioral advertising. We share it only with:</p>
+          <ul>
+            <li><strong>Cloudflare</strong>, which hosts the website, the account service and its database, and protects them from attacks.</li>
+            <li><strong>Resend</strong>, which delivers our account emails and so receives your email address and the content of those emails.</li>
+            <li><strong>A payment provider</strong>, when Carbon+ launches, to process purchases and refunds.</li>
+            <li><strong>Authorities</strong>, when the law requires it, or when needed to protect the safety, rights or property of our users, the public or Carbon.</li>
+            <li><strong>A successor</strong>, if the project is transferred, in which case this policy continues to apply to your information unless you agree otherwise.</li>
+          </ul>
+          <p>Our providers may use your information only to provide their services to us.</p>
+        </section>
+
+        <section id="cookies" aria-labelledby="cookies-h">
+          <h2 id="cookies-h">Cookies and browser storage</h2>
+          <p>We use one cookie, and it is essential: <code>__Host-carbon_session</code>, set by api.getcarbon.cc when you sign in on the website. It keeps you signed in for up to 30 days after your last visit. It is HttpOnly and Secure, so page scripts cannot read it and it is only sent over HTTPS. There are no analytics, advertising or tracking cookies, so there is no cookie banner.</p>
+          <p>The website also keeps two small items in your browser:</p>
+          <ul>
+            <li>a flag in local storage noting that you have signed in before, so the site knows to check whether you are still signed in;</li>
+            <li>your email address and an in-progress sign-in step in session storage while you move between sign-up or sign-in pages, which your browser deletes when you close the tab.</li>
+          </ul>
+          <p>The website is served by Cloudflare and loads its fonts from Google Fonts, so both receive standard request information such as your IP address and browser type.</p>
+        </section>
+
+        <section id="retention" aria-labelledby="retention-h">
+          <h2 id="retention-h">How long we keep it</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Information</th><th scope="col">Kept for</th></tr></thead>
+              <tbody>
+                <tr><td>Account information</td><td>As long as your account exists. Deleting your account removes it, with your sessions, codes and security log, straight away. Our hosting provider’s database recovery history may hold a copy for up to 30 days.</td></tr>
+                <tr><td>One-time codes</td><td>Until used or expired after 10 minutes, then purged daily.</td></tr>
+                <tr><td>Backup codes</td><td>Until used, replaced or your account is deleted.</td></tr>
+                <tr><td>Sessions, with their IP address and user agent</td><td>Until you sign out, end the session or reset your password, or after 30 days without use; then purged daily.</td></tr>
+                <tr><td>Rate-limit counters</td><td>About an hour.</td></tr>
+                <tr><td>Security log</td><td>As long as your account exists.</td></tr>
+                <tr><td>Purchase records</td><td>As long as tax and accounting law requires, typically up to 7 years.</td></tr>
+                <tr><td>Support emails</td><td>Up to 2 years after the conversation ends.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Email delivery logs held by Resend are kept for a limited period under Resend’s own policies.</p>
+        </section>
+
+        <section id="security" aria-labelledby="security-h">
+          <h2 id="security-h">How we protect it</h2>
+          <ul>
+            <li>Passwords are hashed with PBKDF2-HMAC-SHA256 using 600,000 iterations, a unique random salt and a separate server secret.</li>
+            <li>Every sign-in requires a one-time code sent to your email. Codes expire after 10 minutes, allow 5 attempts and are stored hashed.</li>
+            <li>Repeated failed sign-ins lock the account for 30 minutes, and every endpoint is rate limited.</li>
+            <li>All traffic uses HTTPS with HSTS. Session cookies are HttpOnly, Secure and scoped to the account service, and state-changing requests are protected against cross-site request forgery.</li>
+            <li>Resetting or changing your password signs out your other sessions and app tokens.</li>
+          </ul>
+          <p>No system is perfectly secure. If we learn of a breach that affects your information, we will notify you and any authority as the law requires.</p>
+        </section>
+
+        <section id="rights" aria-labelledby="rights-h">
+          <h2 id="rights-h">Your rights and choices</h2>
+          <p>Wherever you live, you can:</p>
+          <ul>
+            <li><strong>Access</strong> your information: your account page shows your email, plan and sessions. Email us for a full copy.</li>
+            <li><strong>Correct</strong> it: email us to change your email address.</li>
+            <li><strong>Delete</strong> it: delete your account from your <a href="/account">account page</a>, or email us.</li>
+            <li><strong>Export</strong> it: email us and we will send your account data in a machine-readable format.</li>
+            <li><strong>Object or restrict</strong> certain uses, where the law gives you that right.</li>
+          </ul>
+          <p>Send requests to <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> from your account’s email address. We may need to confirm it is you before acting, and we will respond within 30 days, or sooner if the law requires. We will never treat you differently for exercising these rights.</p>
+        </section>
+
+        <section id="california" aria-labelledby="california-h">
+          <h2 id="california-h">California residents</h2>
+          <p>Under the California Consumer Privacy Act, as amended by the CPRA, here is how this policy maps to California’s categories over the past 12 months:</p>
+          <ul>
+            <li><strong>Identifiers:</strong> email address, IP address, user agent, account and session identifiers.</li>
+            <li><strong>Commercial information:</strong> Carbon+ purchase records, once available.</li>
+            <li><strong>Internet activity:</strong> security records of account requests.</li>
+            <li><strong>Sensitive personal information:</strong> account login credentials (email and password), used only to sign you in and protect your account.</li>
+          </ul>
+          <p>We collect these from you and your devices, use them for the purposes in <a href="#use">How we use information</a>, and disclose them only to the service providers in <a href="#share">Who we share it with</a>. We do not sell or share personal information, and we do not use sensitive personal information to infer characteristics about you.</p>
+          <p>You have the right to know, access, correct and delete your personal information, and not to be discriminated against for using these rights. You may use an authorized agent; we may ask the agent for proof of authorization and ask you to confirm your identity. We respond to verified requests within 45 days.</p>
+        </section>
+
+        <section id="gdpr" aria-labelledby="gdpr-h">
+          <h2 id="gdpr-h">EEA, UK and Swiss residents</h2>
+          <p>We rely on these legal bases:</p>
+          <ul>
+            <li><strong>Contract:</strong> to provide your account and Carbon+.</li>
+            <li><strong>Legitimate interests:</strong> to keep accounts and the Services secure and prevent abuse, balanced against your rights.</li>
+            <li><strong>Legal obligation:</strong> to keep purchase records and respond to lawful requests.</li>
+            <li><strong>Consent:</strong> where we ask for it, which you can withdraw at any time.</li>
+          </ul>
+          <p>You have the right to access, rectify, erase, restrict and port your data, to object to processing based on legitimate interests, and to withdraw consent. You may also complain to your local data protection authority.</p>
+        </section>
+
+        <section id="children" aria-labelledby="children-h">
+          <h2 id="children-h">Children</h2>
+          <p>Carbon is not intended for children under 13, and we do not knowingly collect personal information from them. Users under 18 need a parent or guardian’s consent. If you believe a child under 13 has created an account, contact us and we will delete it.</p>
+        </section>
+
+        <section id="transfers" aria-labelledby="transfers-h">
+          <h2 id="transfers-h">International transfers</h2>
+          <p>Carbon is run from the United States, and our providers operate globally. Your information may be processed in the United States and other countries whose data protection laws differ from yours. Where required, we rely on safeguards such as the European Commission’s Standard Contractual Clauses offered by our providers.</p>
+        </section>
+
+        <section id="changes" aria-labelledby="changes-h">
+          <h2 id="changes-h">Changes to this policy</h2>
+          <p>We will post any update here and change the date at the top. If a change materially affects how we handle your information, we will tell you by email or in the app before it takes effect.</p>
+        </section>
+
+        <section id="contact" aria-labelledby="contact-h">
+          <h2 id="contact-h">Contact</h2>
+          <p>Questions or requests about your privacy: <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</p>
+        </section>
+      </article>
     </div>
   </main>
 
   <footer class="site-footer">
-    <div class="wrap footer__grid">
-      <div class="footer__brand">
-        <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="34" height="34" alt="" loading="lazy">carbon</a>
-        <p>A free, open-source Spotify client for Windows.</p>
+    <div class="wrap">
+      <div class="foot">
+        <div class="foot__brand">
+          <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt="" loading="lazy"><span class="brand__word">carbon</span></a>
+          <p>A free, open-source Spotify client for Windows.</p>
+        </div>
+        <nav aria-labelledby="f-product">
+          <h2 id="f-product">Product</h2>
+          <ul>
+            <li><a href="https://github.com/pealz1/carbon/releases/latest">Download</a></li>
+            <li><a href="/setup">Setup guide</a></li>
+            <li><a href="/#plus">Carbon+</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-account">
+          <h2 id="f-account">Account</h2>
+          <ul>
+            <li><a href="/login">Sign in</a></li>
+            <li><a href="/signup">Create account</a></li>
+            <li><a href="/account">Your account</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-project">
+          <h2 id="f-project">Project</h2>
+          <ul>
+            <li><a href="https://github.com/pealz1/carbon">Source code</a></li>
+            <li><a href="https://github.com/pealz1/carbon/issues">Report an issue</a></li>
+            <li><a href="/terms">Terms of use</a></li>
+            <li><a href="/privacy" aria-current="page">Privacy policy</a></li>
+          </ul>
+        </nav>
       </div>
-      <nav aria-label="Footer">
-        <ul class="footer__links">
-          <li><a href="https://github.com/pealz1/carbon/releases/latest">Download</a></li>
-          <li><a href="/setup">Setup guide</a></li>
-          <li><a href="/privacy" aria-current="page">Privacy</a></li>
-          <li><a href="https://github.com/pealz1/carbon">Source code</a></li>
-          <li><a href="https://github.com/pealz1/carbon/issues">Report an issue</a></li>
-        </ul>
-      </nav>
-      <p class="disclaimer">Carbon is an independent project. It is not affiliated with, endorsed by, or sponsored by Spotify. Spotify is a trademark of Spotify AB.</p>
+      <div class="foot__legal">
+        <p>Carbon is an independent project by pealz. It isn’t affiliated with, endorsed by or sponsored by Spotify. Spotify is a trademark of Spotify AB.</p>
+        <p>© 2026 Carbon</p>
+      </div>
     </div>
-    <p class="footer__mega" aria-hidden="true">carbon</p>
   </footer>
 </body>
 </html>

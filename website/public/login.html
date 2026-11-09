@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Carbon</title>
+  <meta name="description" content="Sign in to your Carbon account.">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://getcarbon.cc/login">
+  <meta name="theme-color" content="#08090c">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=2">
+  <link rel="stylesheet" href="/assets/auth.css?v=2">
+  <script src="/assets/tilt.js?v=2" defer></script>
+  <script type="module" src="/assets/auth/login.js?v=2"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+      <a class="btn btn--quiet btn--sm" href="/signup">Create account</a>
+    </div>
+  </header>
+
+  <main id="main" class="auth-main">
+    <div class="wrap auth-shell">
+      <div class="auth-card" data-auth>
+        <section data-step="login" aria-labelledby="login-title">
+          <h1 id="login-title" tabindex="-1">Sign in</h1>
+          <p class="sub">Welcome back. We’ll email you a code to finish signing in.</p>
+          <form class="stack" data-form="login" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="login-email">Email</label>
+              <input class="input" id="login-email" name="email" type="email" autocomplete="username" maxlength="254" required data-field="email" aria-describedby="login-email-err" aria-errormessage="login-email-err">
+              <p class="field__error" id="login-email-err"></p>
+            </div>
+            <div class="field">
+              <div class="field__row">
+                <label class="field__label" for="login-pw">Password</label>
+                <a class="link" href="/forgot">Forgot password?</a>
+              </div>
+              <div class="input-wrap">
+                <input class="input" id="login-pw" name="password" type="password" autocomplete="current-password" maxlength="128" required data-field="password" aria-describedby="login-pw-err" aria-errormessage="login-pw-err">
+                <button class="reveal" type="button" data-reveal aria-controls="login-pw" aria-pressed="false" aria-label="Show password">
+                  <svg class="ico ico--show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="ico ico--hide" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1Q11.3 5 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                </button>
+              </div>
+              <p class="field__error" id="login-pw-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Continue</span></button>
+          </form>
+          <p class="alt" data-unverified hidden>Didn’t verify your email? <button class="text-btn" type="button" data-resend-verify><span data-label>Resend the code</span></button></p>
+          <p class="alt">New to Carbon? <a class="link" href="/signup">Create an account</a></p>
+        </section>
+
+        <section data-step="2fa" aria-labelledby="tfa-title" hidden>
+          <h1 id="tfa-title" tabindex="-1">Check your email</h1>
+          <p class="sub">Enter the 6-digit code we sent to <b data-2fa-email></b>. It expires in 10 minutes.</p>
+          <form class="stack" data-form="2fa" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field" data-code-mode>
+              <label class="field__label" for="tfa-code">Sign-in code</label>
+              <div class="code">
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <input class="code__input" id="tfa-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required data-field="code" aria-describedby="tfa-code-err" aria-errormessage="tfa-code-err">
+              </div>
+              <p class="field__error" id="tfa-code-err"></p>
+            </div>
+            <div class="field" data-backup-mode hidden>
+              <label class="field__label" for="tfa-backup">Backup code</label>
+              <input class="input mono" id="tfa-backup" name="backupCode" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="11" placeholder="abcde-12345" data-field="backupCode" aria-describedby="tfa-backup-hint tfa-backup-err" aria-errormessage="tfa-backup-err">
+              <p class="field__hint" id="tfa-backup-hint">Each backup code works once.</p>
+              <p class="field__error" id="tfa-backup-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Sign in</span></button>
+          </form>
+          <p class="alt">Didn’t get it? <button class="text-btn" type="button" data-resend><span data-label>Resend code</span></button></p>
+          <p class="alt"><button class="text-btn" type="button" data-toggle-backup>Use a backup code</button> · <button class="text-btn" type="button" data-restart>Start over</button></p>
+        </section>
+      </div>
+
+      <aside class="auth-art" data-tilt="4" aria-hidden="true">
+        <img src="/assets/carbon-mark.svg" width="300" height="300" alt="">
+        <p>Email, password and a fresh code at every sign-in.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="auth-foot">
+    <div class="wrap">
+      <p>© 2026 Carbon. Not affiliated with Spotify.</p>
+      <p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -4,8 +4,8 @@
   "description": "A free, open-source Spotify client for Windows.",
   "start_url": "/",
   "display": "browser",
-  "background_color": "#0b0c0f",
-  "theme_color": "#0b0c0f",
+  "background_color": "#08090c",
+  "theme_color": "#08090c",
   "icons": [
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },

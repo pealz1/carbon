@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in to the Carbon app · Carbon</title>
+  <meta name="description" content="Sign in to Carbon for Windows.">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#08090c">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=2">
+  <link rel="stylesheet" href="/assets/auth.css?v=2">
+  <script src="/assets/tilt.js?v=2" defer></script>
+  <script type="module" src="/assets/auth/app-login.js?v=2"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+    </div>
+  </header>
+
+  <main id="main" class="auth-main">
+    <div class="wrap auth-shell">
+      <div class="auth-card" data-auth>
+        <section data-step="checking" aria-labelledby="chk-title">
+          <h1 id="chk-title" tabindex="-1">Sign in to Carbon</h1>
+          <p class="sub" role="status">Checking your account…</p>
+        </section>
+
+        <section data-step="invalid" aria-labelledby="inv-title" hidden>
+          <h1 id="inv-title" tabindex="-1">This sign-in link isn’t valid</h1>
+          <p class="sub">It may be incomplete or out of date. Open Carbon on your PC and choose <b>Sign in</b> again.</p>
+        </section>
+
+        <section data-step="continue" aria-labelledby="cont-title" hidden>
+          <h1 id="cont-title" tabindex="-1">Sign in to Carbon for Windows</h1>
+          <p class="sub">The Carbon app on this PC asked to sign in. Only continue if you just chose <b>Sign in</b> in Carbon.</p>
+          <div class="who">
+            <span class="avatar" aria-hidden="true" data-who-initial>C</span>
+            <span><b data-who-email></b><small>Signed in on this browser</small></span>
+          </div>
+          <form class="stack stack--tight" data-form="continue" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Continue to Carbon</span></button>
+          </form>
+          <p class="alt">Not you? <button class="text-btn" type="button" data-switch-account><span data-label>Use a different account</span></button></p>
+        </section>
+
+        <section data-step="login" aria-labelledby="al-title" hidden>
+          <h1 id="al-title" tabindex="-1">Sign in to the Carbon app</h1>
+          <p class="sub">Use your Carbon account. We’ll email you a code to finish.</p>
+          <form class="stack" data-form="login" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="al-email">Email</label>
+              <input class="input" id="al-email" name="email" type="email" autocomplete="username" maxlength="254" required data-field="email" aria-describedby="al-email-err" aria-errormessage="al-email-err">
+              <p class="field__error" id="al-email-err"></p>
+            </div>
+            <div class="field">
+              <div class="field__row">
+                <label class="field__label" for="al-pw">Password</label>
+                <a class="link" href="/forgot" target="_blank" rel="noopener">Forgot password?</a>
+              </div>
+              <div class="input-wrap">
+                <input class="input" id="al-pw" name="password" type="password" autocomplete="current-password" maxlength="128" required data-field="password" aria-describedby="al-pw-err" aria-errormessage="al-pw-err">
+                <button class="reveal" type="button" data-reveal aria-controls="al-pw" aria-pressed="false" aria-label="Show password">
+                  <svg class="ico ico--show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="ico ico--hide" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1Q11.3 5 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                </button>
+              </div>
+              <p class="field__error" id="al-pw-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Continue</span></button>
+          </form>
+          <p class="alt" data-unverified hidden>Didn’t verify your email? <button class="text-btn" type="button" data-resend-verify><span data-label>Resend the code</span></button></p>
+          <p class="alt">New to Carbon? <button class="text-btn" type="button" data-go="signup">Create an account</button></p>
+        </section>
+
+        <section data-step="2fa" aria-labelledby="atfa-title" hidden>
+          <h1 id="atfa-title" tabindex="-1">Check your email</h1>
+          <p class="sub">Enter the 6-digit code we sent to <b data-2fa-email></b>. It expires in 10 minutes.</p>
+          <form class="stack" data-form="2fa" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field" data-code-mode>
+              <label class="field__label" for="atfa-code">Sign-in code</label>
+              <div class="code">
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <input class="code__input" id="atfa-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required data-field="code" aria-describedby="atfa-code-err" aria-errormessage="atfa-code-err">
+              </div>
+              <p class="field__error" id="atfa-code-err"></p>
+            </div>
+            <div class="field" data-backup-mode hidden>
+              <label class="field__label" for="atfa-backup">Backup code</label>
+              <input class="input mono" id="atfa-backup" name="backupCode" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="11" placeholder="abcde-12345" data-field="backupCode" aria-describedby="atfa-backup-hint atfa-backup-err" aria-errormessage="atfa-backup-err">
+              <p class="field__hint" id="atfa-backup-hint">Each backup code works once.</p>
+              <p class="field__error" id="atfa-backup-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Sign in</span></button>
+          </form>
+          <p class="alt">Didn’t get it? <button class="text-btn" type="button" data-resend><span data-label>Resend code</span></button></p>
+          <p class="alt"><button class="text-btn" type="button" data-toggle-backup>Use a backup code</button> · <button class="text-btn" type="button" data-restart>Start over</button></p>
+        </section>
+
+        <section data-step="signup" aria-labelledby="asu-title" hidden>
+          <h1 id="asu-title" tabindex="-1">Create your account</h1>
+          <p class="sub">A free Carbon account, separate from Spotify.</p>
+          <form class="stack" data-form="signup" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="asu-email">Email</label>
+              <input class="input" id="asu-email" name="email" type="email" autocomplete="email" maxlength="254" required data-field="email" aria-describedby="asu-email-err" aria-errormessage="asu-email-err">
+              <p class="field__error" id="asu-email-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="asu-pw">Password</label>
+              <div class="input-wrap">
+                <input class="input" id="asu-pw" name="password" type="password" autocomplete="new-password" maxlength="128" required data-field="password" aria-describedby="asu-rules asu-pw-err" aria-errormessage="asu-pw-err">
+                <button class="reveal" type="button" data-reveal aria-controls="asu-pw" aria-pressed="false" aria-label="Show password">
+                  <svg class="ico ico--show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="ico ico--hide" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1Q11.3 5 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                </button>
+              </div>
+              <div class="meter" data-meter data-score="0" aria-hidden="true"><i></i><i></i><i></i><i></i><span></span></div>
+              <ul class="rules" id="asu-rules" data-rules>
+                <li data-rule="length">10 to 128 characters<span class="sr-only"> (not met)</span></li>
+                <li data-rule="letter">At least one letter<span class="sr-only"> (not met)</span></li>
+                <li data-rule="number">At least one number<span class="sr-only"> (not met)</span></li>
+                <li data-rule="email">Not your email name<span class="sr-only"> (not met)</span></li>
+              </ul>
+              <p class="field__error" id="asu-pw-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="asu-confirm">Confirm password</label>
+              <input class="input" id="asu-confirm" name="confirm" type="password" autocomplete="new-password" maxlength="128" required data-field="confirm" aria-describedby="asu-confirm-err" aria-errormessage="asu-confirm-err">
+              <p class="field__error" id="asu-confirm-err"></p>
+            </div>
+            <div class="field">
+              <label class="check" for="asu-terms">
+                <input id="asu-terms" name="terms" type="checkbox" required data-field="terms" aria-describedby="asu-terms-err" aria-errormessage="asu-terms-err">
+                <span>I agree to the <a class="link" href="/terms" target="_blank" rel="noopener">Terms of Use</a> and <a class="link" href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>, and I’m at least 13.</span>
+              </label>
+              <p class="field__error" id="asu-terms-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Create account</span></button>
+          </form>
+          <p class="alt">Already have an account? <button class="text-btn" type="button" data-go="login">Sign in</button></p>
+        </section>
+
+        <section data-step="verify" aria-labelledby="av-title" hidden>
+          <h1 id="av-title" tabindex="-1">Verify your email</h1>
+          <p class="sub">Enter the 6-digit code we sent to <b data-verify-email></b>. It expires in 10 minutes.</p>
+          <form class="stack" data-form="verify" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="av-code">Verification code</label>
+              <div class="code">
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <input class="code__input" id="av-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required data-field="code" aria-describedby="av-code-err" aria-errormessage="av-code-err">
+              </div>
+              <p class="field__error" id="av-code-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Verify and sign in</span></button>
+          </form>
+          <p class="alt">Didn’t get it? <button class="text-btn" type="button" data-resend><span data-label>Resend code</span></button></p>
+        </section>
+
+        <section data-step="authorizing" aria-labelledby="az-title" hidden>
+          <h1 id="az-title" tabindex="-1">Connecting Carbon…</h1>
+          <p class="sub" role="status">Handing your sign-in to the app on this PC.</p>
+        </section>
+
+        <section data-step="done" aria-labelledby="done-title" hidden>
+          <div class="done-head">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+            <h1 id="done-title" tabindex="-1">You’re signed in</h1>
+          </div>
+          <p class="sub" role="status">Sending you back to Carbon on this PC to finish. If nothing happens, use the button below.</p>
+          <div class="stack stack--tight">
+            <a class="btn btn--primary btn--lg btn--block" data-return href="#">Return to Carbon</a>
+          </div>
+        </section>
+
+        <section data-step="failed" aria-labelledby="fail-title" hidden>
+          <h1 id="fail-title" tabindex="-1">We couldn’t connect the app</h1>
+          <div class="alert" role="alert" data-fail-text></div>
+          <p class="alt">Open Carbon on your PC and choose <b>Sign in</b> again.</p>
+        </section>
+      </div>
+
+      <aside class="auth-art" data-tilt="4" aria-hidden="true">
+        <img src="/assets/carbon-mark.svg" width="300" height="300" alt="">
+        <p>Your password stays here. The app only receives a sign-in token it keeps in Windows Credential Manager.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="auth-foot">
+    <div class="wrap">
+      <p>© 2026 Carbon. Not affiliated with Spotify.</p>
+      <p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a></p>
+    </div>
+  </footer>
+</body>
+</html>
