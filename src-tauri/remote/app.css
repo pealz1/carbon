@@ -498,9 +498,15 @@ svg .fill {
 /* Pairing */
 .pair {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   min-height: calc(100dvh - 120px);
   padding: var(--sp-4);
+}
+
+.card,
+.card form {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .card {
@@ -526,6 +532,8 @@ svg .fill {
 }
 
 .code {
+  width: 100%;
+  min-width: 0;
   height: 64px;
   padding: 0 var(--sp-4);
   border: 1px solid var(--glass-edge);
