@@ -1,5 +1,6 @@
 mod discord;
 mod lastfm;
+mod library;
 mod media_controls;
 mod oauth;
 mod playback;
@@ -10,6 +11,7 @@ mod tray;
 
 use discord::Discord;
 use lastfm::Lastfm;
+use library::LibraryState;
 use media_controls::MediaState;
 use playback::PlaybackInfo;
 use settings::SettingsState;
@@ -45,6 +47,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(Discord::spawn(prefs.discord_presence));
     app.manage(Lastfm::spawn(prefs.lastfm_scrobbling));
     app.manage(SettingsState(Mutex::new(prefs)));
+    app.manage(LibraryState(Mutex::new(library::load(&handle))));
     app.manage(tray::build(&handle)?);
 
     let media = MediaState::default();
@@ -88,6 +91,8 @@ pub fn run() {
             token_store::token_clear,
             settings::settings_get,
             settings::settings_set,
+            library::library_get,
+            library::library_set,
             lastfm::lastfm_status,
             lastfm::lastfm_connect,
             lastfm::lastfm_disconnect,
