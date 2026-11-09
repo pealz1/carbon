@@ -1,20 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { dialogs } from "$lib/dialogs.svelte";
+  import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
 
   let { showSearch = true }: { showSearch?: boolean } = $props();
   const appWindow = getCurrentWindow();
-
-  function onKey(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-      event.preventDefault();
-      goto("/search");
-    }
-  }
 </script>
-
-<svelte:window onkeydown={onKey} />
 
 <header class="titlebar" data-tauri-drag-region>
   {#if showSearch}
@@ -30,6 +23,12 @@
   {/if}
   <div class="spacer" data-tauri-drag-region></div>
   <div class="controls">
+    {#if showSearch}
+      <button onclick={() => (dialogs.shortcuts = true)} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)"><Icon name="keyboard" size={17} /></button>
+      <button onclick={view.toggleFullscreen} aria-label={view.fullscreen ? "Leave full screen" : "Full screen"} title="Full screen (F11)">
+        <Icon name={view.fullscreen ? "collapse" : "expand"} size={15} />
+      </button>
+    {/if}
     <button onclick={() => appWindow.minimize()} aria-label="Minimize"><Icon name="minimize" size={16} /></button>
     <button onclick={() => appWindow.toggleMaximize()} aria-label="Maximize"><Icon name="maximize" size={14} /></button>
     <button class="close" onclick={() => appWindow.close()} aria-label="Close"><Icon name="close" size={16} /></button>

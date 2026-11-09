@@ -3,6 +3,7 @@
   import { DEFAULT_VOLUME } from "$lib/config";
   import { formatDuration } from "$lib/format";
   import { player } from "$lib/player.svelte";
+  import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import QueuePanel from "./QueuePanel.svelte";
@@ -18,16 +19,7 @@
     const timer = setInterval(() => (position = player.position()), TICK_MS);
     return () => clearInterval(timer);
   });
-
-  function onKey(event: KeyboardEvent) {
-    const target = event.target as HTMLElement;
-    if (event.code !== "Space" || target.closest("input, textarea, button, a, [contenteditable]")) return;
-    event.preventDefault();
-    player.togglePlay();
-  }
 </script>
-
-<svelte:window onkeydown={onKey} />
 
 <section class="dock liquid" use:specular aria-label="Now playing">
   <div class="track">
@@ -93,6 +85,9 @@
     <a class="small" class:on={onNowPlaying} href={onNowPlaying ? "/" : "/now-playing"} aria-label="Lyrics and now playing">
       <Icon name="lyrics" size={18} />
     </a>
+    <button class="small" onclick={view.enterCinema} aria-label="Cinema mode" title="Cinema mode (Ctrl+Shift+C)">
+      <Icon name="screen" size={18} />
+    </button>
     <button class="small" class:on={queueOpen} onclick={() => (queueOpen = !queueOpen)} aria-label="Queue" aria-expanded={queueOpen}>
       <Icon name="queue" size={18} />
     </button>

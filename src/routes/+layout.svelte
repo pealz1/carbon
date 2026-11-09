@@ -4,21 +4,25 @@
   import { page } from "$app/state";
   import { onMount, type Snippet } from "svelte";
   import Ambient from "$lib/components/Ambient.svelte";
+  import Cinema from "$lib/components/Cinema.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
   import LiquidFilter from "$lib/components/LiquidFilter.svelte";
   import Logo from "$lib/components/Logo.svelte";
   import NowPlayingBar from "$lib/components/NowPlayingBar.svelte";
   import PlaylistDialog from "$lib/components/PlaylistDialog.svelte";
+  import ShortcutsSheet from "$lib/components/ShortcutsSheet.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
   import SignIn from "$lib/components/SignIn.svelte";
   import TagsDialog from "$lib/components/TagsDialog.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
   import Toasts from "$lib/components/Toasts.svelte";
   import { dialogs } from "$lib/dialogs.svelte";
+  import { handleKey } from "$lib/keyboard";
   import { organizer } from "$lib/organizer.svelte";
   import { player } from "$lib/player.svelte";
   import { session } from "$lib/session.svelte";
+  import { view } from "$lib/view.svelte";
 
   let { children }: { children: Snippet } = $props();
   let main = $state<HTMLElement>();
@@ -26,6 +30,7 @@
   onMount(() => {
     void session.boot();
     void organizer.load();
+    void view.syncFullscreen();
   });
   afterNavigate(() => main?.scrollTo({ top: 0 }));
 
@@ -42,6 +47,7 @@
 </script>
 
 <svelte:head><title>Carbon</title></svelte:head>
+<svelte:window onkeydown={(e) => session.status === "signed-in" && handleKey(e)} onresize={() => view.syncFullscreen()} />
 
 <LiquidFilter />
 <Ambient image={player.track?.album?.image ?? null} intense={page.url.pathname === "/now-playing"} />
@@ -51,7 +57,7 @@
 {:else if session.status !== "signed-in"}
   <SignIn />
 {:else}
-  <div class="app">
+  <div class="app" inert={view.cinema}>
     <Sidebar />
     <TitleBar />
     <div class="stage">
@@ -77,6 +83,7 @@
       <NowPlayingBar />
     </div>
   </div>
+  {#if view.cinema}<Cinema />{/if}
   <ContextMenu />
   {#if dialogs.playlist}
     {#key dialogs.playlist}<PlaylistDialog request={dialogs.playlist} />{/key}
@@ -87,6 +94,7 @@
   {#if dialogs.tags}
     {#key dialogs.tags}<TagsDialog playlist={dialogs.tags} />{/key}
   {/if}
+  {#if dialogs.shortcuts}<ShortcutsSheet />{/if}
 {/if}
 
 <style>
