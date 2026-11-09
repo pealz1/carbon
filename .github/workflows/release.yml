@@ -28,6 +28,23 @@ jobs:
 
       - run: npm ci
 
+      # The bundler downloads these from GitHub releases without retrying, which sometimes 504s.
+      # Seed its cache with retries instead. Keep versions in sync with tauri-bundler's NSIS module.
+      - name: Pre-fetch NSIS tools
+        shell: pwsh
+        run: |
+          $tools = Join-Path $env:LOCALAPPDATA "tauri"
+          New-Item -ItemType Directory -Force $tools | Out-Null
+          $retry = @("-fsSL", "--retry", "8", "--retry-all-errors", "--retry-delay", "5")
+          curl.exe @retry -o "$env:RUNNER_TEMP\nsis.zip" https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.13/nsis-3.13.zip
+          Expand-Archive "$env:RUNNER_TEMP\nsis.zip" -DestinationPath $tools -Force
+          Rename-Item (Join-Path $tools "nsis-3.13") "NSIS"
+          $plugins = Join-Path $tools "NSIS\Plugins\x86-unicode\additional"
+          New-Item -ItemType Directory -Force $plugins | Out-Null
+          curl.exe @retry -o "$plugins\nsis_tauri_utils.dll" https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll
+          $hash = (Get-FileHash "$plugins\nsis_tauri_utils.dll" -Algorithm SHA1).Hash
+          if ($hash -ne "75197FEE3C6A814FE035788D1C34EAD39349B860") { throw "nsis_tauri_utils.dll hash mismatch: $hash" }
+
       # Integration keys are baked in at build time from repository secrets (never committed).
       - name: Write build keys
         shell: bash
