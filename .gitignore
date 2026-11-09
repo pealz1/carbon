@@ -13,3 +13,7 @@ coverage
 # Local editor and tooling state
 .impeccable
 .wrangler
+
+# Private backend (accounts, Carbon+) lives in its own private repo
+cloud/
+.claude/

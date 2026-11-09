@@ -22,7 +22,7 @@
 
 ## Why Carbon
 
-Spotify's desktop app is a few hundred megabytes of browser. Carbon is a native Rust app around a ~4 MB core that plays your music itself, looks like it belongs on a modern desktop, and stays out of your way.
+Carbon is a native Rust app that plays your music itself, looks like it belongs on a modern desktop, and stays out of your way.
 
 - **Liquid glass interface.** Frosted, refracting panels over light pulled from whatever's playing.
 - **Liquid lyrics.** Time-synced lyrics that fill word by word as they're sung. Click any line to jump there.
