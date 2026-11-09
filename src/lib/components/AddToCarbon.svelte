@@ -1,6 +1,7 @@
 <script lang="ts">
   // "Add to Carbon playlist": a small menu in the top layer (native popover), so rows that clip
   // their contents can still open it. Arrow keys move between items; Escape closes.
+  import { tick } from "svelte";
   import { carbonPlaylists } from "$lib/local/playlists.svelte";
   import type { Track } from "$lib/spotify/types";
   import Icon from "./Icon.svelte";
@@ -12,6 +13,8 @@
   let trigger = $state<HTMLButtonElement>();
   let menu = $state<HTMLElement>();
   let done = $state(false);
+  /** Long lists render one of these per row, so the menu's items only exist while it's open. */
+  let isOpen = $state(false);
 
   async function open() {
     if (!trigger || !menu) return;
@@ -19,6 +22,8 @@
     const rect = trigger.getBoundingClientRect();
     menu.style.setProperty("--right", `${Math.max(8, innerWidth - rect.right)}px`);
     menu.style.setProperty("--top", `${rect.bottom + MENU_GAP}px`);
+    isOpen = true;
+    await tick();
     menu.showPopover();
     menu.querySelector<HTMLButtonElement>("[role=menuitem]")?.focus();
   }
@@ -51,13 +56,24 @@
   {#if wide}<span>{done ? "Added" : label}</span>{/if}
 </button>
 
-<div bind:this={menu} popover="auto" class="menu" role="menu" aria-label="Carbon playlists" tabindex="-1" onkeydown={onKey}>
-  <p class="eyebrow">Add to Carbon playlist</p>
-  {#each carbonPlaylists.list as playlist (playlist.id)}
-    <button role="menuitem" onclick={() => addTo(playlist.id)}>{playlist.name}</button>
-  {/each}
-  <button role="menuitem" class="new" onclick={addToNew}><Icon name="plus" size={14} /> New playlist</button>
-  {#if carbonPlaylists.error}<p class="error" role="alert">{carbonPlaylists.error}</p>{/if}
+<div
+  bind:this={menu}
+  popover="auto"
+  class="menu"
+  role="menu"
+  aria-label="Carbon playlists"
+  tabindex="-1"
+  onkeydown={onKey}
+  ontoggle={(e) => (isOpen = (e as ToggleEvent).newState === "open")}
+>
+  {#if isOpen}
+    <p class="eyebrow">Add to Carbon playlist</p>
+    {#each carbonPlaylists.list as playlist (playlist.id)}
+      <button role="menuitem" onclick={() => addTo(playlist.id)}>{playlist.name}</button>
+    {/each}
+    <button role="menuitem" class="new" onclick={addToNew}><Icon name="plus" size={14} /> New playlist</button>
+    {#if carbonPlaylists.error}<p class="error" role="alert">{carbonPlaylists.error}</p>{/if}
+  {/if}
 </div>
 
 <style>

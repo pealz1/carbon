@@ -40,7 +40,10 @@ class Sound {
       [this.value, this.presets, this.#injected] = await Promise.all([api.get(), api.presets(), api.spotifyEqInjected()]);
       this.bypassNote = takeNote();
       this.#refreshEqStatus();
-      if (this.#injected) listenToFrame((state) => void this.#onFrame(state));
+      if (this.#injected) {
+        listenToFrame((state) => void this.#onFrame(state));
+        pushToFrame(this.value); // in case Spotify's frame said "ready" before this listener existed
+      }
       await this.#refreshCurve();
     } catch (e) {
       this.#fail(e);
