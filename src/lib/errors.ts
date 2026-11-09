@@ -7,6 +7,7 @@ export function describeError(e: unknown): string {
       case 401:
         return "Your Spotify session expired. Sign in again.";
       case 403:
+        if (/scope/i.test(e.message)) return "Carbon needs a new Spotify permission for this. Sign in again from Settings.";
         return "Spotify doesn't let apps like Carbon open this.";
       case 404:
         return "Spotify couldn't find this.";

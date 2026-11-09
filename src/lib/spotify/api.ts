@@ -30,6 +30,11 @@ export function useTokenSource(source: TokenSource | null): void {
 
 export const clearCache = (): void => cache.clear();
 
+/** Drops cached GETs whose path starts with any prefix, so views re-read after a write. */
+export function invalidate(...prefixes: string[]): void {
+  for (const key of [...cache.keys()]) if (prefixes.some((p) => key.startsWith(p))) cache.delete(key);
+}
+
 export function retryAfterMs(header: string | null, max: number = TIMING.maxRetryAfterMs): number {
   const seconds = header === null ? NaN : Number(header);
   if (!Number.isFinite(seconds) || seconds < 0) return DEFAULT_RETRY_MS;
@@ -47,18 +52,23 @@ async function errorMessage(res: Response): Promise<string> {
   }
 }
 
-async function request(method: string, path: string, body?: unknown, attempt = 0, refreshed = false): Promise<Response> {
+interface Payload {
+  body: string;
+  type: string;
+}
+
+async function request(method: string, path: string, payload?: Payload, attempt = 0, refreshed = false): Promise<Response> {
   if (!tokens) throw new ApiError(401, "Not signed in");
   const token = refreshed ? await tokens.refresh() : await tokens.get();
   const res = await fetch(path.startsWith("https://") ? path : `${SPOTIFY.apiUrl}${path}`, {
     method,
-    headers: { Authorization: `Bearer ${token}`, ...(body !== undefined && { "Content-Type": "application/json" }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: { Authorization: `Bearer ${token}`, ...(payload && { "Content-Type": payload.type }) },
+    body: payload?.body,
   });
-  if (res.status === 401 && !refreshed) return request(method, path, body, attempt, true);
+  if (res.status === 401 && !refreshed) return request(method, path, payload, attempt, true);
   if (res.status === 429 && attempt < TIMING.maxRateLimitRetries) {
     await sleep(retryAfterMs(res.headers.get("Retry-After")));
-    return request(method, path, body, attempt + 1, refreshed);
+    return request(method, path, payload, attempt + 1, refreshed);
   }
   if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
   return res;
@@ -91,6 +101,13 @@ export async function getFresh<T>(path: string): Promise<T> {
   return parse<T>(await request("GET", path));
 }
 
-export async function send<T = unknown>(method: "PUT" | "POST" | "DELETE", path: string, body?: unknown): Promise<T> {
-  return parse<T>(await request(method, path, body));
+type Method = "PUT" | "POST" | "DELETE";
+
+export async function send<T = unknown>(method: Method, path: string, body?: unknown): Promise<T> {
+  return parse<T>(await request(method, path, body === undefined ? undefined : { body: JSON.stringify(body), type: "application/json" }));
+}
+
+/** Sends a non-JSON body as-is (playlist covers are base64 JPEG text). */
+export async function sendRaw<T = unknown>(method: Method, path: string, body: string, type: string): Promise<T> {
+  return parse<T>(await request(method, path, { body, type }));
 }

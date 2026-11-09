@@ -21,6 +21,11 @@ export const SPOTIFY = {
     "user-library-modify",
     "playlist-read-private",
     "playlist-read-collaborative",
+    "playlist-modify-public",
+    "playlist-modify-private",
+    "ugc-image-upload",
+    "user-follow-read",
+    "user-follow-modify",
   ].join(" "),
 } as const;
 

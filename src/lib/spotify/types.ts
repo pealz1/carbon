@@ -45,6 +45,9 @@ export interface PlaylistSummary {
   ownerId: string;
   ownerName: string;
   trackCount: number | null;
+  /** null when Spotify doesn't say. */
+  public: boolean | null;
+  collaborative: boolean;
 }
 
 export interface Profile {
@@ -98,6 +101,8 @@ export interface RawPlaylist {
   description?: string | null;
   images?: RawImage[] | null;
   owner?: { id: string; display_name?: string | null };
+  public?: boolean | null;
+  collaborative?: boolean;
   items?: { total?: number } | null;
   tracks?: { total?: number } | null;
 }

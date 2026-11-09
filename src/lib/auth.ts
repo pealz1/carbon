@@ -10,6 +10,7 @@ interface TokenResponse {
   access_token: string;
   expires_in: number;
   refresh_token?: string;
+  scope?: string;
 }
 
 let clientId = "";
@@ -17,6 +18,7 @@ let accessToken: string | null = null;
 let expiresAt = 0;
 let refreshToken: string | null = null;
 let refreshing: Promise<string> | null = null;
+let grantedScopes: string | null = null;
 
 /** The Spotify app every token request is made for. Refresh tokens only work with their own app. */
 export function useClientId(id: string): void {
@@ -43,6 +45,7 @@ async function tokenRequest(params: Record<string, string>): Promise<TokenRespon
 async function adopt(tokens: TokenResponse): Promise<string> {
   accessToken = tokens.access_token;
   expiresAt = Date.now() + tokens.expires_in * 1000;
+  if (typeof tokens.scope === "string") grantedScopes = tokens.scope;
   // Spotify may rotate the refresh token; the old one stops working once a new one is issued.
   if (tokens.refresh_token && tokens.refresh_token !== refreshToken) {
     refreshToken = tokens.refresh_token;
@@ -57,6 +60,16 @@ async function refresh(): Promise<string> {
     .then(adopt)
     .finally(() => (refreshing = null));
   return refreshing;
+}
+
+/**
+ * Scopes Carbon asks for that the current sign-in lacks. A refresh token keeps the scopes it was
+ * first granted, so listeners who signed in before a new feature must sign in again for it.
+ */
+export function missingScopes(granted: string | null = grantedScopes, wanted: string = SPOTIFY.scopes): string[] {
+  if (granted === null) return [];
+  const have = new Set(granted.split(" "));
+  return wanted.split(" ").filter((scope) => !have.has(scope));
 }
 
 export async function getAccessToken(): Promise<string> {
@@ -113,6 +126,7 @@ export async function signIn(): Promise<void> {
 export async function signOut(): Promise<void> {
   accessToken = null;
   refreshToken = null;
+  grantedScopes = null;
   expiresAt = 0;
   useTokenSource(null);
   await invoke("token_clear");

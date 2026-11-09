@@ -10,6 +10,7 @@
   import Sidebar from "$lib/components/Sidebar.svelte";
   import SignIn from "$lib/components/SignIn.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
+  import Toasts from "$lib/components/Toasts.svelte";
   import { player } from "$lib/player.svelte";
   import { session } from "$lib/session.svelte";
 
@@ -52,8 +53,18 @@
             <button onclick={() => (session.error = null)}>Dismiss</button>
           </p>
         {/if}
+        {#if session.needsReconsent}
+          <p class="banner" role="status">
+            Playlist editing needs a few more Spotify permissions.
+            <span class="banner-actions">
+              <button onclick={() => session.reconsent()}>Sign in again</button>
+              <button onclick={() => (session.needsReconsent = false)}>Later</button>
+            </span>
+          </p>
+        {/if}
         {@render children()}
       </main>
+      <Toasts />
       <NowPlayingBar />
     </div>
   </div>
@@ -134,5 +145,10 @@
   .banner button {
     color: var(--text);
     font-weight: 600;
+  }
+
+  .banner-actions {
+    display: flex;
+    gap: var(--sp-4);
   }
 </style>

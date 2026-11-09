@@ -89,4 +89,73 @@ describe("endpoints", () => {
     );
     expect((await sp.search("q-null")).playlists).toEqual([]);
   });
+
+  it("checks library membership 40 URIs at a time", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const n = new URL(String(input)).searchParams.get("uris")!.split(",").length;
+      return new Response(JSON.stringify(Array.from({ length: n }, (_, i) => i % 2 === 0)));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const uris = Array.from({ length: 45 }, (_, i) => `spotify:track:${i}`);
+    const result = await sp.isSaved(uris);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result).toHaveLength(45);
+    expect(result.slice(0, 3)).toEqual([true, false, true]);
+  });
+
+  it("saves and removes through /me/library, then forgets cached library pages", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/me/tracks")) return new Response(JSON.stringify({ items: [], next: null, total: fetchMock.mock.calls.length }));
+      return new Response(null, { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const before = await sp.likedTracks(500);
+    await sp.save(["spotify:track:x"]);
+    await sp.unsave(["spotify:track:x"]);
+    const after = await sp.likedTracks(500);
+    expect(after.total).not.toBe(before.total);
+    const writes = fetchMock.mock.calls.filter(([, init]) => init?.method !== "GET");
+    expect(writes.map(([, init]) => init?.method)).toEqual(["PUT", "DELETE"]);
+    expect(new URL(String(writes[0][0])).searchParams.get("uris")).toBe("spotify:track:x");
+  });
+
+  it("creates, edits, covers and deletes playlists", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (init?.method === "POST" && url.pathname.endsWith("/me/playlists")) {
+        return new Response(JSON.stringify({ id: "p1", uri: "spotify:playlist:p1", name: "Road trip", owner: { id: "me" }, public: false }), { status: 201 });
+      }
+      return new Response(null, { status: 202 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const fields = { name: "Road trip", description: "", public: false, collaborative: false };
+    expect(await sp.createPlaylist(fields)).toMatchObject({ id: "p1", ownerId: "me", public: false, collaborative: false });
+    await sp.updatePlaylist("p1", { ...fields, name: "Long drive" });
+    await sp.uploadPlaylistCover("p1", "AAAA");
+    await sp.deletePlaylist("p1");
+    const calls = fetchMock.mock.calls.map(([input, init]) => [init?.method, new URL(String(input)).pathname + new URL(String(input)).search]);
+    expect(calls).toEqual([
+      ["POST", "/v1/me/playlists"],
+      ["PUT", "/v1/playlists/p1"],
+      ["PUT", "/v1/playlists/p1/images"],
+      ["DELETE", "/v1/me/library?uris=spotify%3Aplaylist%3Ap1"],
+    ]);
+    const cover = fetchMock.mock.calls[2][1]!;
+    expect(cover.body).toBe("AAAA");
+    expect((cover.headers as Record<string, string>)["Content-Type"]).toBe("image/jpeg");
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]!.body))).toMatchObject({ name: "Long drive" });
+  });
+
+  it("adds and removes playlist items 100 at a time", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => new Response(JSON.stringify({ snapshot_id: "s" }), { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const uris = Array.from({ length: 150 }, (_, i) => `spotify:track:${i}`);
+    await sp.addToPlaylist("p2", uris);
+    await sp.removeFromPlaylist("p2", ["spotify:track:1"]);
+    const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)));
+    expect(bodies[0].uris).toHaveLength(100);
+    expect(bodies[1].uris).toHaveLength(50);
+    expect(bodies[2]).toEqual({ items: [{ uri: "spotify:track:1" }] });
+  });
 });
