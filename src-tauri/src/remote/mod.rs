@@ -60,6 +60,16 @@ fn lan_ip() -> Option<IpAddr> {
     socket.local_addr().ok().map(|a| a.ip()).filter(|ip| !ip.is_unspecified())
 }
 
+/// Runs async server work to completion from sync code. A scoped thread keeps this safe even if
+/// the caller is itself on a runtime thread, where a direct block_on would panic.
+fn block_on<F: Future + Send>(future: F) -> F::Output
+where
+    F::Output: Send,
+{
+    std::thread::scope(|scope| scope.spawn(|| tauri::async_runtime::block_on(future)).join())
+        .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
+}
+
 fn qr_svg(text: &str) -> Option<String> {
     let code = QrCode::new(text.as_bytes()).ok()?;
     let image = code
@@ -89,15 +99,14 @@ impl Remote {
         self.state.send_replace(info.map(RemoteState::from));
     }
 
-    /// Starts, stops or moves the server to match settings. Runs on the main thread (sync
-    /// commands and setup), so blocking on the async runtime here is safe.
+    /// Starts, stops or moves the server to match settings.
     pub fn apply(&self, enabled: bool, port: u16) -> Result<(), String> {
         let mut slot = lock(&self.server);
         if slot.as_ref().map(|s| s.port) == enabled.then_some(port) {
             return Ok(());
         }
         if let Some(old) = slot.take() {
-            tauri::async_runtime::block_on(old.stop());
+            block_on(old.stop());
         }
         let result = if enabled { self.start(port).map(|s| *slot = Some(s)) } else { Ok(()) };
         *lock(&self.error) = result.as_ref().err().cloned();
@@ -115,7 +124,7 @@ impl Remote {
             on_change: Arc::new(move || notify(&changes)),
             app_version: self.app.package_info().version.to_string(),
         };
-        tauri::async_runtime::block_on(server::start(listener, ctx))
+        block_on(server::start(listener, ctx))
     }
 
     fn status(&self) -> RemoteStatus {
@@ -168,5 +177,10 @@ mod tests {
     fn renders_a_qr_code() {
         let svg = qr_svg("http://192.168.1.20:10767/#token=0123456789abcdef0123456789abcdef").unwrap();
         assert!(svg.starts_with("<?xml") && svg.contains("<svg"));
+    }
+
+    #[tokio::test]
+    async fn blocks_safely_even_from_a_runtime_thread() {
+        assert_eq!(block_on(async { 7 }), 7);
     }
 }

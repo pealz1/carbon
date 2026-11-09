@@ -14,6 +14,8 @@
   let status = $state<RemoteStatus | null>(null);
   let notice = $state<string | null>(null);
   let copied = $state(false);
+  // Re-renders the switch when turning it on failed, so it doesn't stay visually on.
+  let toggleKey = $state(0);
   const s = $derived(prefs.value);
   const qr = $derived(status?.qrSvg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(status.qrSvg)}` : null);
   const code = $derived(status?.code ? `${status.code.slice(0, 3)} ${status.code.slice(3)}` : "");
@@ -34,7 +36,7 @@
 
   async function apply(patch: { remoteEnabled?: boolean; remotePort?: number }) {
     notice = null;
-    await prefs.update(patch);
+    if (!(await prefs.update(patch))) toggleKey++;
     await refresh();
   }
 
@@ -80,12 +82,14 @@
 <section class="panel liquid" use:specular>
   <h2>Remote</h2>
   {#if s}
-    <Toggle
-      checked={s.remoteEnabled}
-      label="Phone remote"
-      description="Control Carbon from your phone, a stream overlay or a deck on the same Wi-Fi. The first time, Windows asks whether Carbon may use the network: allow it on private networks."
-      onchange={(on) => apply({ remoteEnabled: on })}
-    />
+    {#key toggleKey}
+      <Toggle
+        checked={s.remoteEnabled}
+        label="Phone remote"
+        description="Control Carbon from your phone, a stream overlay or a deck on the same Wi-Fi. The first time, Windows asks whether Carbon may use the network: allow it on private networks."
+        onchange={(on) => apply({ remoteEnabled: on })}
+      />
+    {/key}
     <label class="port">
       <span class="eyebrow">Port</span>
       <input type="number" inputmode="numeric" min={MIN_PORT} max={MAX_PORT} value={s.remotePort} onchange={(e) => setPort(e.currentTarget.value)} />
