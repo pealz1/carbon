@@ -91,7 +91,7 @@ There is no secondary brand colour. Status colours (success, warning, error) are
 1. Text on yellow is always Ink. Never use white or grey on yellow.
 2. Yellow is never text, an icon or a focus ring on light backgrounds. On Paper or white, use Ink.
 3. Use yellow as a fill (buttons, the mark, active states) or as text on Graphite 700 and darker.
-4. Keep yellow scarce. One yellow call to action per view. Everything else is graphite and paper.
+4. Keep yellow scarce. It marks the primary action, the active state and the mark itself. Everything else is graphite and paper.
 
 ## Clear space and minimum size
 
@@ -137,6 +137,8 @@ Below 32 px on screen, use the pixel-fitted tray files rather than scaling the m
   - The other accent presets remain the user's choice.
   - The logo stays Carbon Yellow whichever accent is picked.
   - Buttons filled with the accent always use Ink text.
+  - The phone remote follows the same tokens.
+  - The website header drops to the mark alone below 460 px wide.
 - **Spotify and YouTube marks.** When Carbon shows Spotify or YouTube content, use their marks as their own guidelines require. Never blend them into Carbon's mark.
 
 ## Do
