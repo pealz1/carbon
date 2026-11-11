@@ -64,7 +64,7 @@ One family: Segoe UI Variable (Display for headings, Text for everything else); 
 
 Only `transform`, `opacity` and `clip-path` animate (plus small colour changes on hover).
 
-- **Press**: controls scale to 0.96 (`--press`) in 90 ms and spring back; rows and cards use 0.985 (`--press-wide`).
+- **Press**: controls scale to 0.96 (`--press`) in 90 ms and spring back; wide rows use 0.985 (`--press-wide`). Cards and tiles that carry artwork answer a press with a deeper fill instead, so the art never scales.
 - **Hover**: surfaces lift by fill, never by moving or scaling artwork.
 - **Press and hold** (`src/lib/hold.ts`): holding a row, card or playlist for 450 ms opens its menu. A fill sweeps across the element as it charges, and the release's click is swallowed. The same menu is always reachable by right-click, the menu key or the "…" button.
 - **Wallpaper**: fields drift over 46 to 64 s and cross-fade over 1.4 s when the song changes. Paused music dims the wash.

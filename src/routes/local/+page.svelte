@@ -298,11 +298,16 @@
     transition:
       background var(--dur-fast),
       transform var(--dur-med) var(--ease-spring);
-    --press: var(--press-wide);
+    /* Holds still when pressed: the cover never scales. */
+    --press: 1;
   }
 
   .album:hover {
     background: var(--glass-hover);
+  }
+
+  .album:active {
+    background: var(--glass-active);
   }
 
   .album img,
@@ -357,11 +362,16 @@
     transition:
       background var(--dur-fast),
       transform var(--dur-med) var(--ease-spring);
-    --press: var(--press-wide);
+    /* Holds still when pressed: the cover never scales. */
+    --press: 1;
   }
 
   .artists button:hover {
     background: var(--glass-hover);
+  }
+
+  .artists button:active {
+    background: var(--glass-active);
   }
 
   .artists img,

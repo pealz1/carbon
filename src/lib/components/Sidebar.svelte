@@ -257,9 +257,18 @@
   .rail .search .label,
   .rail kbd,
   .rail :global(.section-head),
-  .rail :global(.name),
   .rail .gear {
     display: none;
+  }
+
+  /* Names leave the rail visually but stay as each row's accessible name. */
+  .rail :global(.name) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .rail :global(.row),

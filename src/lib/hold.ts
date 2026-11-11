@@ -11,6 +11,23 @@ export interface HoldOptions {
 
 const CANCELLERS = ["pointerup", "pointercancel", "pointerleave", "dragstart", "contextmenu"] as const;
 
+/** Adds listeners and returns one function that removes them all. */
+function listen(target: EventTarget, handlers: [string, EventListener, AddEventListenerOptions?][]): () => void {
+  for (const [type, handler, options] of handlers) target.addEventListener(type, handler, options);
+  return () => {
+    for (const [type, handler, options] of handlers) target.removeEventListener(type, handler, options);
+  };
+}
+
+function swallowNextClick(node: HTMLElement): void {
+  const swallow = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  node.addEventListener("click", swallow, { capture: true, once: true });
+  setTimeout(() => node.removeEventListener("click", swallow, { capture: true }), 0);
+}
+
 export function hold(node: HTMLElement, options: HoldOptions) {
   let current = options;
   const timer = new HoldTimer();
@@ -27,24 +44,16 @@ export function hold(node: HTMLElement, options: HoldOptions) {
     if (timer.tick(now)) {
       paint(null);
       playSound("hold");
-      current.onhold(at, node);
-      return;
+      return current.onhold(at, node);
     }
     paint(timer.progress(now));
     if (timer.holding) frame = requestAnimationFrame(loop);
   };
 
-  const swallowClick = (event: MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
   const stop = () => {
     cancelAnimationFrame(frame);
     paint(null);
-    if (!timer.end()) return;
-    node.addEventListener("click", swallowClick, { capture: true, once: true });
-    setTimeout(() => node.removeEventListener("click", swallowClick, { capture: true }), 0);
+    if (timer.end()) swallowNextClick(node);
   };
 
   const down = (event: PointerEvent) => {
@@ -54,28 +63,17 @@ export function hold(node: HTMLElement, options: HoldOptions) {
     frame = requestAnimationFrame(loop);
   };
 
-  const move = (event: PointerEvent) => {
-    if (timer.holding && !timer.move(event.clientX, event.clientY)) stop();
-  };
-
-  const scrolled = () => timer.holding && stop();
+  const move = (event: PointerEvent) => timer.holding && !timer.move(event.clientX, event.clientY) && stop();
 
   node.classList.add("holdable");
-  node.addEventListener("pointerdown", down);
-  node.addEventListener("pointermove", move, { passive: true });
-  for (const type of CANCELLERS) node.addEventListener(type, stop);
-  document.addEventListener("scroll", scrolled, { capture: true, passive: true });
+  const unlisten = [
+    listen(node, [["pointerdown", down as EventListener], ["pointermove", move as EventListener, { passive: true }], ...CANCELLERS.map((type): [string, EventListener] => [type, stop])]),
+    listen(document, [["scroll", () => timer.holding && stop(), { capture: true, passive: true }]]),
+  ];
 
-  return {
-    update(next: HoldOptions) {
-      current = next;
-    },
-    destroy() {
-      cancelAnimationFrame(frame);
-      node.removeEventListener("pointerdown", down);
-      node.removeEventListener("pointermove", move);
-      for (const type of CANCELLERS) node.removeEventListener(type, stop);
-      document.removeEventListener("scroll", scrolled, { capture: true });
-    },
+  const destroy = () => {
+    cancelAnimationFrame(frame);
+    unlisten.forEach((off) => off());
   };
+  return { update: (next: HoldOptions) => void (current = next), destroy };
 }

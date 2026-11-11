@@ -81,7 +81,6 @@
     transition:
       background var(--dur-fast),
       transform var(--dur-med) var(--ease-spring);
-    --press: var(--press-wide);
   }
 
   /* Hover lifts the tile's surface, not the artwork. */
@@ -91,9 +90,9 @@
     text-decoration: none;
   }
 
+  /* Pressing deepens the surface; the artwork itself never scales. */
   .card:active:not(:has(.act:active)) {
-    transform: scale(0.98);
-    transition-duration: var(--dur-press);
+    background: var(--glass-active);
   }
 
   .art {

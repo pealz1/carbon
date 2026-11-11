@@ -6,9 +6,9 @@
   import { player } from "$lib/player.svelte";
 </script>
 
-<div class="now">
-  {#if player.track}
-    {@const album = player.track.album}
+{#if player.track}
+  {@const album = player.track.album}
+  <div class="now">
     <section class="art-side">
       {#if player.artwork}
         <img class="cover" src={player.artwork} alt="" width="440" height="440" />
@@ -28,10 +28,10 @@
     </section>
 
     <Lyrics />
-  {:else}
-    <Status empty="Play something to see it here, with lyrics." />
-  {/if}
-</div>
+  </div>
+{:else}
+  <Status empty="Play something to see it here, with lyrics." />
+{/if}
 
 <style>
   .now {
