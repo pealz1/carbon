@@ -65,6 +65,8 @@ jobs:
             echo "CARBON_DISCORD_APP_ID=${{ secrets.CARBON_DISCORD_APP_ID }}"
             echo "CARBON_LASTFM_API_KEY=${{ secrets.CARBON_LASTFM_API_KEY }}"
             echo "CARBON_LASTFM_SECRET=${{ secrets.CARBON_LASTFM_SECRET }}"
+            # Accounts are live at api.getcarbon.cc, so release builds require a Carbon sign-in.
+            echo "VITE_REQUIRE_CARBON_ACCOUNT=true"
           } > .env.local
 
       - uses: tauri-apps/tauri-action@v0
