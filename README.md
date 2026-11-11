@@ -4,7 +4,7 @@
 
 <br>
 
-**A fast, beautiful Spotify client for Windows, built in Rust.**
+**A fast, beautiful Spotify and YouTube Music client for Windows, built in Rust.**
 
 [![Latest release](https://img.shields.io/github/v/release/pealz1/carbon?style=flat-square&color=fae91d&label=release)](https://github.com/pealz1/carbon/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/pealz1/carbon/total?style=flat-square&color=33332e)](https://github.com/pealz1/carbon/releases)
@@ -18,7 +18,7 @@
 
 ---
 
-<img src="docs/screenshots/now-playing.jpg" alt="Carbon's now playing view with word-by-word synced lyrics over a blurred album-art background" width="100%">
+<img src="docs/screenshots/now-playing.jpg" alt="Carbon playing an album, with the window tinted in the colours of its cover" width="100%">
 
 ## Why Carbon
 
@@ -26,6 +26,7 @@ Carbon is a native Rust app that plays your music itself, looks like it belongs 
 
 - **Liquid glass interface.** Frosted, refracting panels over light pulled from whatever's playing.
 - **Liquid lyrics.** Time-synced lyrics that fill word by word as they're sung. Click any line to jump there.
+- **YouTube Music too.** Browse, search and play YouTube Music in the same app, kept separate from Spotify. Use either service, or both.
 - **Plays music itself.** Spotify's official Web Playback SDK, right inside Carbon. No Spotify app needed.
 - **Feels native.** Media keys, the Windows media overlay, a tray icon with controls, launch at startup, keep playing when closed.
 - **Discord status.** Shows what you're listening to, with album art and a live progress bar.
@@ -37,7 +38,7 @@ Carbon is a native Rust app that plays your music itself, looks like it belongs 
 - **Phone remote and SDK.** Pair your phone over Wi-Fi with a QR code, or build on Carbon with [`@getcarbon/sdk`](packages/carbon-sdk).
 - **Updates itself.** Signed updates, verified before they install.
 
-<img src="docs/screenshots/home.jpg" alt="Carbon's home view: greeting, recently played albums and top tracks in a frosted glass window" width="100%">
+<img src="docs/screenshots/home.jpg" alt="Carbon's home view: greeting, recently played albums and songs on repeat" width="100%">
 
 ## Get started
 
