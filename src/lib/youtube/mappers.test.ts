@@ -105,7 +105,7 @@ describe("pages", () => {
 
   it("maps a playlist and its continuation", () => {
     const p = playlistPage(playlist, "PLUwsfagaCki8ibIU--3oKGVXqhKhl3_SW");
-    expect(p).toMatchObject({ name: "Radiohead - Greatest Hits", ownerName: "Ali Aideel Ismail", trackCount: 28, owned: false, continuation: null });
+    expect(p).toMatchObject({ name: "Radiohead - Greatest Hits", ownerName: "Playlist owner", trackCount: 28, owned: false, continuation: null });
     expect(p.tracks[0]).toMatchObject({ id: "zFYEYRcjK2g", name: "Creep", durationMs: 239_000, setVideoId: "56B44F6D10557CC6" });
     const more = playlistMore(playlistMoreRes);
     expect(more.tracks).toHaveLength(2);

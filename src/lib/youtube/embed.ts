@@ -91,7 +91,9 @@ export class YoutubeEmbed {
     return () => this.#handlers.delete(handler);
   }
 
+  /** A new home (the layout re-rendered, e.g. after a Spotify re-sign-in) means a new frame. */
   mount(host: HTMLElement): void {
+    if (this.#frame && !this.#frame.isConnected) this.#teardown();
     this.#host = host;
   }
 
@@ -144,12 +146,20 @@ export class YoutubeEmbed {
   /** The player never answered (offline, blocked): drop the frame so the next song tries afresh. */
   #giveUp(): void {
     if (this.#ready) return;
+    this.#teardown();
+    this.#emit({ error: NO_PLAYER });
+  }
+
+  #teardown(): void {
     clearInterval(this.#listening);
+    clearTimeout(this.#readyTimer);
     window.removeEventListener("message", this.#onMessage);
     this.#frame?.remove();
     this.#frame = null;
+    this.#ready = false;
     this.#queued = [];
-    this.#emit({ error: NO_PLAYER });
+    this.#state = "unstarted";
+    this.#halted?.();
   }
 
   /** The frame only talks after hearing "listening"; repeat it until it answers. */

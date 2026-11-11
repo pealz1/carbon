@@ -23,6 +23,29 @@ pub struct Playability {
     status: String,
     reason: Option<String>,
     playable_in_embed: Option<bool>,
+    /// The detail under `reason` ("…not available in your country"), when YouTube gives one.
+    #[serde(default, skip_serializing, deserialize_with = "subreason")]
+    error_screen: Option<String>,
+}
+
+impl Playability {
+    /// One reason line for the webview: the headline plus the detail.
+    fn merged(mut self) -> Self {
+        let parts: Vec<String> = [self.reason.take(), self.error_screen.take()].into_iter().flatten().filter(|s| !s.is_empty()).collect();
+        self.reason = (!parts.is_empty()).then(|| parts.join(" "));
+        self
+    }
+}
+
+fn subreason<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+    let screen = Value::deserialize(d)?;
+    let sub = screen.pointer("/playerErrorMessageRenderer/subreason");
+    let runs = sub.and_then(|s| s.get("runs")).and_then(Value::as_array);
+    let text = match runs {
+        Some(runs) => runs.iter().filter_map(|r| r.get("text").and_then(Value::as_str)).collect::<String>(),
+        None => sub.and_then(|s| s.get("simpleText")).and_then(Value::as_str).unwrap_or_default().to_string(),
+    };
+    Ok((!text.is_empty()).then_some(text))
 }
 
 #[derive(Deserialize)]
@@ -95,7 +118,7 @@ pub async fn ytm_next(yt: State<'_, Youtube>, video_id: Option<String>, playlist
 pub async fn ytm_playability(yt: State<'_, Youtube>, video_id: String) -> Result<Playability, String> {
     let bytes = yt.fetch(request::playability(&video_id)?).await?;
     let response: PlayerResponse = serde_json::from_slice(&bytes).map_err(|_| "YouTube Music sent something Carbon can't read.".to_string())?;
-    Ok(response.playability_status)
+    Ok(response.playability_status.merged())
 }
 
 #[tauri::command]
@@ -146,6 +169,20 @@ mod tests {
         assert_eq!(out, json!({ "status": "UNPLAYABLE", "reason": "Video unavailable", "playableInEmbed": false }));
         let empty: PlayerResponse = serde_json::from_value(json!({})).unwrap();
         assert_eq!(empty.playability_status, Playability::default());
+    }
+
+    #[test]
+    fn adds_the_error_screens_detail_to_the_reason() {
+        let raw = json!({ "playabilityStatus": {
+            "status": "UNPLAYABLE",
+            "reason": "Video unavailable",
+            "errorScreen": { "playerErrorMessageRenderer": { "subreason": { "runs": [{ "text": "This video is not available in your country" }] } } },
+        } });
+        let parsed: PlayerResponse = serde_json::from_value(raw).unwrap();
+        let out = serde_json::to_value(parsed.playability_status.merged()).unwrap();
+        assert_eq!(out["reason"], "Video unavailable This video is not available in your country");
+        let plain: PlayerResponse = serde_json::from_value(json!({ "playabilityStatus": { "status": "OK" } })).unwrap();
+        assert_eq!(plain.playability_status.merged().reason, None);
     }
 
     #[test]
