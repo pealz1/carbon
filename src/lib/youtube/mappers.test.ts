@@ -105,7 +105,7 @@ describe("pages", () => {
   it("maps an album with its artists filled into every track", () => {
     const a = albumPage(album, "MPREb_yXhSI4FCUo6");
     expect(a).toMatchObject({ name: "OK Computer", type: "Album", year: "1997", artists: [RADIOHEAD] });
-    expect(a.description).toMatch(/^OK Computer is the third studio album/);
+    expect(a.description).toMatch(/^A placeholder description for this fixture/);
     expect(a.largeImage).toMatch(/=w544-h544/);
     expect(a.artistImage).toMatch(/^https:\/\//);
     expect(a.tracks[0]).toMatchObject({ name: "Airbag", durationMs: 288_000, artists: [RADIOHEAD], setVideoId: "E09F47EBF57B19B1" });
