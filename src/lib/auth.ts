@@ -54,6 +54,11 @@ async function adopt(tokens: TokenResponse): Promise<string> {
   return accessToken;
 }
 
+/** Always asks Spotify for a new access token (the player SDK rejected the current one). */
+export async function refreshAccessToken(): Promise<string> {
+  return refresh();
+}
+
 async function refresh(): Promise<string> {
   if (!refreshToken) throw new ApiError(401, "Not signed in");
   refreshing ??= tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken })

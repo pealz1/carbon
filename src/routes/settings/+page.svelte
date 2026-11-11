@@ -4,13 +4,16 @@
   import { onMount } from "svelte";
   import { account } from "$lib/account.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
+  import FontPicker from "$lib/components/FontPicker.svelte";
   import RemotePanel from "$lib/components/RemotePanel.svelte";
   import Toggle from "$lib/components/Toggle.svelte";
   import { BUILT_IN_CLIENT_ID, CARBON } from "$lib/config";
   import { describeError } from "$lib/errors";
+  import { FONT_ROLES } from "$lib/fonts";
   import {
     ACCENTS,
     appInfo,
+    installedFonts,
     lastfmConnect,
     lastfmDisconnect,
     lastfmStatus,
@@ -19,6 +22,7 @@
     type AppInfo,
     type Effects,
     type LastfmStatus,
+    type Settings,
   } from "$lib/native";
   import { organizer } from "$lib/organizer.svelte";
   import { prefs } from "$lib/preferences.svelte";
@@ -38,10 +42,18 @@
   let startup = $state(false);
   let notice = $state<string | null>(null);
   let confirmRemove = $state(false);
+  let fonts = $state<string[] | null>(null);
   const s = $derived(prefs.value);
   const customId = $derived(s?.spotifyClientId ?? "");
 
   onMount(async () => {
+    installedFonts().then(
+      (list) => (fonts = list),
+      (e) => {
+        fonts = [];
+        notice = `Couldn't list your fonts: ${describeError(e)}`;
+      },
+    );
     try {
       [info, lastfm, startup] = await Promise.all([appInfo(), lastfmStatus(), autostartEnabled()]);
     } catch (e) {
@@ -167,6 +179,15 @@
         <span class="eyebrow">Lyrics size · {Math.round(s.lyricsScale * 100)}%</span>
         <input type="range" min="0.75" max="1.5" step="0.05" value={s.lyricsScale} onchange={(e) => prefs.update({ lyricsScale: Number(e.currentTarget.value) })} />
       </label>
+      {#each FONT_ROLES as role (role.key)}
+        <FontPicker
+          label={role.label}
+          value={s[role.key]}
+          {fonts}
+          fallback={role.fallback}
+          onpick={(family) => prefs.update({ [role.key]: family } as Partial<Settings>)}
+        />
+      {/each}
     </section>
 
     <section class="panel liquid" use:specular>

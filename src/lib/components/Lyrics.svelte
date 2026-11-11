@@ -138,7 +138,7 @@
     padding: var(--sp-2) var(--sp-3);
     border-radius: var(--r-md);
     text-align: left;
-    font-family: var(--font-display);
+    font-family: var(--font-lyrics);
     font-size: calc(clamp(1.6rem, 2.4vw, 2.4rem) * var(--lyrics-scale, 1));
     font-weight: 780;
     line-height: 1.18;
@@ -235,7 +235,7 @@
   }
 
   .note {
-    font-family: var(--font-display);
+    font-family: var(--font-lyrics);
     font-size: var(--fs-title);
     font-weight: 700;
     color: var(--text-muted);
