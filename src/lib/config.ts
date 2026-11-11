@@ -50,7 +50,9 @@ export const TIMING = {
   tokenRefreshMarginMs: 60_000,
   apiCacheTtlMs: 60_000,
   maxRetryAfterMs: 30_000,
-  maxRateLimitRetries: 2,
+  /** Retries after a 429, 5xx or network failure (5xx/network back off from retryBaseMs). */
+  maxRetries: 2,
+  retryBaseMs: 500,
 } as const;
 
 export const PLAYER_NAME = "Carbon";

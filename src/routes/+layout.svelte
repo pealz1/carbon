@@ -84,12 +84,12 @@
             <button onclick={() => (session.error = null)}>Dismiss</button>
           </p>
         {/if}
-        {#if session.needsReconsent}
+        {#if session.signInPrompt}
           <p class="banner" role="status">
-            Playlist editing needs a few more Spotify permissions.
+            {session.signInPrompt}
             <span class="banner-actions">
               <button onclick={() => session.reconsent()}>Sign in again</button>
-              <button onclick={() => (session.needsReconsent = false)}>Later</button>
+              <button onclick={() => (session.signInPrompt = null)}>Later</button>
             </span>
           </p>
         {/if}

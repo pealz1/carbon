@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, get, retryAfterMs, send, useTokenSource } from "./api";
+import { ApiError, backoffMs, get, NetworkError, onApiNotice, retryAfterMs, send, useTokenSource, type ApiNotice } from "./api";
 
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(body === undefined ? "" : JSON.stringify(body), { status, headers });
@@ -75,5 +75,106 @@ describe("request handling", () => {
   it("refuses to call the API when signed out", async () => {
     useTokenSource(null);
     await expect(get("/me")).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("reads Spotify's machine-readable reason", async () => {
+    fetchMock.mockResolvedValue(json(403, { error: { status: 403, message: "Player command failed: Premium required", reason: "PREMIUM_REQUIRED" } }));
+    await expect(send("PUT", "/me/player/play")).rejects.toMatchObject({ status: 403, reason: "PREMIUM_REQUIRED" });
+  });
+});
+
+describe("recovery bounds", () => {
+  const fetchMock = vi.fn();
+  const notices: ApiNotice[] = [];
+  const tokens = { get: vi.fn(async () => "old"), refresh: vi.fn(async () => "new") };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", fetchMock);
+    useTokenSource(tokens);
+    onApiNotice((n) => notices.push(n));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+    tokens.refresh.mockReset().mockResolvedValue("new");
+    notices.length = 0;
+    onApiNotice(null);
+  });
+
+  /** Runs a request to completion, letting every backoff timer fire. */
+  async function settle<T>(promise: Promise<T>): Promise<T | unknown> {
+    const outcome = promise.catch((e: unknown) => e);
+    await vi.runAllTimersAsync();
+    return outcome;
+  }
+
+  it("backs off from 5xx answers and retries at most twice", async () => {
+    fetchMock.mockImplementation(async () => json(503, { error: { message: "Service unavailable" } }));
+    const error = await settle(get("/flaky"));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(error).toMatchObject({ status: 503, retries: 2 });
+    expect(notices).toEqual([
+      { kind: "retrying", cause: "server", waitMs: backoffMs(0) },
+      { kind: "retrying", cause: "server", waitMs: backoffMs(1) },
+    ]);
+    expect(backoffMs(1)).toBe(2 * backoffMs(0));
+  });
+
+  it("recovers when a retry gets through", async () => {
+    fetchMock.mockResolvedValueOnce(json(502, {})).mockResolvedValueOnce(json(200, { ok: true }));
+    await expect(settle(send("PUT", "/me/player/play"))).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries network failures twice, then reports them as such", async () => {
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    const error = await settle(get("/offline"));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(error).toBeInstanceOf(NetworkError);
+    expect(error).toMatchObject({ retries: 2 });
+    expect(notices.map((n) => n.kind === "retrying" && n.cause)).toEqual(["network", "network"]);
+  });
+
+  it("never resends a POST after a server or network failure", async () => {
+    fetchMock.mockResolvedValueOnce(json(502, {}));
+    expect(await settle(send("POST", "/me/player/queue?uri=x"))).toMatchObject({ status: 502, retries: 0 });
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    expect(await settle(send("POST", "/me/player/queue?uri=x"))).toBeInstanceOf(NetworkError);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(notices).toEqual([]);
+  });
+
+  it("stops after two rate-limit waits and says how long it waited", async () => {
+    fetchMock.mockImplementation(async () => json(429, {}, { "Retry-After": "3" }));
+    expect(await settle(get("/limited-hard"))).toMatchObject({ status: 429, retries: 2 });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(notices).toEqual([
+      { kind: "retrying", cause: "rate-limit", waitMs: 3000 },
+      { kind: "retrying", cause: "rate-limit", waitMs: 3000 },
+    ]);
+  });
+
+  it("refreshes once on 401, then asks to sign in", async () => {
+    fetchMock.mockImplementation(async () => json(401, { error: { message: "The access token expired" } }));
+    expect(await settle(get("/still-401"))).toMatchObject({ status: 401 });
+    expect(tokens.refresh).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(notices).toEqual([{ kind: "auth-lost" }]);
+  });
+
+  it("treats a revoked refresh token as signed out", async () => {
+    fetchMock.mockResolvedValue(json(401, {}));
+    tokens.refresh.mockRejectedValue(new ApiError(400, "Refresh token revoked"));
+    expect(await settle(get("/revoked"))).toMatchObject({ status: 401 });
+    expect(notices).toEqual([{ kind: "auth-lost" }]);
+  });
+
+  it("flags a missing permission so the sign-in banner can show", async () => {
+    fetchMock.mockResolvedValue(json(403, { error: { message: "Insufficient client scope" } }));
+    expect(await settle(send("PUT", "/playlists/p"))).toMatchObject({ status: 403 });
+    expect(notices).toEqual([{ kind: "scope-missing" }]);
   });
 });

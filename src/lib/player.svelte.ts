@@ -3,7 +3,7 @@
 // the two). UI state comes from SDK/engine events; position is interpolated locally.
 import { getAccessToken, refreshAccessToken, withTimeout } from "$lib/auth";
 import { DEFAULT_VOLUME, PLAYER_NAME, SPOTIFY, TIMING } from "$lib/config";
-import { isDeviceGone, SdkError } from "$lib/errors";
+import { EngineError, explain, isDeviceGone, SdkError, sentence, type Problem } from "$lib/errors";
 import { MixedPlayback } from "$lib/local/mixed.svelte";
 import { isLocalUri } from "$lib/local/tracks";
 import { reportPlayback, type PlaybackInfo } from "$lib/native";
@@ -44,11 +44,10 @@ function savedVolume(): number {
   }
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
-
 class Player {
   status = $state<"idle" | "connecting" | "ready" | "error">("idle");
-  error = $state<string | null>(null);
+  /** The last playback failure, with what Carbon did and what the listener can do. */
+  problem = $state<Problem | null>(null);
   track = $state<Track | null>(null);
   artwork = $state<string | null>(null);
   paused = $state(true);
@@ -77,13 +76,17 @@ class Player {
     setModes: (shuffle, repeat) => ((this.shuffle = shuffle), (this.repeat = repeat), this.#report()),
     show: (track) => this.#show(track),
     sync: (paused, positionMs, durationMs) => this.#sync(paused, positionMs, durationMs),
-    fail: (message) => (this.error = message),
+    fail: (message) => this.#warn(new EngineError(message)),
     spotifyPause: async () => void (await this.#sdk?.pause()),
     spotifyPlay: (uris) => this.#playSpotifyRun(uris),
     spotifySeek: async (ms) => void (await this.#sdk?.seek(Math.round(ms))),
     spotifyToggle: async () => void (await this.#sdk?.togglePlay()),
     spotifyEnqueue: (uri) => this.#run((id) => sp.addToQueue(uri, id)),
   });
+
+  get error(): string | null {
+    return this.problem && sentence(this.problem);
+  }
 
   /** Tracks after the current one when Carbon owns the queue (local files, Carbon playlists). */
   get upNext(): Track[] | null {
@@ -133,18 +136,19 @@ class Player {
 
   async #join(sdk: Spotify.Player): Promise<void> {
     const connected = await withTimeout(sdk.connect(), TIMING.sdkTimeoutMs, "Connecting Carbon's player").catch(() => false);
-    if (!connected) throw new SdkError("not_ready", "Carbon's player couldn't connect to Spotify.");
+    if (!connected) throw new SdkError("connect_failed", "Carbon's player couldn't connect to Spotify.");
   }
 
   #listen(sdk: Spotify.Player): void {
     sdk.addListener("ready", ({ device_id }) => this.#ready(device_id));
     sdk.addListener("not_ready", ({ device_id }) => this.#notReady(device_id));
     sdk.addListener("player_state_changed", (state) => this.#apply(state));
-    sdk.addListener("autoplay_failed", () => (this.error = "Windows blocked audio from starting. Press play."));
-    sdk.addListener("playback_error", ({ message }) => (this.error = `Playback problem: ${message}`));
-    sdk.addListener("account_error", () => this.#fail(new Error("Carbon's player needs Spotify Premium.")));
+    sdk.addListener("autoplay_failed", () => this.#warn(new SdkError("autoplay_failed")));
+    sdk.addListener("playback_error", ({ message }) => this.#warn(new SdkError("playback_error", message)));
+    sdk.addListener("account_error", ({ message }) => this.#fail(new SdkError("account_error", message)));
     sdk.addListener("authentication_error", ({ message }) => void this.#reauthenticate(message));
-    sdk.addListener("initialization_error", ({ message }) => this.#fail(new Error(`Player failed to start: ${message}`)));
+    // Also how a failed EME/Widevine setup in WebView2 shows up.
+    sdk.addListener("initialization_error", ({ message }) => this.#fail(new SdkError("initialization_error", message)));
   }
 
   /** The SDK re-registers after sleep, network changes and token refreshes, often under a new id. */
@@ -193,7 +197,7 @@ class Player {
 
   /** The SDK rejected Carbon's token: refresh it and reconnect once, then give up and say so. */
   async #reauthenticate(detail: string): Promise<void> {
-    if (this.#reauthed) return this.#fail(new Error(`Spotify sign-in problem: ${detail}`));
+    if (this.#reauthed) return this.#fail(new SdkError("authentication_error", detail));
     this.#reauthed = true;
     try {
       await refreshAccessToken();
@@ -203,21 +207,26 @@ class Player {
     }
   }
 
+  /** A failure the player can't play past until something changes. */
   #fail(e: unknown): void {
-    console.error("[player]", e);
     this.status = "error";
-    this.error = message(e);
+    this.#warn(e);
+  }
+
+  #warn(e: unknown): void {
+    console.error("[player]", e);
+    this.problem = explain(e);
   }
 
   #apply(state: Spotify.PlaybackState | null): void {
     if (state) this.#sdkModes = { shuffle: state.shuffle, repeat: REPEAT_MODES[state.repeat_mode] ?? "off" };
     if (this.#mixed.backend === "local" || (state && this.#mixed.active && !this.#mixed.spotifyState(state))) return;
-    if (state) this.#reauthed = false; // playing again, so a later sign-in problem gets its own retry
     if (!state) {
       this.paused = true; // playback moved to another device
       this.#report();
       return;
     }
+    this.#reauthed = false; // playing again, so a later sign-in problem gets its own retry
     const current = state.track_window.current_track;
     this.track = toTrack(current);
     this.artwork = pickLargestImage(current?.album.images);
@@ -228,7 +237,7 @@ class Player {
     if (!this.#mixed.active) ({ shuffle: this.shuffle, repeat: this.repeat } = this.#sdkModes);
     this.contextUri = state.context?.uri ?? null;
     this.#upNext = state.track_window.next_tracks ?? [];
-    this.error = null;
+    this.problem = null;
     this.#report();
   }
 
@@ -236,7 +245,7 @@ class Player {
     this.track = track;
     this.artwork = track.album?.image ?? null;
     this.durationMs = track.durationMs;
-    this.error = null;
+    this.problem = null;
   }
 
   #sync(paused: boolean, positionMs: number, durationMs?: number): void {
@@ -288,14 +297,13 @@ class Player {
     reportPlayback(info).catch((e) => console.error("[player] native update failed", e));
   }
 
-  /** Resolves false (with `error` set) when the action failed. */
+  /** Resolves false (with `problem` set) when the action failed. */
   async #run(action: (deviceId: string) => Promise<unknown>): Promise<boolean> {
     try {
       await this.#onDevice(action);
       return true;
     } catch (e) {
-      console.error("[player]", e);
-      this.error = message(e);
+      this.#warn(e);
       return false;
     }
   }
@@ -350,6 +358,15 @@ class Player {
       throw new Error("Pick something to play first.");
     });
 
+  /** After Windows blocked autoplay: this click is the gesture the SDK's audio element waits for. */
+  startPlayback = () => {
+    this.problem = null;
+    return this.#run(async () => {
+      await this.#sdk?.activateElement();
+      await this.#sdk?.resume();
+    });
+  };
+
   next = () => (this.#mixed.active ? this.#mixed.next() : this.#run(async () => this.#sdk?.nextTrack()));
   previous = () => (this.#mixed.active ? this.#mixed.previous() : this.#run(async () => this.#sdk?.previousTrack()));
 
@@ -357,7 +374,7 @@ class Player {
     this.#positionMs = ms;
     this.#positionAt = this.#seekAt = performance.now();
     // Carbon queues seek without waiting on Spotify's SDK, which local files don't need.
-    if (this.#mixed.active) return this.#mixed.seek(ms).catch((e) => (this.error = message(e)));
+    if (this.#mixed.active) return this.#mixed.seek(ms).catch((e) => this.#warn(e));
     return this.#run(async () => {
       await this.#sdk?.seek(Math.round(ms));
       await this.syncPosition();

@@ -112,7 +112,10 @@ describe("player device tracking", () => {
     expect(await play()).toBe(false);
     expect(sp.playOn).toHaveBeenCalledTimes(2);
     expect(connects - before).toBe(1);
-    expect(player.error).toBeTruthy();
+    expect(player.error).toBe(
+      "Carbon's player lost its connection to Spotify. Carbon reconnected it and tried again. Check your connection. If it keeps happening, restart Carbon.",
+    );
+    expect(player.problem?.fix).toBe("reconnect");
   });
 
   it("does not reconnect for other errors", async () => {
@@ -121,5 +124,29 @@ describe("player device tracking", () => {
     expect(await play()).toBe(false);
     expect(sp.playOn).toHaveBeenCalledTimes(1);
     expect(connects).toBe(before);
+    expect(player.error).toMatch(/needs Spotify Premium/);
+  });
+
+  it("offers Start playback when Windows blocks autoplay, and uses the click to start", async () => {
+    const activate = vi.fn(async () => {});
+    const resume = vi.fn(async () => {});
+    Object.assign(FakeSdk.prototype, { activateElement: activate, resume });
+    listeners.autoplay_failed(undefined);
+    expect(player.problem?.fix).toBe("start-playback");
+    expect(await player.startPlayback()).toBe(true);
+    expect(activate).toHaveBeenCalledTimes(1);
+    expect(resume).toHaveBeenCalledTimes(1);
+    expect(player.problem).toBeNull();
+  });
+
+  it("refreshes the token and reconnects once on an SDK sign-in error, then asks to sign in", async () => {
+    const auth = await import("$lib/auth");
+    const before = connects;
+    listeners.authentication_error({ message: "Invalid token scopes." });
+    await vi.waitFor(() => expect(connects).toBe(before + 1));
+    expect(auth.refreshAccessToken).toHaveBeenCalledTimes(1);
+    listeners.authentication_error({ message: "Invalid token scopes." });
+    expect(connects).toBe(before + 1);
+    expect(player.problem?.fix).toBe("sign-in");
   });
 });
