@@ -49,7 +49,7 @@
     {:else}
       <span class="art-blank"></span>
       <div class="meta">
-        <span class="title idle">{player.status === "ready" ? "Ready to play" : "Starting Carbon's player…"}</span>
+        <span class="title idle">{player.status === "ready" || !player.spotifyEnabled ? "Ready to play" : "Starting Carbon's player…"}</span>
         <span class="artists">Pick anything, or press play to resume</span>
       </div>
     {/if}

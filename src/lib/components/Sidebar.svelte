@@ -13,7 +13,9 @@
   import type { PlaylistSummary } from "$lib/spotify/types";
   import Icon, { type IconName } from "./Icon.svelte";
   import Logo from "./Logo.svelte";
-  import SourceSwitch, { sourceOfPath, type Source } from "./SourceSwitch.svelte";
+  import { services, type Source } from "$lib/services.svelte";
+  import { youtube } from "$lib/youtube/session.svelte";
+  import SourceSwitch, { sourceOfPath } from "./SourceSwitch.svelte";
   import YoutubeSidebar from "./YoutubeSidebar.svelte";
   import { specular } from "$lib/liquid";
 
@@ -41,6 +43,9 @@
     const next = sourceOfPath(page.url.pathname);
     if (next) source = next;
   });
+  // Only services that are running; Spotify's list needs Spotify signed in.
+  const shown = $derived(services.active.sources.includes(source) ? source : services.active.sources[0]);
+  const me = $derived(session.profile ?? (services.active.youtube ? { name: youtube.account?.name ?? "YouTube Music", image: youtube.account?.image ?? null } : null));
 
   onMount(() => void carbonPlaylists.load());
 
@@ -163,10 +168,10 @@
     <span class="wordmark">carbon</span>
   </div>
 
-  <SourceSwitch {source} />
+  <SourceSwitch source={shown} sources={services.active.sources} />
 
   <nav aria-label="Main">
-    {#each NAV[source] as item (item.href)}
+    {#each NAV[shown] as item (item.href)}
       <a href={item.href} class="nav-item" class:active={isActive(item.href)} aria-current={isActive(item.href) ? "page" : undefined}>
         <Icon name={item.icon} size={19} />
         {item.label}
@@ -174,10 +179,10 @@
     {/each}
   </nav>
 
-  {#if source === "youtube"}<YoutubeSidebar />{/if}
+  {#if shown === "youtube"}<YoutubeSidebar />{/if}
   <section
     class="playlists"
-    class:off={source === "youtube"}
+    class:off={shown === "youtube" || !services.active.spotify}
     class:drop={dropTarget === ROOT}
     aria-label="Your playlists"
     ondragover={(e) => dragOver(e, null)}
@@ -218,14 +223,14 @@
     {/each}
   </section>
 
-  {#if session.profile}
+  {#if me}
     <footer class="profile">
-      {#if session.profile.image}
-        <img src={session.profile.image} alt="" width="28" height="28" class="avatar" />
+      {#if me.image}
+        <img src={me.image} alt="" width="28" height="28" class="avatar" />
       {:else}
-        <span class="avatar initials">{session.profile.name.slice(0, 1).toUpperCase()}</span>
+        <span class="avatar initials">{me.name.slice(0, 1).toUpperCase()}</span>
       {/if}
-      <span class="name">{session.profile.name}</span>
+      <span class="name">{me.name}</span>
       <a href="/settings" class="signout" class:active={path === "/settings"} aria-label="Settings" title="Settings">
         <Icon name="settings" size={18} />
       </a>

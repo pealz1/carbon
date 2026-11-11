@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  export type Source = "spotify" | "youtube" | "local";
+  import type { Source } from "$lib/services.svelte";
 
   const SPOTIFY_PAGES = /^\/(search|library|liked|album|artist|playlist|carbon)(\/|$)/;
 
@@ -14,7 +14,7 @@
 <script lang="ts">
   // Spotify, YouTube Music or local files: which library the sidebar shows. The services stay
   // separate everywhere (queues, playlists, search), so this is a switch, not a filter.
-  let { source }: { source: Source } = $props();
+  let { source, sources }: { source: Source; sources: Source[] } = $props();
 
   const SOURCES: { id: Source; label: string; href: string }[] = [
     { id: "spotify", label: "Spotify", href: "/" },
@@ -24,7 +24,7 @@
 </script>
 
 <nav class="switch" aria-label="Music source">
-  {#each SOURCES as s (s.id)}
+  {#each SOURCES.filter((s) => sources.includes(s.id)) as s (s.id)}
     <a href={s.href} class:active={source === s.id} aria-current={source === s.id ? "true" : undefined}>{s.label}</a>
   {/each}
 </nav>
@@ -32,7 +32,8 @@
 <style>
   .switch {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
     gap: 2px;
     margin: var(--sp-3) var(--sp-1) 0;
     padding: 3px;

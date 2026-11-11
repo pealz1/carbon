@@ -2,6 +2,7 @@
   import { fly } from "svelte/transition";
   import { player } from "$lib/player.svelte";
   import { resource } from "$lib/resource.svelte";
+  import { services } from "$lib/services.svelte";
   import * as sp from "$lib/spotify/endpoints";
   import Icon from "./Icon.svelte";
   import Status from "./Status.svelte";
@@ -13,7 +14,7 @@
   // Re-fetch when the current track changes; the queue isn't pushed by the SDK.
   const queue = resource(() => {
     void player.track?.uri;
-    return sp.queue();
+    return services.active.spotify ? sp.queue() : Promise.resolve([]); // never asks Spotify when it isn't connected
   });
 </script>
 
