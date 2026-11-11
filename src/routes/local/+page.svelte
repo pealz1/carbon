@@ -8,7 +8,6 @@
   import Status from "$lib/components/Status.svelte";
   import TrackList from "$lib/components/TrackList.svelte";
   import { formatTotal } from "$lib/format";
-  import { specular } from "$lib/liquid";
   import { matches, textMatches } from "$lib/local/browse";
   import { localLibrary as lib } from "$lib/local/library.svelte";
   import { shuffledFrom } from "$lib/local/queue";
@@ -88,7 +87,7 @@
   {#if lib.error}<p class="warn" role="alert">{lib.error}</p>{/if}
 
   {#if lib.loaded && !lib.folders.length}
-    <section class="empty liquid" use:specular>
+    <section class="empty plate">
       <Icon name="folder" size={40} />
       <h2>Bring your own music</h2>
       <p class="muted">Add a folder of MP3, FLAC, AAC/ALAC, Ogg Vorbis or WAV files. Carbon plays them with its own engine, EQ and gapless playback.</p>

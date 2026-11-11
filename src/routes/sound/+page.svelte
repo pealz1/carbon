@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Toggle from "$lib/components/Toggle.svelte";
-  import { specular } from "$lib/liquid";
   import { sound } from "$lib/local/sound.svelte";
   import type { SpotifyEqStatus } from "$lib/local/spotifyEq";
 
@@ -45,7 +44,7 @@
 {#if sound.error}<p class="warn" role="alert">{sound.error}</p>{/if}
 
 {#if s}
-  <section class="eq liquid" use:specular aria-label="Equalizer">
+  <section class="eq plate" aria-label="Equalizer">
     <div class="presets" role="radiogroup" aria-label="EQ preset">
       {#each sound.presets as p (p.id)}
         <button role="radio" aria-checked={s.preset === p.id} class:active={s.preset === p.id} onclick={() => sound.applyPreset(p.id)}>{p.name}</button>
@@ -107,7 +106,7 @@
   </section>
 
   <div class="grid">
-    <section class="panel liquid" use:specular>
+    <section class="panel plate">
       <h2>Playback</h2>
       <Toggle
         checked={s.normalize}
@@ -126,7 +125,7 @@
       </label>
     </section>
 
-    <section class="panel liquid" use:specular>
+    <section class="panel plate">
       <h2>Output</h2>
       <label class="range">
         <span class="label">Play local files through</span>
@@ -141,7 +140,7 @@
       <p class="muted">If this device disconnects, Carbon switches to the Windows default and keeps playing.</p>
     </section>
 
-    <section class="panel liquid experimental" use:specular>
+    <section class="panel plate experimental">
       <h2>EQ on Spotify audio</h2>
       <p class="flag" role="note">Experimental — may stop working or conflict with Spotify's terms</p>
       <Toggle

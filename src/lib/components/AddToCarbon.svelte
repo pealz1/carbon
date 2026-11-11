@@ -119,12 +119,12 @@
     min-width: 220px;
     max-height: min(360px, 60vh);
     overflow-y: auto;
-    padding: var(--sp-2);
-    border: 1px solid var(--glass-edge);
-    border-radius: var(--r-md);
-    background: var(--glass-strong);
-    backdrop-filter: var(--glass-blur-heavy);
-    box-shadow: var(--shadow-float);
+    padding: 5px;
+    border: 0;
+    border-radius: var(--r-lg);
+    background: var(--grain), var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
     color: var(--text);
     opacity: 0;
     transform: translateY(-4px) scale(0.98);

@@ -4,9 +4,113 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Carbon</title>
+    <!-- The loading screen paints before any script runs; the app removes it once it has rendered. -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+      }
+
+      #boot-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        background: #000;
+        transition: opacity 360ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      #boot-screen.done {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #boot-screen .lockup {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 34px;
+      }
+
+      #boot-screen .halo {
+        position: absolute;
+        left: 50%;
+        top: 28px;
+        width: 340px;
+        height: 340px;
+        margin: -170px 0 0 -170px;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgb(250 233 29 / 0.16), rgb(250 233 29 / 0.05) 55%, transparent);
+        animation: boot-breathe 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+      }
+
+      #boot-screen svg {
+        position: relative;
+        display: block;
+      }
+
+      #boot-screen .track {
+        position: relative;
+        width: 96px;
+        height: 2px;
+        overflow: hidden;
+        border-radius: 2px;
+        background: rgb(255 255 255 / 0.08);
+      }
+
+      #boot-screen .track i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 36px;
+        background: linear-gradient(90deg, transparent, rgb(239 239 230 / 0.75), transparent);
+        animation: boot-shimmer 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+
+      @keyframes boot-breathe {
+        from {
+          opacity: 0.45;
+          transform: scale(0.88);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes boot-shimmer {
+        from {
+          transform: translateX(-40px);
+        }
+        to {
+          transform: translateX(100px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #boot-screen .halo,
+        #boot-screen .track i {
+          animation: none;
+        }
+      }
+    </style>
     %sveltekit.head%
   </head>
   <body>
+    <div id="boot-screen" role="status" aria-label="Opening Carbon" data-tauri-drag-region>
+      <div class="lockup" data-tauri-drag-region>
+        <span class="halo" aria-hidden="true"></span>
+        <svg width="56" height="56" viewBox="0 0 1024 1024" aria-hidden="true">
+          <path
+            fill="#FAE91D"
+            d="M512 0 955.41 256 955.41 384 733.7 384 512 256 290.3 384 290.3 640 512 768 733.7 640 955.41 640 955.41 768 512 1024 68.59 768 68.59 256Z"
+          />
+        </svg>
+        <span class="track" aria-hidden="true"><i></i></span>
+      </div>
+    </div>
     <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

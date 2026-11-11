@@ -28,7 +28,6 @@
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
   import { updates } from "$lib/updates.svelte";
-  import { specular } from "$lib/liquid";
 
   const EFFECTS: { id: Effects; label: string; hint: string }[] = [
     { id: "full", label: "Full", hint: "Liquid glass, motion, everything" },
@@ -111,7 +110,7 @@
 
 {#if s}
   <div class="grid">
-    <section class="panel liquid account" use:specular>
+    <section class="panel plate account">
       <h2>Account</h2>
       {#if session.profile}
         <div class="me">
@@ -151,7 +150,7 @@
       {/if}
     </section>
 
-    <section class="panel liquid" use:specular>
+    <section class="panel plate">
       <h2>Appearance</h2>
       <p class="eyebrow">Effects</p>
       <div class="segmented" role="radiogroup" aria-label="Effects">
@@ -190,7 +189,7 @@
       {/each}
     </section>
 
-    <section class="panel liquid" use:specular>
+    <section class="panel plate">
       <h2>Integrations</h2>
       <Toggle
         checked={s.discordPresence}
@@ -219,19 +218,19 @@
 
     <RemotePanel />
 
-    <section class="panel liquid" use:specular>
+    <section class="panel plate">
       <h2>Sound</h2>
       <p class="muted">EQ, loudness, crossfade and output device for local files played by Carbon's own engine.</p>
       <a class="pill" href="/sound">Open Sound settings</a>
     </section>
 
-    <section class="panel liquid" use:specular>
+    <section class="panel plate">
       <h2>System</h2>
       <Toggle checked={startup} label="Open at startup" description="Starts quietly in the tray when you sign in to Windows." onchange={toggleStartup} />
       <Toggle checked={s.closeToTray} label="Keep playing when closed" description="Closing the window keeps Carbon in the tray. Quit from the tray icon." onchange={(v) => prefs.update({ closeToTray: v })} />
     </section>
 
-    <section class="panel liquid" use:specular>
+    <section class="panel plate">
       <h2>Updates</h2>
       <p class="muted">Carbon {info?.version ?? ""}</p>
       {#if updates.state === "available"}
@@ -247,7 +246,7 @@
       {#if updates.error}<p class="warn">{updates.error}</p>{/if}
     </section>
 
-    <section class="panel liquid" use:specular>
+    <section class="panel plate">
       <h2>About & data</h2>
       <div class="links">
         <button class="link" onclick={() => openUrl("https://getcarbon.cc")}>getcarbon.cc</button>
@@ -440,7 +439,7 @@
   }
 
   .swatch.active {
-    box-shadow: 0 0 0 2px var(--bg-tint), 0 0 0 4px var(--swatch);
+    box-shadow: 0 0 0 2px var(--stage), 0 0 0 4px var(--swatch);
   }
 
   .range {

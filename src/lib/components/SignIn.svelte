@@ -10,7 +10,7 @@
 </script>
 
 <div class="signin">
-  <TitleBar showSearch={false} />
+  <TitleBar controls={false} />
   <section class="hero">
     <div class="mark"><Logo size={88} /></div>
     <p class="eyebrow">{needsId ? "One-time setup · about 2 minutes" : "Spotify, in glass"}</p>

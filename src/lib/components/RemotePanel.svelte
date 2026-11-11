@@ -3,7 +3,6 @@
   import { onMount } from "svelte";
   import Toggle from "$lib/components/Toggle.svelte";
   import { describeError } from "$lib/errors";
-  import { specular } from "$lib/liquid";
   import { onRemoteChanged, remoteDisconnect, remoteRotate, remoteStatus, type RemoteStatus } from "$lib/native";
   import { prefs } from "$lib/preferences.svelte";
 
@@ -79,7 +78,7 @@
   }
 </script>
 
-<section class="panel liquid" use:specular>
+<section class="panel plate">
   <h2>Remote</h2>
   {#if s}
     {#key toggleKey}

@@ -8,7 +8,7 @@
 </script>
 
 <div class="signin">
-  <TitleBar showSearch={false} />
+  <TitleBar controls={false} />
   <section class="hero">
     <div class="mark"><Logo size={88} /></div>
     <p class="eyebrow">Step one · your Carbon account</p>
