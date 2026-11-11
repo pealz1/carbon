@@ -3,6 +3,7 @@
   import ClientIdForm from "./ClientIdForm.svelte";
   import Logo from "./Logo.svelte";
   import TitleBar from "./TitleBar.svelte";
+  import Wordmark from "./Wordmark.svelte";
 
   const waiting = $derived(session.status === "signing-in");
   const needsId = $derived(session.status === "needs-client-id");
@@ -13,7 +14,7 @@
   <section class="hero">
     <div class="mark"><Logo size={88} /></div>
     <p class="eyebrow">{needsId ? "One-time setup · about 2 minutes" : "Spotify, in glass"}</p>
-    <h1>carbon</h1>
+    <h1><Wordmark height={120} /><span class="sr-only">carbon</span></h1>
     {#if needsId}
       <p class="lede">
         Spotify lets each developer app serve only 5 listeners, so Carbon runs on your own free Spotify app. Create it once and you're set.
@@ -53,15 +54,16 @@
 
   .mark {
     margin-bottom: var(--sp-6);
-    filter: drop-shadow(0 0 40px var(--accent-glow));
   }
 
   h1 {
-    font-size: clamp(6rem, 13vw, 10.5rem);
-    font-weight: 700;
-    line-height: 0.82;
-    letter-spacing: -0.06em;
-    margin: var(--sp-2) 0 var(--sp-5);
+    display: flex;
+    margin: var(--sp-4) 0 var(--sp-5);
+  }
+
+  h1 :global(svg) {
+    width: auto;
+    height: clamp(5rem, 11vw, 8.5rem);
   }
 
   .lede {

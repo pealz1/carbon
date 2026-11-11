@@ -1,12 +1,26 @@
 //! System tray icon: what's playing, transport controls, show and quit.
 use crate::media_controls::{emit, MediaCommand};
 use crate::playback::PlaybackInfo;
+use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, Wry};
 
 const TRAY_ID: &str = "carbon";
 const MAX_LABEL: usize = 60; // Windows truncates tray tooltips at 128 chars
+
+/// Pixel-fitted tray icons (brand/tray) by display scale: Windows draws the tray at 16 px x scale.
+static TRAY_ICONS: [(f64, &[u8]); 4] = [
+    (1.0, include_bytes!("../icons/tray-16.png")),
+    (1.25, include_bytes!("../icons/tray-20.png")),
+    (1.5, include_bytes!("../icons/tray-24.png")),
+    (2.0, include_bytes!("../icons/tray-32.png")),
+];
+
+/// The smallest icon that covers the scale, so Windows only ever scales down.
+fn tray_png(scale: f64) -> &'static [u8] {
+    TRAY_ICONS.iter().find(|(s, _)| scale <= s + 0.01).unwrap_or(&TRAY_ICONS[3]).1
+}
 
 pub struct TrayState {
     now: MenuItem<Wry>,
@@ -55,8 +69,15 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayState> {
                 show_main(tray.app_handle());
             }
         });
-    if let Some(icon) = app.default_window_icon() {
-        builder = builder.icon(icon.clone());
+    let scale = app.get_webview_window("main").and_then(|w| w.scale_factor().ok()).unwrap_or(1.0);
+    match Image::from_bytes(tray_png(scale)) {
+        Ok(icon) => builder = builder.icon(icon),
+        Err(e) => {
+            eprintln!("[tray] couldn't load the tray icon, using the app icon: {e}");
+            if let Some(icon) = app.default_window_icon() {
+                builder = builder.icon(icon.clone());
+            }
+        }
     }
     builder.build(app)?;
     Ok(TrayState { now, toggle })
@@ -82,11 +103,21 @@ impl TrayState {
 
 #[cfg(test)]
 mod tests {
-    use super::truncate;
+    use super::{tray_png, truncate, TRAY_ICONS};
 
     #[test]
     fn truncates_long_labels_on_char_boundaries() {
         assert_eq!(truncate("short", 10), "short");
         assert_eq!(truncate("ééééééééééé", 5), "éééé…");
+    }
+
+    #[test]
+    fn picks_the_tray_icon_for_the_display_scale() {
+        let index = |scale| TRAY_ICONS.iter().position(|(_, png)| std::ptr::eq(*png, tray_png(scale)));
+        assert_eq!(index(1.0), Some(0));
+        assert_eq!(index(1.25), Some(1));
+        assert_eq!(index(1.5), Some(2));
+        assert_eq!(index(1.75), Some(3));
+        assert_eq!(index(3.0), Some(3));
     }
 }
