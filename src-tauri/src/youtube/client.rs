@@ -17,6 +17,14 @@ pub struct Youtube {
     http: reqwest::Client,
     /// None until first read from Credential Manager; then the saved cookie header, if any.
     cookies: Mutex<Option<Option<String>>>,
+    /// The visitor id YouTube assigned; continuation tokens (more home shelves) only work with it.
+    visitor: Mutex<Option<String>>,
+}
+
+fn visitor_of(value: &Value) -> Option<String> {
+    let id = value.pointer("/responseContext/visitorData")?.as_str()?;
+    let valid = !id.is_empty() && id.len() <= 256 && id.bytes().all(|b| b.is_ascii_alphanumeric() || b"%_=-".contains(&b));
+    valid.then(|| id.to_string())
 }
 
 fn now() -> u64 {
@@ -59,7 +67,7 @@ fn explain_status(status: u16, signed_in: bool) -> String {
 impl Youtube {
     pub fn new() -> Self {
         let http = reqwest::Client::builder().timeout(TIMEOUT).user_agent(USER_AGENT).build().unwrap_or_default();
-        Self { http, cookies: Mutex::new(None) }
+        Self { http, cookies: Mutex::new(None), visitor: Mutex::new(None) }
     }
 
     pub fn cookies(&self) -> Result<Option<String>, String> {
@@ -86,6 +94,9 @@ impl Youtube {
             .header("Origin", auth::ORIGIN)
             .header("X-Origin", auth::ORIGIN)
             .json(&with_context(call.body, now));
+        if let Some(visitor) = self.visitor.lock().ok().and_then(|v| v.clone()) {
+            req = req.header("X-Goog-Visitor-Id", visitor);
+        }
         if let Some(cookies) = &cookies {
             req = req.header("Cookie", cookies).header("X-Goog-AuthUser", "0");
             if let Some(authorization) = auth::sapisid_hash(cookies, now) {
@@ -117,6 +128,9 @@ impl Youtube {
     pub async fn send(&self, call: Call) -> Result<Value, String> {
         let bytes = self.fetch(call).await?;
         let mut value: Value = serde_json::from_slice(&bytes).map_err(|_| "YouTube Music sent something Carbon can't read.".to_string())?;
+        if let (Some(id), Ok(mut visitor)) = (visitor_of(&value), self.visitor.lock()) {
+            *visitor = Some(id);
+        }
         strip_noise(&mut value);
         Ok(value)
     }
@@ -134,6 +148,13 @@ mod tests {
         });
         strip_noise(&mut v);
         assert_eq!(v, json!({ "contents": [{ "a": { "title": "Song", "nested": {} } }] }));
+    }
+
+    #[test]
+    fn keeps_only_well_formed_visitor_ids() {
+        assert_eq!(visitor_of(&json!({ "responseContext": { "visitorData": "CgtyT1Fp%3D%3D" } })).as_deref(), Some("CgtyT1Fp%3D%3D"));
+        assert_eq!(visitor_of(&json!({ "responseContext": { "visitorData": "bad\r\nheader" } })), None);
+        assert_eq!(visitor_of(&json!({})), None);
     }
 
     #[test]
