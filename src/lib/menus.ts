@@ -8,6 +8,7 @@ import { flattenFolders, folderOf, movePlaylist, removeFolder, togglePin } from 
 import { organizer } from "$lib/organizer.svelte";
 import { addTracks, deletePlaylist, editablePlaylists, removeTracks } from "$lib/playlist-actions";
 import { player } from "$lib/player.svelte";
+import { exportItem, notOwnedItem, toolItems } from "$lib/playlist-tools/tools.svelte";
 import { saved } from "$lib/saved.svelte";
 import { session } from "$lib/session.svelte";
 import type { Card, PlaylistSummary, Track } from "$lib/spotify/types";
@@ -119,6 +120,7 @@ export function albumMenu(album: Card, tracks: Track[] = []): MenuEntry[] {
     ...(tracks.length ? [{ label: "Add to playlist", icon: "plus", items: addToPlaylistItems(tracks.map((t) => t.uri)) } satisfies MenuItem] : []),
     likeItem(album.uri, "Save to library", "Remove from library"),
     "separator",
+    exportItem({ kind: "album", id: album.id, name: album.title }),
     copyItem(album.uri),
   ];
 }
@@ -159,6 +161,8 @@ export function playlistMenu(playlist: PlaylistSummary, largeImage?: string | nu
     },
     { label: "Move to folder", icon: "folder", items: moveToFolderItems(playlist.id) },
     { label: "Tags…", icon: "tag", action: () => (dialogs.tags = playlist) },
+    // Spotify only shares the items of playlists you own with apps like Carbon.
+    owned ? { label: "Playlist tools", icon: "sort", items: toolItems({ kind: "playlist", id: playlist.id, name: playlist.name }) } : notOwnedItem,
     "separator",
     copyItem(playlist.uri),
     owned

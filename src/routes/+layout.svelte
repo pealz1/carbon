@@ -10,6 +10,7 @@
   import Cinema from "$lib/components/Cinema.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
+  import LibraryTools from "$lib/components/LibraryTools.svelte";
   import LyricsPanel from "$lib/components/LyricsPanel.svelte";
   import NowPlayingBar from "$lib/components/NowPlayingBar.svelte";
   import PlaylistDialog from "$lib/components/PlaylistDialog.svelte";
@@ -137,6 +138,7 @@
     {#key dialogs.tags}<TagsDialog playlist={dialogs.tags} />{/key}
   {/if}
   {#if dialogs.shortcuts}<ShortcutsSheet />{/if}
+  <LibraryTools />
   {#if youtube.dialog}
     {#key youtube.dialog}<YtPlaylistDialog request={youtube.dialog} />{/key}
   {/if}

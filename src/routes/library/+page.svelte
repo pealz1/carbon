@@ -9,6 +9,7 @@
   import { allTags, hasTag } from "$lib/organizer";
   import { organizer } from "$lib/organizer.svelte";
   import { Pager } from "$lib/pager.svelte";
+  import { tools } from "$lib/playlist-tools/tools.svelte";
   import { resource } from "$lib/resource.svelte";
   import { session } from "$lib/session.svelte";
   import * as sp from "$lib/spotify/endpoints";
@@ -54,6 +55,7 @@
 <header class="page-head">
   <h1>Library</h1>
   <button class="pill new" onclick={() => (dialogs.playlist = { mode: "create" })}><Icon name="plus" size={16} />New playlist</button>
+  <button class="pill" onclick={tools.openImport}><Icon name="import" size={16} />Import</button>
   <div class="segmented" role="tablist" aria-label="Library sections">
     {#each TABS as t (t.id)}
       <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => goto(`?tab=${t.id}`, { replaceState: true, noScroll: true })}>

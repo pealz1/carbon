@@ -5,6 +5,7 @@ import { goto } from "$app/navigation";
 import { describeError } from "$lib/errors";
 import type { MenuEntry, MenuItem } from "$lib/menu.svelte";
 import { player } from "$lib/player.svelte";
+import { exportItem } from "$lib/playlist-tools/tools.svelte";
 import { saved } from "$lib/saved.svelte";
 import type { Card, Track } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
@@ -134,6 +135,7 @@ export function ytCardMenu(card: Card): MenuEntry[] {
           { label: "Delete…", icon: "trash", danger: true, action: () => (youtube.dialog = { mode: "delete", playlist: card }) } satisfies MenuItem,
         ]
       : []),
+    ...(card.kind === "playlist" ? [exportItem({ kind: "youtube", id: card.id, name: card.title })] : []),
     copyItem(card.uri),
   ];
 }
