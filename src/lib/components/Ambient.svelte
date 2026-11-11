@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { fade } from "svelte/transition";
   import { artTones } from "$lib/art-tones.svelte";
   import { css } from "$lib/wallpaper";
@@ -9,13 +10,27 @@
   let { image, playing }: { image: string | null; playing: boolean } = $props();
   const tones = artTones(() => image);
   let hidden = $state(false);
+  let minimized = $state(false);
+
+  // The page stays "visible" when the window is minimized or hidden to the tray, so ask the window too.
+  $effect(() => {
+    const win = getCurrentWindow();
+    const sync = () =>
+      Promise.all([win.isMinimized(), win.isVisible()]).then(
+        ([min, visible]) => (minimized = min || !visible),
+        (e) => console.warn("[wallpaper] couldn't read the window state", e),
+      );
+    void sync();
+    const listening = [win.onResized(sync), win.onFocusChanged(sync)];
+    return () => listening.forEach((off) => void off.then((stop) => stop()));
+  });
 
   const style = $derived(tones.current ? tones.current.fields.map((f, i) => `--f${i}: ${css(f)}`).join("; ") : null);
 </script>
 
 <svelte:document onvisibilitychange={() => (hidden = document.visibilityState === "hidden")} />
 
-<div class="wallpaper" class:paused={hidden} aria-hidden="true">
+<div class="wallpaper" class:paused={hidden || minimized} aria-hidden="true">
   {#key style}
     {#if style}
       <div class="wash" class:dim={!playing} {style} in:fade={{ duration: 1400 }} out:fade={{ duration: 1400 }}>
