@@ -1,8 +1,14 @@
 // YouTube Music data for the views: Rust commands (which hold the session and talk to InnerTube)
 // plus the mappers that turn responses into Carbon's view models.
-import { invoke } from "@tauri-apps/api/core";
+import { invoke as tauriInvoke, type InvokeArgs } from "@tauri-apps/api/core";
 import * as map from "./mappers";
 import type { Json } from "./parse";
+
+/** Rust answers failures with a plain sentence; make it an Error so describeError shows it. */
+const invoke = <T>(command: string, args?: InvokeArgs): Promise<T> =>
+  tauriInvoke<T>(command, args).catch((e: unknown) => {
+    throw typeof e === "string" ? new Error(e) : e;
+  });
 
 export type SearchFilter = "songs" | "videos" | "albums" | "artists" | "playlists";
 

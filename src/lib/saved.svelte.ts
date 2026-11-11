@@ -4,6 +4,11 @@ import { SvelteMap } from "svelte/reactivity";
 import { describeError } from "$lib/errors";
 import * as sp from "$lib/spotify/endpoints";
 import { toasts } from "$lib/toast.svelte";
+import { rate } from "$lib/youtube/api";
+import { isYoutubeUri, parseYtmUri } from "$lib/youtube/uri";
+
+/** Likes a YouTube Music song (YouTube Music has no batch lookup: rows report likes instead). */
+const rateYoutube = (uri: string, like: boolean) => rate(parseYtmUri(uri)?.id ?? "", like);
 
 const BATCH_DELAY_MS = 25;
 
@@ -25,7 +30,7 @@ class Saved {
 
   /** Asks Spotify about URIs we don't know yet, batched with other requests this tick. */
   want(uris: string[]): void {
-    for (const uri of uris) if (!this.#known.has(uri)) this.#pending.add(uri);
+    for (const uri of uris) if (!this.#known.has(uri) && !isYoutubeUri(uri)) this.#pending.add(uri);
     if (this.#pending.size && !this.#timer) this.#timer = setTimeout(() => void this.#flush(), BATCH_DELAY_MS);
   }
 
@@ -50,7 +55,7 @@ class Saved {
     this.#busy.add(uri);
     this.#known.set(uri, !was);
     try {
-      await (was ? sp.unsave : sp.save)([uri]);
+      await (isYoutubeUri(uri) ? rateYoutube(uri, !was) : (was ? sp.unsave : sp.save)([uri]));
       return true;
     } catch (e) {
       console.error("[saved] toggle failed", e);
