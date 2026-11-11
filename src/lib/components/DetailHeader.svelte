@@ -39,7 +39,7 @@
 </script>
 
 <header class="detail">
-  <div class="art" class:round>
+  <div class="art" class:circle={round}>
     {#if image}
       <img src={image} alt="" width="232" height="232" />
       <img src={image} alt="" width="232" height="232" class="reflection" aria-hidden="true" />
@@ -94,8 +94,8 @@
     box-shadow: var(--shadow-art);
   }
 
-  .round img,
-  .round .placeholder {
+  .circle img,
+  .circle .placeholder {
     border-radius: var(--r-pill);
   }
 
