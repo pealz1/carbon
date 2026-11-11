@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
   <link rel="stylesheet" href="/assets/base.css?v=2">
   <link rel="stylesheet" href="/assets/auth.css?v=2">
-  <script type="module" src="/assets/auth/account.js?v=2"></script>
+  <script type="module" src="/assets/auth/account.js?v=3"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -58,7 +58,6 @@
             <h2 id="profile-h">Profile</h2>
             <dl class="facts-list">
               <div><dt>Email</dt><dd data-email></dd></div>
-              <div><dt>Plan</dt><dd><span class="plan-tag" data-plan>Free</span></dd></div>
               <div><dt>Member since</dt><dd data-since></dd></div>
             </dl>
             <p class="alt">Need to change your email? Write to <a class="link" href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> from your current address.</p>
@@ -140,7 +139,7 @@
 
           <section class="panel panel--danger" aria-labelledby="del-h">
             <h2 id="del-h">Delete account</h2>
-            <p>Permanently deletes your account, sessions and backup codes. Carbon+ purchases can’t be restored. This can’t be undone.</p>
+            <p>Permanently deletes your account, sessions and backup codes. This can’t be undone.</p>
             <div class="alert" role="alert" data-del-alert hidden></div>
             <div class="row" data-del-start>
               <button class="btn btn--danger" type="button" data-del-send><span data-label>Email me a confirmation code</span></button>

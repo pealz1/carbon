@@ -1,6 +1,6 @@
 /* /verify: enter the 6-digit code that confirms the email address. */
-import { verifyFlow } from "./flows.js?v=2";
-import { formAlert, setFlash, store, takeFlash } from "./ui.js?v=2";
+import { verifyFlow } from "./flows.js?v=3";
+import { formAlert, setFlash, store, takeFlash } from "./ui.js?v=3";
 
 const RESEND_SECONDS = 60;
 const form = document.querySelector('[data-form="verify"]');

@@ -1,6 +1,8 @@
 /* Shared form behaviour for the account pages. */
 
-import { ApiError, UNAVAILABLE } from "./api.js?v=2";
+import { ApiError, UNAVAILABLE } from "./api.js?v=3";
+import { COMMON_PASSWORDS } from "./common-passwords.js?v=3";
+import { UnsupportedBrowserError } from "./password-key.js?v=3";
 
 const DEFAULT_COOLDOWN = 60;
 
@@ -122,21 +124,20 @@ export function cooldown(button, seconds, label) {
 
 /*
   Server error codes (cloud/src): invalid_credentials, invalid_code, invalid_challenge,
-  invalid_grant, invalid_password, weak_password, invalid_request ("field: issue"),
-  csrf_failed, forbidden, unauthorized, not_found, rate_limited (429 + Retry-After),
-  server_misconfigured, internal_error. Field-level ones are placed on their input here;
+  invalid_grant, invalid_password, invalid_request ("field: issue"), csrf_failed, forbidden,
+  unauthorized, not_found, rate_limited (429 + Retry-After), service_busy and
+  email_unavailable (503 with a plain message), server_misconfigured, internal_error. Field-level ones are placed on their input here;
   flows handle invalid_credentials, invalid_challenge and invalid_grant themselves.
 */
 const FIELD_FOR_CODE = {
   invalid_code: "code",
   invalid_password: "currentPassword",
-  weak_password: "password",
 };
 
 const REQUEST_FIELD = [
   [/^email/, "email", "Enter a valid email address."],
-  [/^(newPassword|password)/, "password", "Check that the password meets the requirements."],
-  [/^currentPassword/, "currentPassword", "Enter your current password."],
+  [/^(newPasswordKey|passwordKey)/, "password", "Check the password and try again."],
+  [/^currentPasswordKey/, "currentPassword", "Enter your current password."],
   [/^code/, "code", "Enter the 6-digit code from your email."],
   [/^backupCode/, "backupCode", "Backup codes look like abcde-12345."],
 ];
@@ -166,6 +167,11 @@ function fieldFor(form, err) {
  * holds the submit button; network failures get the "not available yet" message.
  */
 export function showError(form, err, { submit } = {}) {
+  if (err instanceof UnsupportedBrowserError) {
+    console.error(err.cause);
+    formAlert(form, err.message);
+    return;
+  }
   if (!(err instanceof ApiError)) {
     console.error(err);
     formAlert(form, "Something went wrong on this page. Reload and try again.");
@@ -191,6 +197,10 @@ export function showError(form, err, { submit } = {}) {
       if (box) box.textContent = `${base} Try again in ${formatClock(left)}.`;
     }, 1000);
     if (submit) cooldown(submit, wait, "Try again");
+    return;
+  }
+  if (err.code === "service_busy" || err.code === "email_unavailable") {
+    formAlert(form, err.message);
     return;
   }
   if (err.status >= 500) {
@@ -229,6 +239,20 @@ export function onSubmit(form, { validate, run, onError }) {
       setBusy(submit, false);
     }
   });
+}
+
+/**
+ * Shows "Securing your password…" while the Argon2id key is derived (it blocks the page
+ * briefly), after letting the message paint. The message is cleared whatever happens.
+ */
+export async function securing(form, task) {
+  formAlert(form, "Securing your password…", "info");
+  await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+  try {
+    return await task();
+  } finally {
+    formAlert(form, "");
+  }
 }
 
 /* ---------- Inputs ---------- */
@@ -274,20 +298,23 @@ export function wireCode(container, { autoSubmit = true } = {}) {
   };
 }
 
-/* ---------- Password rules (mirrors the server: 10–128 chars, a letter, a number, no email name) ---------- */
+/*
+  ---------- Password rules (contract: cloud/API.md) ----------
+  10–128 characters, a letter, a number, not a common password, and not containing the email's
+  local part when that is at least 4 characters. The server only ever sees the derived key, so
+  these checks live here.
+*/
 
-const COMMON = new Set([
-  "password1234", "password123", "1234567890", "qwerty12345", "qwertyuiop1", "iloveyou123",
-  "abc1234567", "1q2w3e4r5t", "password1!", "letmein1234", "welcome1234", "football123",
-  "baseball123", "superman123", "spotify1234", "carbon12345", "monkey12345", "dragon12345",
-]);
+const COMMON = COMMON_PASSWORDS;
 
 export function passwordChecks(pw, email = "") {
-  const local = email.split("@")[0]?.toLowerCase() || "";
+  const at = email.lastIndexOf("@");
+  const local = (at > 0 ? email.slice(0, at) : "").trim().toLowerCase();
+  const length = [...pw].length;
   return {
-    length: pw.length >= 10 && pw.length <= 128,
+    length: length >= 10 && length <= 128,
     letter: /\p{L}/u.test(pw),
-    number: /\d/.test(pw),
+    number: /\p{N}/u.test(pw),
     email: !(local.length >= 4 && pw.toLowerCase().includes(local)),
   };
 }

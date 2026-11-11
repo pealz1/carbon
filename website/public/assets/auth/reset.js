@@ -1,7 +1,8 @@
 /* /reset: code + new password. Success revokes every session, so the browser is signed out. */
-import { api, sessionHint } from "./api.js?v=2";
-import { requireEmail, wireResend } from "./flows.js?v=2";
-import { fieldError, formAlert, onSubmit, setFlash, store, takeFlash, wireCode, wirePassword, wireReveal } from "./ui.js?v=2";
+import { api, sessionHint } from "./api.js?v=3";
+import { requireEmail, wireResend } from "./flows.js?v=3";
+import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=3";
+import { fieldError, formAlert, onSubmit, securing, setFlash, store, takeFlash, wireCode, wirePassword, wireReveal } from "./ui.js?v=3";
 
 const RESEND_SECONDS = 60;
 const form = document.querySelector('[data-form="reset"]');
@@ -14,6 +15,7 @@ const code = wireCode(form.querySelector(".code"), { autoSubmit: false });
 const pw = wirePassword({ input: password, email, rules: form.querySelector("[data-rules]"), meter: form.querySelector("[data-meter]") });
 
 wireReveal(form);
+password.addEventListener("focus", preloadArgon2, { once: true });
 const remembered = store.get("email");
 if (remembered) email.value = remembered;
 const flash = takeFlash();
@@ -42,7 +44,8 @@ onSubmit(form, {
   },
   async run() {
     const addr = email.value.trim();
-    await api("/v1/auth/reset", { method: "POST", body: { email: addr, code: code.value(), password: password.value } });
+    const passwordKey = await securing(form, () => derivePasswordKey(password.value, addr));
+    await api("/v1/auth/reset", { method: "POST", body: { email: addr, code: code.value(), passwordKey } });
     sessionHint.clear();
     store.set("email", addr);
     store.del("sent");

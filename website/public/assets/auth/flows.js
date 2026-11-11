@@ -7,11 +7,12 @@
     [data-step="verify"] form[data-form="verify"]  email (if unknown), .code
 */
 
-import { api, sessionHint } from "./api.js?v=2";
+import { api, sessionHint } from "./api.js?v=3";
+import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=3";
 import {
-  EMAIL_RE, cooldown, fieldError, formAlert, onSubmit, setBusy, showError, showStep, store,
+  EMAIL_RE, cooldown, fieldError, formAlert, onSubmit, securing, setBusy, showError, showStep, store,
   wireCode, wirePassword,
-} from "./ui.js?v=2";
+} from "./ui.js?v=3";
 
 const RESEND_SECONDS = 60;
 const $ = (root, sel) => root.querySelector(sel);
@@ -70,6 +71,7 @@ export function signInFlow(root, { onSignedIn, onNeedsVerify }) {
 
   const remembered = store.get("email");
   if (remembered && !email.value) email.value = remembered;
+  password.addEventListener("focus", preloadArgon2, { once: true });
 
   const resend = wireResend($(tfaStep, "[data-resend]"), tfaForm, () => api("/v1/auth/resend", { method: "POST", body: { challenge } }));
 
@@ -102,10 +104,18 @@ export function signInFlow(root, { onSignedIn, onNeedsVerify }) {
     },
     async run() {
       const addr = email.value.trim();
-      const res = await api("/v1/auth/login", { method: "POST", body: { email: addr, password: password.value } });
+      const passwordKey = await securing(loginForm, () => derivePasswordKey(password.value, addr));
+      const res = await api("/v1/auth/login", { method: "POST", body: { email: addr, passwordKey } });
+      store.set("email", addr);
+      // A remembered device signs straight in (no emailed code); otherwise the 2FA step follows.
+      if (res?.next === "done") {
+        sessionHint.set();
+        password.value = "";
+        await onSignedIn(res.user ?? null);
+        return;
+      }
       if (res?.next !== "2fa" || typeof res.challenge !== "string") throw new Error("Unexpected sign-in response");
       challenge = res.challenge;
-      store.set("email", addr);
       if (emailOut) emailOut.textContent = addr;
       code.clear();
       showStep(root, "2fa", { focus: false });
@@ -198,6 +208,7 @@ export function signUpFlow(form, { onCreated }) {
   const confirm = field(form, "confirm");
   const terms = field(form, "terms");
   const pw = wirePassword({ input: password, email, rules: $(form, "[data-rules]"), meter: $(form, "[data-meter]") });
+  password.addEventListener("focus", preloadArgon2, { once: true });
 
   confirm.addEventListener("input", () => {
     if (confirm.getAttribute("aria-invalid") && confirm.value === password.value) fieldError(confirm, "");
@@ -215,7 +226,8 @@ export function signUpFlow(form, { onCreated }) {
     },
     async run() {
       const addr = email.value.trim();
-      const res = await api("/v1/auth/signup", { method: "POST", body: { email: addr, password: password.value } });
+      const passwordKey = await securing(form, () => derivePasswordKey(password.value, addr));
+      const res = await api("/v1/auth/signup", { method: "POST", body: { email: addr, passwordKey } });
       if (res?.next && res.next !== "verify_email") console.warn("Unexpected signup step:", res.next);
       store.set("email", addr);
       await onCreated(addr, password.value);

@@ -1,8 +1,9 @@
 /* /account: profile, backup codes, sessions, password change and account deletion. */
-import { api, sessionHint, UNAVAILABLE } from "./api.js?v=2";
+import { api, sessionHint, UNAVAILABLE } from "./api.js?v=3";
+import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=3";
 import {
-  cooldown, fieldError, formAlert, onSubmit, setBusy, setFlash, showError, wireCode, wirePassword, wireReveal,
-} from "./ui.js?v=2";
+  cooldown, fieldError, formAlert, onSubmit, setBusy, setFlash, showError, wireCode, wirePassword, wireReveal, securing,
+} from "./ui.js?v=3";
 
 const LOGIN = "/login?next=%2Faccount";
 const CODE_RESEND_SECONDS = 60;
@@ -59,8 +60,6 @@ function ago(value) {
 function renderProfile(data) {
   const user = data.user || {};
   $$("[data-email]").forEach((el) => { el.textContent = user.email || ""; });
-  const plus = String(user.plan || "").toLowerCase().includes("plus");
-  $("[data-plan]").textContent = plus ? "Carbon+" : "Free";
   $("[data-since]").textContent = formatDate(user.createdAt);
   const left = Number(data.backupCodesRemaining);
   $("[data-backup-count]").textContent = Number.isFinite(left)
@@ -200,7 +199,9 @@ function wireBackupCodes() {
       return true;
     },
     async run() {
-      const res = await api("/v1/me/backup-codes", { method: "POST", body: { password: form.querySelector("input").value } });
+      const password = form.querySelector('[data-field="password"]').value;
+      const passwordKey = await securing(form, () => derivePasswordKey(password, me?.user?.email || ""));
+      const res = await api("/v1/me/backup-codes", { method: "POST", body: { passwordKey } });
       const codes = Array.isArray(res?.codes) ? res.codes.filter((c) => typeof c === "string") : [];
       if (!codes.length) throw new Error("No backup codes in response");
       list.replaceChildren(...codes.map((c) => Object.assign(document.createElement("li"), { textContent: c })));
@@ -262,7 +263,12 @@ function wirePasswordChange() {
       return !bad;
     },
     async run() {
-      await api("/v1/me/password", { method: "POST", body: { currentPassword: current.value, newPassword: next.value } });
+      const email = me?.user?.email || "";
+      const [currentPasswordKey, newPasswordKey] = await securing(form, async () => [
+        await derivePasswordKey(current.value, email),
+        await derivePasswordKey(next.value, email),
+      ]);
+      await api("/v1/me/password", { method: "POST", body: { currentPasswordKey, newPasswordKey } });
       form.reset();
       next.dispatchEvent(new Event("input"));
       formAlert(form, "Password changed. Your other sessions were signed out.", "ok");
@@ -320,7 +326,8 @@ function wireDelete() {
       return !bad;
     },
     async run() {
-      await api("/v1/me", { method: "DELETE", body: { password: pw.value, code: code.value() } });
+      const passwordKey = await securing(form, () => derivePasswordKey(pw.value, me?.user?.email || ""));
+      await api("/v1/me", { method: "DELETE", body: { passwordKey, code: code.value() } });
       sessionHint.clear();
       setFlash("Your Carbon account was deleted.");
       window.location.replace("/login");
@@ -338,6 +345,7 @@ $("[data-retry]").addEventListener("click", load);
 wireBackupCodes();
 wirePasswordChange();
 wireDelete();
+document.querySelectorAll('input[type="password"]').forEach((input) => input.addEventListener("focus", preloadArgon2, { once: true }));
 load();
 
 // Errors that escape a handler still reach the person, not just the console.

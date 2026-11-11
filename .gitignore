@@ -14,6 +14,6 @@ coverage
 .impeccable
 .wrangler
 
-# Private backend (accounts, Carbon+) lives in its own private repo
+# Private backend (accounts) lives in its own private repo
 cloud/
 .claude/

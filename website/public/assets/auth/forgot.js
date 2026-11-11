@@ -1,7 +1,7 @@
 /* /forgot: request a reset code. The answer is the same whether or not the email has an account. */
-import { api } from "./api.js?v=2";
-import { requireEmail } from "./flows.js?v=2";
-import { onSubmit, setFlash, store } from "./ui.js?v=2";
+import { api } from "./api.js?v=3";
+import { requireEmail } from "./flows.js?v=3";
+import { onSubmit, setFlash, store } from "./ui.js?v=3";
 
 const form = document.querySelector('[data-form="forgot"]');
 const email = form.querySelector('[data-field="email"]');

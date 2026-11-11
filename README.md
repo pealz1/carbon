@@ -49,9 +49,9 @@ You'll need Windows 10 or 11 and **Spotify Premium** (Spotify only allows Premiu
 
 > Windows may show a SmartScreen warning the first time, because Carbon isn't signed with a paid code-signing certificate yet. Choose **More info → Run anyway**.
 
-## Carbon+
+## Support Carbon
 
-Carbon is free and always will be. **Carbon+** is a one-time $4.99 upgrade, coming soon, that adds extra features and supports development. Everything you see in this repo stays free.
+Everything in Carbon is free, for everyone, and it stays that way. If you'd like to help keep it maintained, see [getcarbon.cc/#support](https://getcarbon.cc/#support). Donations are voluntary and don't unlock anything in the app.
 
 ## Building from source
 

@@ -15,10 +15,11 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
   <link rel="stylesheet" href="/assets/base.css?v=2">
   <link rel="stylesheet" href="/assets/devices.css?v=2">
-  <link rel="stylesheet" href="/assets/home.css?v=2">
+  <link rel="stylesheet" href="/assets/home.css?v=3">
   <script src="/assets/nav-auth.js?v=2" defer></script>
   <script src="/assets/tilt.js?v=2" defer></script>
   <script src="/assets/home.js?v=2" defer></script>
+  <script src="/assets/support.js?v=1" defer></script>
   <script src="/assets/hex.js?v=2" defer></script>
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Carbon">
@@ -309,18 +310,27 @@
       </div>
     </section>
 
-    <section class="plus" id="plus" aria-labelledby="plus-title">
+    <section class="support" id="support" aria-labelledby="support-title" data-support hidden>
       <div class="wrap">
-        <div class="plus__panel" data-tilt="3">
-          <p class="plus__price"><span class="plus__amount">$4.99</span><span class="plus__once">once</span></p>
-          <div class="plus__copy">
-            <div class="plus__head">
-              <h2 id="plus-title">Carbon+</h2>
-              <p class="plus__status"><span aria-hidden="true"></span>Coming soon</p>
-            </div>
-            <p>A one-time upgrade that adds extra features and funds Carbon’s development. No subscription, and the core app stays free.</p>
+        <div class="support__panel" data-tilt="3">
+          <p class="support__mark"><span class="support__word">Free</span><span class="support__note"><span class="sr-only">, </span>always</span></p>
+          <div class="support__copy">
+            <h2 id="support-title">Support Carbon</h2>
+            <p>Every feature in Carbon is free for everyone, and it stays that way. Donations pay for the hours that keep it maintained: bug fixes, security updates and keeping up with Spotify’s changes. Give once, or monthly.</p>
+            <div class="cta" data-support-links></div>
+            <p class="support__fine">A donation doesn’t unlock anything in the app, because everything is already free. If you’d like, your name can go on the Supporters wall. Supporters, like everyone, help steer the roadmap in <a class="link" href="https://github.com/pealz1/carbon/discussions">GitHub Discussions</a>.</p>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="wall" id="supporters" aria-labelledby="wall-title" data-supporters hidden>
+      <div class="wrap">
+        <div class="wall__head">
+          <h2 id="wall-title">Supporters wall</h2>
+          <p>People who donated and chose to be named. Thank you.</p>
+        </div>
+        <ul class="wall__list" data-supporters-list></ul>
       </div>
     </section>
 
@@ -347,9 +357,12 @@
             <summary>Is my Spotify login safe?<span class="qa__icon" aria-hidden="true"></span></summary>
             <div class="qa__a"><p>You sign in on Spotify’s own page, so your Spotify password never reaches Carbon. The token Carbon receives stays on your PC in Windows Credential Manager, and Carbon never needs your Client secret. The <a class="link" href="/privacy">privacy policy</a> has the details.</p></div>
           </details>
-          <details class="qa">
-            <summary>Is Carbon really free?<span class="qa__icon" aria-hidden="true"></span></summary>
-            <div class="qa__a"><p>Yes, and open source under the MIT license. Carbon+ will be an optional one-time $4.99 upgrade for extra features. The core app stays free.</p></div>
+          <details class="qa" data-support-faq>
+            <summary>How can I support Carbon?<span class="qa__icon" aria-hidden="true"></span></summary>
+            <div class="qa__a">
+              <p data-support-soon>Carbon is free, always, and open source under the MIT license. Donations, once or monthly, open soon and will go toward keeping it maintained. They won’t unlock anything in the app, because everything is already free. Until then, ideas and feedback in <a class="link" href="https://github.com/pealz1/carbon/discussions">GitHub Discussions</a> help the most.</p>
+              <p data-support-open hidden>Carbon is free, always, and open source under the MIT license. You can <a class="link" href="#support">donate once or monthly</a> to keep it maintained. A donation doesn’t unlock anything in the app, because everything is already free. Ideas and feedback in <a class="link" href="https://github.com/pealz1/carbon/discussions">GitHub Discussions</a> help too.</p>
+            </div>
           </details>
           <details class="qa">
             <summary>Why does Windows show a SmartScreen warning?<span class="qa__icon" aria-hidden="true"></span></summary>
@@ -376,7 +389,7 @@
           <ul>
             <li><a href="https://github.com/pealz1/carbon/releases/latest">Download</a></li>
             <li><a href="/setup">Setup guide</a></li>
-            <li><a href="/#plus">Carbon+</a></li>
+            <li><a href="/#support">Support Carbon</a></li>
             <li><a href="/#faq">FAQ</a></li>
           </ul>
         </nav>

@@ -559,13 +559,14 @@ section h2 { font-size: var(--t-h2); }
   .reqs div:nth-child(3) { border-left: 0; }
 }
 
-/* ---------- Carbon+ (an inverted, paper panel) ---------- */
+/* ---------- Support Carbon (an inverted, paper panel; shown only when support.json has a link) ---------- */
 
-.plus { padding-top: var(--s-9); }
+.support { padding-top: var(--s-9); }
 
-.plus__panel {
+.support__panel {
   --rx: 0deg;
   --ry: 0deg;
+  --focus: var(--c-ink);
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
@@ -579,33 +580,73 @@ section h2 { font-size: var(--t-h2); }
   transition: transform .5s var(--ease-out);
 }
 
-.plus__price { display: flex; align-items: baseline; gap: .6rem; line-height: .8; }
+.support__mark { display: flex; align-items: baseline; gap: .6rem; line-height: .8; }
 
-.plus__amount {
+.support__word {
   font-size: clamp(4rem, 2rem + 9vw, 10rem);
   font-weight: 800;
   font-stretch: 125%;
   letter-spacing: -.06em;
 }
 
-.plus__once { font: 500 var(--t-small) var(--f-mono); color: var(--c-ink-2); }
+.support__note { font: 500 var(--t-small) var(--f-mono); color: var(--c-ink-2); }
 
-.plus__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); margin-bottom: var(--s-3); }
-.plus h2 { font-size: var(--t-h2); }
-.plus__copy > p { max-width: 44ch; color: var(--c-ink-2); font-size: 1.05rem; }
+.support h2 { margin-bottom: var(--s-3); font-size: var(--t-h2); }
+.support__copy > p { max-width: 46ch; color: var(--c-ink-2); font-size: 1.05rem; }
+.support__copy .cta { margin-block: var(--s-5); }
+.support__copy .support__fine { font-size: var(--t-small); }
+.support .link { color: var(--c-ink); text-decoration-color: color-mix(in srgb, var(--c-ink) 45%, transparent); }
+.support .link:hover { text-decoration-color: var(--c-ink); }
 
-.plus__status { display: flex; align-items: center; gap: .5rem; font: 500 var(--t-small) var(--f-mono); color: var(--c-ink); }
-
-.plus__status span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #6a4fe0;
+/* Base buttons are drawn for the dark page; on paper they flip to ink. */
+.support .btn--primary {
+  background: var(--c-ink);
+  color: var(--c-paper);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--c-white) 14%, transparent) inset, 0 10px 20px -12px var(--c-black);
 }
+
+.support .btn--glass {
+  border-color: color-mix(in srgb, var(--c-ink) 30%, transparent);
+  background: transparent;
+  color: var(--c-ink);
+  box-shadow: none;
+}
+
+.support .btn--glass::before { background: color-mix(in srgb, var(--c-ink) 7%, transparent); }
 
 @media (max-width: 760px) {
-  .plus__panel { grid-template-columns: 1fr; }
+  .support__panel { grid-template-columns: 1fr; }
 }
+
+/* ---------- Supporters wall (renders only when supporters.json has entries) ---------- */
+
+.wall { padding-top: var(--s-8); }
+
+.wall__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-6);
+  margin-bottom: var(--s-5);
+}
+
+.wall__head p { color: var(--c-text-3); font: 500 var(--t-small) var(--f-mono); }
+
+.wall__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 0;
+  padding: var(--s-5) 0 0;
+  border-top: 1px solid var(--c-line);
+  list-style: none;
+  font-size: var(--t-h3);
+  font-weight: 600;
+  font-stretch: var(--w-semi);
+  letter-spacing: -.02em;
+}
+
+.wall__list li:not(:last-child)::after { content: "·"; margin-inline: .55em; color: var(--c-text-3); }
 
 /* ---------- FAQ ---------- */
 
