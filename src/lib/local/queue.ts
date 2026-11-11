@@ -58,14 +58,7 @@ export function engineRepeat(repeat: Repeat, run: Run, length: number): EngineRe
 }
 
 /** Shuffle keeps the current track playing and puts it first; everything else is shuffled. */
-export function shuffledFrom<T>(items: T[], index: number, random: () => number = Math.random): T[] {
-  const rest = items.filter((_, i) => i !== index);
-  for (let i = rest.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [rest[i], rest[j]] = [rest[j], rest[i]];
-  }
-  return [items[index], ...rest];
-}
+export { shuffledFrom } from "$lib/smart-shuffle";
 
 /**
  * Whether Spotify has finished the run Carbon gave it. The SDK has no "ended" event: the run is

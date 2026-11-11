@@ -33,6 +33,7 @@
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
   import { installSoundFeedback, setSoundGate } from "$lib/sfx";
+  import { useSmartShuffle } from "$lib/smart-shuffle-play";
   import { view } from "$lib/view.svelte";
 
   let { children }: { children: Snippet } = $props();
@@ -43,6 +44,7 @@
     void organizer.load();
     void view.syncFullscreen();
     void sound.boot();
+    useSmartShuffle();
     setSoundGate(() => ({
       enabled: prefs.value?.uiSounds ?? false,
       volume: prefs.value?.uiSoundVolume ?? 0,

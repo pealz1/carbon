@@ -33,6 +33,8 @@ export interface Settings {
   uiSounds: boolean;
   /** 0 to 1. */
   uiSoundVolume: number;
+  /** Carbon shuffles lists it can read itself, spacing out artists. */
+  smartShuffle: boolean;
   /** Brand updates applied to these settings; Rust owns it, the interface only passes it back. */
   brandVersion: number;
 }

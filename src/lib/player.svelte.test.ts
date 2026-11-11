@@ -112,4 +112,18 @@ describe("player additions", () => {
     expect(player.error).toBe("Spotify said no");
     expect(player.upNext?.map((t) => t.uri)).toEqual(["local:abc"]);
   });
+
+  it("plays Carbon's own shuffle of a list it could read, with shuffle shown on", async () => {
+    const tracks = ["a", "b", "c", "d"].map((id) => ({ id, uri: `spotify:track:${id}`, name: id, artists: [], album: null, durationMs: 1000, explicit: false }));
+    const source = vi.fn(async () => tracks);
+    player.shuffleSource = source;
+    expect(await player.shufflePlay("spotify:album:x", 4)).toBe(true);
+    expect(source).toHaveBeenCalledWith("spotify:album:x");
+    const body = vi.mocked(sp.playOn).mock.calls[0][1] as { uris: string[] };
+    expect([...body.uris].sort()).toEqual(tracks.map((t) => t.uri));
+    expect(sp.setShuffle).not.toHaveBeenCalled(); // Spotify's own shuffle stays out of it
+    expect(player.shuffle).toBe(true);
+    expect(player.upNext).toHaveLength(3);
+    player.shuffleSource = null;
+  });
 });
