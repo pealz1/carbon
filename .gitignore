@@ -16,4 +16,3 @@ coverage
 
 # Private backend (accounts) lives in its own private repo
 cloud/
-.claude/
