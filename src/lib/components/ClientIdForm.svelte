@@ -111,7 +111,7 @@
   }
 
   .save:hover:not(:disabled) {
-    transform: scale(1.04);
+    background: var(--accent-strong);
   }
 
   .save:disabled {

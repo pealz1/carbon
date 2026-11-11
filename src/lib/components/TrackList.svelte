@@ -118,10 +118,12 @@
     grid-template-columns: 40px minmax(0, 1.4fr) minmax(0, 1fr) 28px 30px 48px 30px;
   }
 
+  /* Compact (queue, search, home): tighter columns so names get the room. */
   .compact .row {
     height: 50px;
-    grid-template-columns: 28px minmax(0, 1fr) 28px 28px 44px 28px;
-    gap: var(--sp-2);
+    grid-template-columns: 22px minmax(0, 1fr) 28px 28px 38px 28px;
+    gap: 6px;
+    padding: 0 var(--sp-1);
     contain-intrinsic-size: auto 50px;
   }
 

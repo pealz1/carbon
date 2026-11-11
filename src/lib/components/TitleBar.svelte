@@ -66,7 +66,6 @@
 
 <style>
   .titlebar {
-    grid-area: title;
     height: var(--titlebar-h);
     display: flex;
     align-items: center;

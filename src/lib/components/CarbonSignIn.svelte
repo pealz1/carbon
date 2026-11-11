@@ -1,6 +1,5 @@
 <script lang="ts">
   import { account } from "$lib/account.svelte";
-  import Logo from "./Logo.svelte";
   import TitleBar from "./TitleBar.svelte";
   import Wordmark from "./Wordmark.svelte";
 
@@ -10,10 +9,8 @@
 <div class="signin">
   <TitleBar controls={false} />
   <section class="hero">
-    <div class="mark"><Logo size={88} /></div>
-    <p class="eyebrow">Step one · your Carbon account</p>
     <h1><Wordmark height={120} /><span class="sr-only">carbon</span></h1>
-    <p class="lede">Sign in to your Carbon account, or create one, in your browser. Then connect Spotify and start listening.</p>
+    <p class="lede">Step one: sign in to your Carbon account, or create one, in your browser. Then connect Spotify and start listening.</p>
     <div class="cta">
       <button onclick={() => account.signIn()} disabled={waiting}>{waiting ? "Waiting for your browser…" : "Sign in to Carbon"}</button>
       {#if waiting}
@@ -39,10 +36,6 @@
     align-self: end;
     padding: 0 var(--sp-7) var(--sp-7);
     max-width: 760px;
-  }
-
-  .mark {
-    margin-bottom: var(--sp-6);
   }
 
   h1 {
@@ -85,7 +78,7 @@
   }
 
   button:hover:not(:disabled) {
-    transform: scale(1.04);
+    background: var(--accent-strong);
   }
 
   button:disabled {

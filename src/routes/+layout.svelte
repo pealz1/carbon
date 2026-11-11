@@ -148,6 +148,10 @@
     color: var(--chrome-text);
   }
 
+  .app :global(.titlebar) {
+    grid-area: title;
+  }
+
   .app.rail {
     --side: var(--rail-w);
   }

@@ -56,63 +56,66 @@
     opacity: 0.55;
   }
 
+  /* Each field is drawn at half size and scaled 2x: a soft gradient loses nothing, and the GPU
+     composites a quarter of the pixels every frame. */
   .field {
     position: absolute;
-    width: 76vmax;
-    height: 76vmax;
+    width: 38vmax;
+    height: 38vmax;
     border-radius: 50%;
+    transform: scale(2);
     will-change: transform;
   }
 
   .a {
-    left: -26vmax;
-    top: -34vmax;
+    left: -7vmax;
+    top: -15vmax;
     background: radial-gradient(closest-side, var(--f0), transparent);
     animation: drift-a 46s var(--ease-out) infinite alternate;
   }
 
   .b {
-    right: -30vmax;
-    top: -38vmax;
+    right: -11vmax;
+    top: -19vmax;
     background: radial-gradient(closest-side, var(--f1), transparent);
     animation: drift-b 58s var(--ease-out) infinite alternate;
   }
 
   .c {
-    left: -30vmax;
-    bottom: -40vmax;
+    left: -11vmax;
+    bottom: -21vmax;
     background: radial-gradient(closest-side, var(--f3), transparent);
     animation: drift-c 52s var(--ease-out) infinite alternate;
   }
 
   .d {
-    right: -24vmax;
-    bottom: -44vmax;
+    right: -5vmax;
+    bottom: -25vmax;
     background: radial-gradient(closest-side, var(--f0), transparent);
     animation: drift-d 64s var(--ease-out) infinite alternate;
   }
 
   @keyframes drift-a {
     to {
-      transform: translate3d(18vmax, 8vmax, 0) scale(1.12);
+      transform: translate3d(18vmax, 8vmax, 0) scale(2.24);
     }
   }
 
   @keyframes drift-b {
     to {
-      transform: translate3d(-22vmax, 10vmax, 0) scale(0.9);
+      transform: translate3d(-22vmax, 10vmax, 0) scale(1.8);
     }
   }
 
   @keyframes drift-c {
     to {
-      transform: translate3d(16vmax, -6vmax, 0) scale(1.15);
+      transform: translate3d(16vmax, -6vmax, 0) scale(2.3);
     }
   }
 
   @keyframes drift-d {
     to {
-      transform: translate3d(-20vmax, -8vmax, 0) scale(0.92);
+      transform: translate3d(-20vmax, -8vmax, 0) scale(1.84);
     }
   }
 
