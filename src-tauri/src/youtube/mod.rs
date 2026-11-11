@@ -70,19 +70,36 @@ fn succeeded(response: &Value) -> Result<(), String> {
 pub fn forget(app: &AppHandle) -> Result<(), String> {
     auth::clear()?;
     app.state::<Youtube>().set_cookies(None);
+    // Sync commands run on the main thread, where touching WebView2's cookies deadlocks.
+    let app = app.clone();
+    std::thread::spawn(move || {
+        if let Err(e) = signin::clear_profile(&app) {
+            eprintln!("[youtube] {e}");
+        }
+    });
     Ok(())
 }
 
+/// Whether Carbon holds a YouTube Music session. Also refreshes the API's copy of the cookies from
+/// the browser profile, where Google keeps rotating some of them.
 #[tauri::command]
-pub async fn ytm_signed_in(yt: State<'_, Youtube>) -> Result<bool, String> {
-    Ok(yt.cookies()?.is_some())
+pub async fn ytm_signed_in(app: AppHandle, yt: State<'_, Youtube>) -> Result<bool, String> {
+    let Some(saved) = yt.cookies()? else { return Ok(false) };
+    if let Ok(Some(fresh)) = signin::profile_session(&app).await
+        && fresh != saved
+    {
+        auth::save(&fresh)?;
+        yt.set_cookies(Some(fresh));
+    }
+    Ok(true)
 }
 
+/// Signs out everywhere: Credential Manager, memory and Carbon's browser profile (the player).
 #[tauri::command]
-pub async fn ytm_sign_out(yt: State<'_, Youtube>) -> Result<(), String> {
+pub async fn ytm_sign_out(app: AppHandle, yt: State<'_, Youtube>) -> Result<(), String> {
     auth::clear()?;
     yt.set_cookies(None);
-    Ok(())
+    tauri::async_runtime::spawn_blocking(move || signin::clear_profile(&app)).await.map_err(|e| e.to_string())?
 }
 
 /// The signed-in account's menu (name, handle, photo), or null when signed out.

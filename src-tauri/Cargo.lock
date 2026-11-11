@@ -587,6 +587,8 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tower",
+ "webview2-com",
+ "windows-core",
 ]
 
 [[package]]

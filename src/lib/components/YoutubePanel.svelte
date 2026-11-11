@@ -24,8 +24,8 @@
     </div>
   {:else}
     <p class="muted">
-      Browse, search and play without an account. Sign in with Google to see your library, like songs and edit your playlists. Google's own sign-in page opens in
-      a separate window; Carbon keeps the resulting session in Windows Credential Manager.
+      Browse, search and play without an account. Sign in with Google to see your library, like songs, edit your playlists and play without ads on Premium.
+      Google's own sign-in page opens in a separate window.
     </p>
     <div class="actions">
       <button class="pill accent" onclick={() => youtube.signIn()} disabled={youtube.busy}>
@@ -34,6 +34,7 @@
     </div>
   {/if}
   {#if youtube.error}<p class="warn" role="alert">{youtube.error}</p>{/if}
+  <p class="muted">Your YouTube session is stored in Carbon's browser profile, encrypted by Windows, so the player is signed in too.</p>
   <p class="note">
     Carbon talks to YouTube Music through its private web API, the one music.youtube.com uses. Google doesn't offer it to other apps and may change or block it
     at any time, and using it may break YouTube's Terms of Service, which could put your Google account at risk. Songs play in YouTube's official player, with

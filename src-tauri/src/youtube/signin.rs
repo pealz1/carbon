@@ -1,6 +1,8 @@
-//! The YouTube Music sign-in window: Google's own sign-in page in a private (in-memory) webview
-//! with no access to Carbon's commands. Once it lands on music.youtube.com with a session, the
-//! cookies are read here, saved to Credential Manager and the window closes.
+//! The YouTube Music sign-in window: Google's own sign-in page, with no access to Carbon's commands.
+//! It shares Carbon's WebView2 profile, so the embedded player is signed in too (Premium plays
+//! without ads; age-restricted songs play). Once it lands on music.youtube.com with a session, the
+//! cookies are copied to Credential Manager for the API, and the window closes. Signing out clears
+//! both copies.
 use super::{Youtube, auth};
 use std::time::Duration;
 use tauri::webview::PageLoadEvent;
@@ -8,6 +10,7 @@ use tauri::{AppHandle, Manager, State, Url, WebviewUrl, WebviewWindow, WebviewWi
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 const LABEL: &str = "youtube-signin";
+const MAIN: &str = "main";
 const LOGIN_URL: &str = "https://accounts.google.com/ServiceLogin?service=youtube&passive=true&continue=https%3A%2F%2Fmusic.youtube.com%2F";
 const TIMEOUT: Duration = Duration::from_secs(600);
 const BLOCKED: &str = "Google didn't allow signing in from Carbon's window (it said the browser may not be secure). \
@@ -35,7 +38,6 @@ fn build(app: &AppHandle, tx: UnboundedSender<Event>) -> Result<WebviewWindow, S
         .title("Sign in to YouTube Music")
         .inner_size(480.0, 720.0)
         .center()
-        .incognito(true)
         .on_navigation(move |url| {
             if is_rejected(url) {
                 let _ = nav.send(Event::Blocked);
@@ -59,6 +61,44 @@ fn build(app: &AppHandle, tx: UnboundedSender<Event>) -> Result<WebviewWindow, S
         }
     });
     Ok(window)
+}
+
+/// Removes the Google session from Carbon's WebView2 profile by clearing the profile's cookies.
+/// One by one doesn't work: WebView2 won't delete YouTube's partitioned cookies individually. Only
+/// the embedded players keep cookies there (Spotify's sign-in is a token in Credential Manager),
+/// so nothing else is lost. Blocking: call it from a worker thread, not WebView2's.
+#[cfg(windows)]
+pub fn clear_profile(app: &AppHandle) -> Result<(), String> {
+    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2_2;
+    use windows_core::Interface;
+    let Some(main) = app.get_webview_window(MAIN) else { return Ok(()) };
+    let (tx, rx) = std::sync::mpsc::channel();
+    main.with_webview(move |webview| {
+        // SAFETY: WebView2 COM calls, made on its own UI thread, where with_webview runs this.
+        let result = unsafe { webview.controller().CoreWebView2().and_then(|core| core.cast::<ICoreWebView2_2>()).and_then(|core| core.CookieManager()) }
+            .and_then(|manager| unsafe { manager.DeleteAllCookies() });
+        let _ = tx.send(result.map_err(|e| e.to_string()));
+    })
+    .map_err(|e| e.to_string())?;
+    rx.recv_timeout(Duration::from_secs(5))
+        .map_err(|_| "Clearing the YouTube session took too long.".to_string())?
+        .map_err(|e| format!("Couldn't clear the YouTube session: {e}"))
+}
+
+#[cfg(not(windows))]
+pub fn clear_profile(app: &AppHandle) -> Result<(), String> {
+    match app.get_webview_window(MAIN) {
+        Some(main) => main.clear_all_browsing_data().map_err(|e| e.to_string()),
+        None => Ok(()),
+    }
+}
+
+/// The session Carbon's profile holds now: Google rotates some cookies while the player runs.
+pub async fn profile_session(app: &AppHandle) -> Result<Option<String>, String> {
+    match app.get_webview_window(MAIN) {
+        Some(main) => session(&main).await,
+        None => Ok(None),
+    }
 }
 
 /// The window's YouTube cookies, if they hold a signed-in session.
