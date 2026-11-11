@@ -109,8 +109,8 @@
 .prose li { text-wrap: pretty; }
 .prose li::marker { color: var(--c-text-3); }
 .prose strong { color: var(--c-text); font-weight: 600; }
-.prose a { color: var(--c-text); text-decoration-color: color-mix(in srgb, var(--c-violet) 70%, transparent); text-underline-offset: .2em; }
-.prose a:hover { text-decoration-color: var(--c-cyan); }
+.prose a { color: var(--c-text); text-decoration-color: color-mix(in srgb, var(--c-yellow) 60%, transparent); text-underline-offset: .2em; }
+.prose a:hover { text-decoration-color: var(--c-yellow); }
 .prose code { padding: .1em .35em; border-radius: 5px; background: var(--c-surface-3); color: var(--c-text); font-size: .88em; }
 
 .prose dl { display: grid; gap: var(--s-3); }
@@ -187,10 +187,10 @@
 .form-mock > div + div { border-top: 1px solid var(--c-line); }
 .form-mock dt { color: var(--c-text-3); font-size: var(--t-small); padding-top: .15rem; }
 .form-mock dd { margin: 0; color: var(--c-text); }
-.form-mock .is-key { background: color-mix(in srgb, var(--c-violet) 8%, transparent); }
+.form-mock .is-key { background: color-mix(in srgb, var(--c-yellow) 8%, transparent); }
 .form-mock small { display: block; margin-top: .3rem; color: var(--c-text-2); }
 
-.uri { font-size: .95rem; color: var(--c-cyan); word-break: break-all; }
+.uri { font-size: .95rem; color: var(--c-yellow); word-break: break-all; }
 
 .checks { display: flex; flex-wrap: wrap; gap: .5rem; }
 .checks span { display: inline-flex; align-items: center; gap: .4rem; }

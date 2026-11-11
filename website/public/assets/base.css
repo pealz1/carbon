@@ -3,22 +3,21 @@
 :root {
   color-scheme: dark;
 
-  /* Colour */
-  --c-bg: #08090c;
-  --c-surface: #0f1116;
-  --c-surface-2: #161a21;
-  --c-surface-3: #1d212a;
-  --c-text: #eef0f4;
-  --c-text-2: #b2b8c4;
-  --c-text-3: #8a91a0;
-  --c-paper: #ebe8e1;
-  --c-ink: #0b0c0f;
-  --c-ink-2: #4a4d55;
-  --c-cyan: #7fe7ff;
-  --c-violet: #a99cff;
-  --c-pink: #ff8ad4;
+  /* Colour (brand/BRAND.md). Yellow is a fill or text on graphite only; on yellow and paper, text is ink. */
+  --c-bg: #090907;
+  --c-surface: #10100d;
+  --c-surface-2: #181714;
+  --c-surface-3: #22221e;
+  --c-text: #efefe6;
+  --c-text-2: #bfbeb6;
+  --c-text-3: #9f9f96;
+  --c-paper: #efefe6;
+  --c-ink: #10100d;
+  --c-ink-2: #5e5e58;
+  --c-yellow: #fae91d;
+  --c-yellow-deep: #e4d530;
   --c-ok: #7ee2a8;
-  --c-warn: #ffc56b;
+  --c-warn: #f99549;
   --c-err: #ff7a8a;
   --c-white: #fff;
   --c-black: #000;
@@ -27,8 +26,10 @@
   --c-glass: color-mix(in srgb, var(--c-white) 5%, transparent);
   --c-glass-2: color-mix(in srgb, var(--c-white) 9%, transparent);
   --c-shade: color-mix(in srgb, var(--c-black) 60%, transparent);
-  --grad-iris: linear-gradient(115deg, var(--c-cyan), var(--c-violet) 48%, var(--c-pink));
-  --focus: var(--c-cyan);
+  --grad-spark: linear-gradient(115deg, var(--c-yellow), var(--c-yellow-deep));
+  /* Made-up album art in the mockups: any colours but the brand's, like real covers. */
+  --art-sunset: conic-gradient(from 210deg at 32% 68%, #ff7a45, #e8577a, #3a1420, #ff7a45);
+  --focus: var(--c-yellow);
 
   /* Type */
   --f-text: "Archivo", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
@@ -132,7 +133,7 @@ code,
 kbd,
 .mono { font-family: var(--f-mono); font-size: .92em; }
 
-::selection { background: color-mix(in srgb, var(--c-violet) 45%, transparent); color: var(--c-white); }
+::selection { background: var(--c-yellow); color: var(--c-ink); }
 
 :focus-visible {
   outline: 2px solid var(--focus);
@@ -208,18 +209,16 @@ body::after {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: .55rem;
+  gap: 11px;
   margin-right: auto;
   color: var(--c-text);
   text-decoration: none;
-  font-weight: 700;
-  font-stretch: var(--w-wide);
-  font-size: 1.2rem;
-  letter-spacing: -.045em;
   border-radius: var(--r-sm);
 }
 
-.brand img { width: 30px; height: 30px; }
+/* Lockup: mark 1.12x the wordmark's ascender, gap half the mark's width (brand/BRAND.md). */
+.brand img { flex: none; width: 30px; height: 30px; }
+.brand .brand__word { width: auto; height: 27px; }
 
 .nav { display: flex; align-items: center; gap: var(--s-1); }
 
@@ -269,7 +268,7 @@ body::after {
   inset: -2px;
   z-index: -1;
   border-radius: 50%;
-  background: var(--grad-iris);
+  background: var(--grad-spark);
 }
 
 .avatar:hover { transform: translateY(-2px) rotate(-6deg); }
@@ -297,8 +296,12 @@ body::after {
   .bar { gap: var(--s-2); }
 }
 
+/* The header can't fit the full lockup next to the nav on small phones: mark only. */
+@media (max-width: 460px) {
+  .bar .brand__word { display: none; }
+}
+
 @media (max-width: 370px) {
-  .brand__word { display: none; }
   .nav__link { padding: 0 .5rem; }
 }
 
@@ -353,7 +356,7 @@ body::after {
 
 /* Hold fill */
 .btn::after {
-  background: var(--grad-iris);
+  background: var(--grad-spark);
   opacity: .32;
   transform: scaleX(0);
   transform-origin: left center;
@@ -390,10 +393,13 @@ body::after {
 .btn .ico { width: 18px; height: 18px; }
 
 .btn--primary {
-  background: var(--c-paper);
+  background: var(--c-yellow);
   color: var(--c-ink);
-  box-shadow: 0 1px 0 var(--c-white) inset, 0 -1px 0 color-mix(in srgb, var(--c-black) 18%, transparent) inset, 0 8px 18px -10px var(--c-black);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--c-white) 55%, transparent) inset, 0 -1px 0 color-mix(in srgb, var(--c-black) 18%, transparent) inset, 0 8px 18px -10px var(--c-black);
 }
+
+/* On yellow the hold sweep darkens instead, so ink text keeps its contrast. */
+.btn--primary::after { background: var(--c-ink); opacity: .18; }
 
 .btn--glass {
   border-color: var(--c-line-2);
@@ -450,12 +456,12 @@ body::after {
 .link {
   color: var(--c-text);
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--c-violet) 70%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--c-yellow) 60%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: .22em;
 }
 
-.link:hover { text-decoration-color: var(--c-cyan); }
+.link:hover { text-decoration-color: var(--c-yellow); }
 
 /* ---------- Form controls ---------- */
 
@@ -567,7 +573,7 @@ body::after {
   transition: transform var(--d-fast) var(--ease-spring);
 }
 
-.check input:checked { background: var(--c-paper); border-color: var(--c-paper); }
+.check input:checked { background: var(--c-yellow); border-color: var(--c-yellow); }
 .check input:checked::after { transform: translateY(-1px) rotate(-45deg) scale(1); }
 .check input:active { transform: scale(.88); }
 .check input[aria-invalid="true"] { border-color: var(--c-err); }
@@ -596,7 +602,7 @@ body::after {
 .alert--ok { border-color: color-mix(in srgb, var(--c-ok) 45%, transparent); background: color-mix(in srgb, var(--c-ok) 8%, transparent); }
 .alert--ok::before { background: var(--c-ok); }
 .alert--info { border-color: var(--c-line-2); background: var(--c-glass); }
-.alert--info::before { background: var(--c-cyan); }
+.alert--info::before { background: var(--c-yellow); }
 .alert:empty,
 .alert[hidden] { display: none; }
 

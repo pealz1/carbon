@@ -1,8 +1,8 @@
 /*
-  The Carbon mark as liquid glass: a raw WebGL fragment shader draws the open hexagon
-  as a glass tube that refracts a band of light behind it, with per-channel dispersion,
-  a pointer-driven specular highlight and a glowing core. Scroll position shifts the
-  light and turns the mark slightly.
+  The Carbon mark as a yellow slab: a raw WebGL fragment shader draws the mark from its
+  signed distance field, bevels the rim, lets a band of warm light glint through the face
+  and follows the pointer with a specular highlight. Scroll position shifts the light and
+  turns the mark slightly.
   Runs only while on screen, never with reduced motion, and falls back to the still image.
 */
 (() => {
@@ -28,51 +28,45 @@
     uniform vec2 uPointer;
     uniform float uScroll;
 
-    const vec2 P0 = vec2( 0.7621,  0.44);
-    const vec2 P1 = vec2( 0.0,     0.88);
-    const vec2 P2 = vec2(-0.7621,  0.44);
-    const vec2 P3 = vec2(-0.7621, -0.44);
-    const vec2 P4 = vec2( 0.0,    -0.88);
-    const vec2 P5 = vec2( 0.7621, -0.44);
-    const float R = 0.19;
-    const float CORE = 0.2;
-    const vec3 BG = vec3(0.0314, 0.0353, 0.0471);
+    const float R = 0.86;          // half the mark's height (brand/carbon-mark.svg)
+    const float BEVEL = 0.075;
+    const vec3 BG = vec3(0.0353, 0.0353, 0.0275);     // #090907
+    const vec3 YELLOW = vec3(0.980, 0.914, 0.114);    // #FAE91D
+    const vec3 DEEP = vec3(0.894, 0.835, 0.188);      // #E4D530
+    const vec3 WARM = vec3(1.0, 0.97, 0.88);
 
-    vec3 iris(float x) {
-      vec3 c = vec3(0.498, 0.906, 1.0);
-      vec3 v = vec3(0.663, 0.612, 1.0);
-      vec3 k = vec3(1.0, 0.541, 0.831);
-      x = clamp(x, 0.0, 1.0);
-      return x < 0.5 ? mix(c, v, x * 2.0) : mix(v, k, x * 2.0 - 1.0);
+    // Pointy-top hexagon with the given apothem.
+    float hexagon(vec2 p, float r) {
+      const vec3 k = vec3(-0.866025404, 0.5, 0.577350269);
+      p = abs(p.yx);
+      p -= 2.0 * min(dot(k.xy, p), 0.0) * k.xy;
+      p -= vec2(clamp(p.x, -k.z * r, k.z * r), r);
+      return length(p) * sign(p.y);
     }
 
-    vec2 toSeg(vec2 p, vec2 a, vec2 b) {
-      vec2 pa = p - a, ba = b - a;
-      float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-      return pa - ba * h;
+    float box(vec2 p, vec2 b) {
+      vec2 d = abs(p) - b;
+      return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
     }
 
-    vec2 pick(vec2 best, vec2 v) { return dot(v, v) < dot(best, best) ? v : best; }
-
-    vec2 ringVec(vec2 p) {
-      vec2 b = toSeg(p, P0, P1);
-      b = pick(b, toSeg(p, P1, P2));
-      b = pick(b, toSeg(p, P2, P3));
-      b = pick(b, toSeg(p, P3, P4));
-      b = pick(b, toSeg(p, P4, P5));
-      return b;
+    // The mark: a carbon ring (hexagon minus a half-size counter) opened on the right.
+    float mark(vec2 p) {
+      float outer = hexagon(p, 0.866025 * R);
+      float counter = hexagon(p, 0.433013 * R);
+      float aperture = box(p - vec2(R, 0.0), vec2(R, 0.25 * R));
+      return max(outer, -min(counter, aperture));
     }
 
-    // The light the glass bends: two soft beams, fine ruling and a faint field.
+    // The light the slab catches: two soft beams, fine ruling and a faint field.
     vec3 scene(vec2 q) {
       float a = -0.32 + uPointer.x * 0.1;
       vec2 r = mat2(cos(a), -sin(a), sin(a), cos(a)) * q;
       float y = r.y + uScroll * 0.45;
       float beam = exp(-pow((y - 0.12) / 0.07, 2.0));
       float wide = exp(-pow((y + 0.42) / 0.2, 2.0)) * 0.5;
-      float rule = smoothstep(0.82, 1.0, 0.5 + 0.5 * sin(y * 46.0 + uTime * 0.6)) * 0.07;
-      vec3 hue = iris(0.5 + r.x * 0.32 + 0.08 * sin(uTime * 0.25));
-      return BG + hue * (beam * 0.95 + wide * 0.55) + vec3(rule) + hue * 0.035;
+      float rule = smoothstep(0.82, 1.0, 0.5 + 0.5 * sin(y * 46.0 + uTime * 0.6)) * 0.06;
+      vec3 hue = mix(YELLOW, WARM, 0.5 + 0.5 * sin(r.x * 1.6 + uTime * 0.25));
+      return BG + hue * (beam * 0.9 + wide * 0.5) + vec3(rule) + hue * 0.02;
     }
 
     void main() {
@@ -85,53 +79,31 @@
       vec2 w = mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * p;
       w.x /= 1.0 - abs(uPointer.x) * 0.06;
       w.y /= 1.0 - abs(uPointer.y) * 0.04;
-
-      // Slow liquid wobble of the surface.
-      vec2 wob = 0.012 * vec2(sin(w.y * 5.0 + uTime * 0.9), cos(w.x * 4.0 - uTime * 0.7));
-      vec2 ww = w + wob;
+      vec2 ww = w + 0.006 * vec2(sin(w.y * 5.0 + uTime * 0.9), cos(w.x * 4.0 - uTime * 0.7));
 
       float vig = smoothstep(1.45, 0.35, length(p));
-      vec3 col = mix(BG, scene(p) * 0.42 + BG * 0.58, vig);
+      vec3 col = mix(BG, scene(p) * 0.34 + BG * 0.66, vig);
 
-      vec3 L = normalize(vec3(uPointer * 0.9 + vec2(-0.35, 0.55), 0.85));
-      vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
+      float d = mark(ww);
+      col += YELLOW * exp(-max(d, 0.0) * 14.0) * 0.09 * vig;
 
-      // Glass ring
-      vec2 v = ringVec(ww);
-      float d = length(v);
-      float tintX = (ww.x - ww.y) * 0.36 + 0.5;
-      vec3 tint = iris(tintX);
-      col += tint * exp(-max(d - R, 0.0) * 14.0) * 0.1 * vig;
+      if (d < px) {
+        // A bevelled slab: the face is flat, the rim rolls off over BEVEL.
+        float e = 0.003;
+        vec2 g = vec2(mark(ww + vec2(e, 0.0)) - d, mark(ww + vec2(0.0, e)) - d) / e;
+        float rim = 1.0 - clamp(-d / BEVEL, 0.0, 1.0);
+        vec3 n = normalize(vec3(g * rim * rim * 2.2, 1.0));
 
-      if (d < R + px) {
-        vec2 nxy = v / R;
-        float nz = sqrt(max(1.0 - dot(nxy, nxy), 0.0));
-        vec3 n = normalize(vec3(nxy, nz));
-        vec2 off = -n.xy * (0.2 + 0.12 * nz);
-        vec3 refr = vec3(
-          scene(p + off * 0.9).r,
-          scene(p + off).g,
-          scene(p + off * 1.12).b
-        );
-        vec3 glass = mix(refr * 1.5, tint, 0.5) * (0.6 + 0.4 * nz);
-        float fres = pow(1.0 - nz, 2.6);
-        glass += mix(tint, vec3(1.0), 0.5) * fres * 0.55;
-        glass += vec3(1.0) * (pow(max(dot(n, H), 0.0), 120.0) * 0.85 + pow(max(dot(n, H), 0.0), 12.0) * 0.16);
-        float a = smoothstep(R + px, R - px, d);
-        col = mix(col, glass, a);
-      }
+        vec3 L = normalize(vec3(uPointer * 0.9 + vec2(-0.35, 0.55), 0.85));
+        vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
+        float lit = 0.62 + 0.38 * max(dot(n, L), 0.0);
+        vec3 base = mix(DEEP, YELLOW, smoothstep(-0.9, 0.7, ww.y - ww.x * 0.25));
+        vec3 through = scene(p - n.xy * 0.22) - BG;
 
-      // Glowing core
-      float cd = length(ww);
-      col += vec3(0.66, 0.61, 1.0) * exp(-max(cd - CORE, 0.0) * 12.0) * 0.22 * step(CORE, cd);
-      if (cd < CORE + px) {
-        vec2 cxy = ww / CORE;
-        float cz = sqrt(max(1.0 - dot(cxy, cxy), 0.0));
-        vec3 cn = normalize(vec3(cxy, cz));
-        vec3 pearl = mix(vec3(0.72, 0.68, 1.0), vec3(1.0), pow(cz, 0.7));
-        pearl += vec3(1.0) * pow(max(dot(cn, H), 0.0), 60.0) * 0.8;
-        pearl *= 0.88 + 0.12 * sin(uTime * 1.4);
-        col = mix(col, pearl, smoothstep(CORE + px, CORE - px, cd));
+        vec3 slab = base * lit + through * 0.32;
+        slab += WARM * pow(1.0 - n.z, 1.6) * 0.35;
+        slab += vec3(1.0) * (pow(max(dot(n, H), 0.0), 90.0) * 0.75 + pow(max(dot(n, H), 0.0), 10.0) * 0.06);
+        col = mix(col, slab, smoothstep(px, -px, d));
       }
 
       gl_FragColor = vec4(col, 1.0);
@@ -169,7 +141,7 @@
     try {
       prog = createProgram(gl);
     } catch (err) {
-      console.warn("Liquid hexagon disabled:", err);
+      console.warn("Carbon mark shader disabled:", err);
       return;
     }
 
