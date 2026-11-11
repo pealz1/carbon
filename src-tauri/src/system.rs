@@ -1,5 +1,5 @@
 //! App info, uninstalling and removing saved data.
-use crate::{carbon_playlists, discord, engine, lastfm, library, local_library, settings, token_store};
+use crate::{carbon_playlists, discord, engine, lastfm, library, local_library, settings, token_store, youtube};
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
@@ -51,5 +51,6 @@ pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     engine::delete_data(&app)?;
     app.state::<local_library::LocalLibrary>().delete_data()?;
     app.state::<carbon_playlists::Store>().delete_data()?;
+    youtube::forget(&app)?;
     settings::delete(&app)
 }

@@ -572,6 +572,7 @@ dependencies = [
  "rubato",
  "serde",
  "serde_json",
+ "sha1",
  "socketioxide",
  "souvlaki",
  "symphonia",

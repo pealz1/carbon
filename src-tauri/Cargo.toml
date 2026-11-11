@@ -30,6 +30,8 @@ keyring = { version = "3", features = ["windows-native"] }
 souvlaki = "0.9"
 discord-rich-presence = "1"
 md5 = "0.8"
+# Signs YouTube Music requests (SAPISIDHASH); already in the tree via tungstenite.
+sha1 = "0.11"
 # Same major as tauri-plugin-updater uses, so only one reqwest ends up in the binary.
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "json", "form"] }
 tokio = { version = "1", features = ["sync", "time", "macros", "net", "rt"] }
