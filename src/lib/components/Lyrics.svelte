@@ -1,10 +1,14 @@
 <script lang="ts">
+  import { prefersReducedMotion } from "svelte/motion";
   import { describeError } from "$lib/errors";
+  import { dotFills, withInterludes } from "$lib/interludes";
   import { activeLineIndex } from "$lib/lrc";
   import { MAX_OFFSET_MS, OFFSET_STEP_MS, offsetFor, saveOffset } from "$lib/lyric-offsets";
   import { lyricsFor, type Lyrics } from "$lib/lyrics";
   import { player } from "$lib/player.svelte";
+  import { prefs } from "$lib/preferences.svelte";
   import { lineProgress, LYRICS_LEAD_MS, wordProgress } from "$lib/words";
+  import Interlude from "./Interlude.svelte";
   import Status from "./Status.svelte";
 
   // Synced lyrics shared by Now Playing, the docked lyrics panel and cinema mode.
@@ -56,7 +60,8 @@
   });
 
   const position = $derived(clock + LYRICS_LEAD_MS + offset);
-  const lines = $derived(lyrics?.kind === "synced" ? lyrics.lines : []);
+  const lines = $derived(lyrics?.kind === "synced" ? withInterludes(lyrics.lines) : []);
+  const still = $derived(prefersReducedMotion.current || prefs.value?.effects === "minimal");
   const active = $derived(activeLineIndex(lines, position));
   const shift = $derived.by(() => {
     const el = lineEls[Math.max(0, active)];
@@ -83,7 +88,9 @@
       {#each lines as line, i (i)}
         <li bind:this={lineEls[i]} class:active={i === active} class:past={i < active} class:near={Math.abs(i - active) === 1} class:far={Math.abs(i - active) > 3}>
           <button onclick={() => seekTo(line.timeMs)} aria-current={i === active ? "true" : undefined}>
-            {#if !line.text}
+            {#if line.interludeEndMs !== undefined}
+              <Interlude fills={dotFills(line.timeMs, line.interludeEndMs, position, still)} live={i === active} {still} />
+            {:else if !line.text}
               <span class="breath" aria-label="Instrumental break"><i></i><i></i><i></i></span>
             {:else if i === active && line.words}
               {#each line.words as word, w (w)}<span class="fill" style="--p: {wordProgress(word, position)}">{word.text}</span>{/each}
