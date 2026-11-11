@@ -34,6 +34,10 @@ pub struct Settings {
     pub font_text: String,
     pub font_display: String,
     pub font_lyrics: String,
+    /// Interface sounds (Settings → Appearance). Never heard over Spotify's audio; the UI gates that.
+    pub ui_sounds: bool,
+    /// 0 to 1; 0.5 peaks around -24 dBFS.
+    pub ui_sound_volume: f32,
     /// Brand updates already applied to this file (see `migrate`). Missing in older files, so 0.
     #[serde(default)]
     pub brand_version: u8,
@@ -57,6 +61,8 @@ impl Default for Settings {
             font_text: String::new(),
             font_display: String::new(),
             font_lyrics: String::new(),
+            ui_sounds: true,
+            ui_sound_volume: 0.5,
             brand_version: BRAND_VERSION,
         }
     }
@@ -78,6 +84,9 @@ impl Settings {
         }
         if !self.spotify_client_id.is_empty() && !is_client_id(&self.spotify_client_id) {
             return Err("that doesn't look like a Spotify Client ID (32 letters and numbers)".into());
+        }
+        if !(0.0..=1.0).contains(&self.ui_sound_volume) {
+            return Err("interface sound volume must be between 0% and 100%".into());
         }
         if self.remote_port < 1024 {
             return Err("the remote port must be between 1024 and 65535".into());
@@ -222,6 +231,12 @@ mod tests {
         assert!(bad_id.validate().is_err());
         let bad_port = Settings { remote_port: 80, ..Settings::default() };
         assert!(bad_port.validate().is_err());
+        let loud = Settings { ui_sound_volume: 1.5, ..Settings::default() };
+        assert!(loud.validate().is_err());
+        let negative = Settings { ui_sound_volume: -0.1, ..Settings::default() };
+        assert!(negative.validate().is_err());
+        let silent = Settings { ui_sound_volume: 0.0, ..Settings::default() };
+        assert!(silent.validate().is_ok());
     }
 
     #[test]
@@ -265,5 +280,7 @@ mod tests {
         assert!(!parsed.remote_enabled);
         assert_eq!(parsed.remote_port, 10767);
         assert_eq!(parsed.font_text, "");
+        assert!(parsed.ui_sounds);
+        assert_eq!(parsed.ui_sound_volume, 0.5);
     }
 }
