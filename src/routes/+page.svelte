@@ -46,8 +46,7 @@
 </script>
 
 <header class="hero">
-  <p class="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</p>
-  <h1>{greeting(new Date())}{firstName ? `, ${firstName}` : ""}.</h1>
+  <h1>{greeting(new Date())}{firstName ? `, ${firstName}` : ""}</h1>
 </header>
 
 {#if recent.loading && !recent.data}
@@ -56,7 +55,7 @@
   <Status error={recent.error} onretry={recent.reload} />
 {/if}
 
-<Shelf title="Jump back in" cards={jumpBackIn} />
+<Shelf title="Jump back in" cards={jumpBackIn} feature />
 
 {#if top.data?.length}
   <section class="repeat">
@@ -72,18 +71,13 @@
 
 <style>
   .hero {
-    padding: var(--sp-6) var(--sp-2) var(--sp-5);
+    padding: var(--sp-6) 0 var(--sp-5);
   }
 
   h1 {
     font-size: var(--fs-hero);
-    font-weight: 750;
-    line-height: 1;
-    max-width: 16ch;
-  }
-
-  .eyebrow {
-    margin: 0 0 var(--sp-3);
+    font-weight: 800;
+    line-height: 1.05;
   }
 
   .repeat {
@@ -91,13 +85,24 @@
   }
 
   .repeat h2 {
+    margin-bottom: var(--sp-3);
     font-size: var(--fs-section);
-    margin: 0 var(--sp-2) var(--sp-3);
+    font-weight: 700;
+  }
+
+  .columns {
+    margin: 0 calc(var(--sp-2) * -1);
   }
 
   .columns :global(ol) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: var(--sp-4);
+  }
+
+  @container stage (max-width: 820px) {
+    .columns :global(ol) {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 </style>

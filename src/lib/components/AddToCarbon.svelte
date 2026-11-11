@@ -96,16 +96,21 @@
     transform: scale(0.92);
   }
 
+  /* Sits with a detail header's 44 px actions. */
   .trigger.wide {
     width: auto;
-    height: 38px;
+    height: 44px;
     display: inline-flex;
     gap: var(--sp-2);
     padding: 0 var(--sp-4);
-    background: var(--glass-active);
-    border: 1px solid var(--glass-edge);
+    background: rgb(255 255 255 / 0.08);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px rgb(255 255 255 / 0.08);
     color: var(--text);
     font-weight: 600;
+  }
+
+  .trigger.wide:hover {
+    background: rgb(255 255 255 / 0.15);
   }
 
   .trigger.done {
@@ -119,12 +124,12 @@
     min-width: 220px;
     max-height: min(360px, 60vh);
     overflow-y: auto;
-    padding: var(--sp-2);
-    border: 1px solid var(--glass-edge);
-    border-radius: var(--r-md);
-    background: var(--glass-strong);
-    backdrop-filter: var(--glass-blur-heavy);
-    box-shadow: var(--shadow-float);
+    padding: 5px;
+    border: 0;
+    border-radius: var(--r-lg);
+    background: var(--grain), var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
     color: var(--text);
     opacity: 0;
     transform: translateY(-4px) scale(0.98);

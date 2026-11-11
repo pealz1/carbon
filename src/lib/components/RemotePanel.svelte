@@ -3,7 +3,6 @@
   import { onMount } from "svelte";
   import Toggle from "$lib/components/Toggle.svelte";
   import { describeError } from "$lib/errors";
-  import { specular } from "$lib/liquid";
   import { onRemoteChanged, remoteDisconnect, remoteRotate, remoteStatus, type RemoteStatus } from "$lib/native";
   import { prefs } from "$lib/preferences.svelte";
 
@@ -79,7 +78,7 @@
   }
 </script>
 
-<section class="panel liquid" use:specular>
+<section class="panel plate">
   <h2>Remote</h2>
   {#if s}
     {#key toggleKey}
@@ -227,24 +226,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
-  }
-
-  .pill {
-    height: 34px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    background: var(--glass-active);
-    border: 1px solid var(--glass-edge);
-    font-weight: 600;
-    transition: background var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
-  }
-
-  .pill:hover {
-    background: var(--glass-edge-top);
-  }
-
-  .pill:active {
-    transform: scale(0.97);
   }
 
   .devices {

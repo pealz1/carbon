@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import DetailHeader from "$lib/components/DetailHeader.svelte";
+  import DetailHeader, { type Chip } from "$lib/components/DetailHeader.svelte";
   import Icon from "$lib/components/Icon.svelte";
   import LoadMore from "$lib/components/LoadMore.svelte";
   import Status from "$lib/components/Status.svelte";
@@ -30,6 +30,16 @@
     seen = true;
   });
 
+  const chips = $derived.by<Chip[]>(() => {
+    const p = info.data;
+    if (!p) return [];
+    return [
+      { label: p.collaborative ? "Collaborative" : "Playlist", icon: "note" },
+      ...(p.trackCount !== null ? [{ label: `${p.trackCount} ${p.trackCount === 1 ? "song" : "songs"}`, icon: "listAdd" as const }] : []),
+      ...(owned && tracks.done && totalMs ? [{ label: formatTotal(totalMs), icon: "clock" as const }] : []),
+    ];
+  });
+
   const edit = () => info.data && (dialogs.playlist = { mode: "edit", playlist: info.data, largeImage: info.data.largeImage });
   const dropRow = (uri: string) => (tracks.items = tracks.items.filter((t) => t.uri !== uri));
 </script>
@@ -41,65 +51,54 @@
 {:else if info.data}
   {@const p = info.data}
   <DetailHeader
-    kind="Playlist"
     title={p.name}
     image={p.largeImage}
+    {chips}
+    description={p.description}
     playUri={p.uri}
     shuffleCount={p.trackCount ?? undefined}
     menuItems={() => playlistMenu(p, p.largeImage)}
   >
-    {#snippet meta()}
-      {#if info.data?.description}<p class="description">{info.data.description}</p>{/if}
-      {info.data?.ownerName}
-      {#if info.data?.trackCount !== null}· {info.data?.trackCount} songs{/if}
-      {#if owned && tracks.done && totalMs}· {formatTotal(totalMs)}{/if}
+    {#snippet byline()}
+      <span class="person"><span class="avatar"><Icon name="artist" size={15} /></span>{p.ownerName}</span>
     {/snippet}
     {#if owned}
-      <button class="edit" onclick={edit}><Icon name="edit" size={16} />Edit</button>
+      <button class="edit" onclick={edit} aria-label="Edit details" title="Edit details"><Icon name="edit" size={18} /></button>
     {/if}
   </DetailHeader>
 
   {#if owned}
     <TrackList tracks={tracks.items} contextUri={p.uri} showAlbum numbered removeFrom={p} onremove={dropRow} />
-    {#if tracks.done && !tracks.items.length}<Status empty="This playlist is empty." />{/if}
+    {#if tracks.done && !tracks.items.length}<Status empty="This playlist is empty. Add songs from any menu with “Add to playlist”." />{/if}
     <LoadMore pager={tracks} />
   {:else}
-    <p class="notice glass">
-      Spotify only shares track lists with apps like Carbon for playlists you own. Press Play and it'll still play in Carbon.
-    </p>
+    <p class="notice plate">Spotify only shares track lists with apps like Carbon for playlists you own. Press Play and it'll still play in Carbon.</p>
   {/if}
 {/if}
 
 <style>
   .edit {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-    height: 46px;
-    padding: 0 var(--sp-4);
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
     border-radius: var(--r-pill);
-    background: var(--glass);
-    border: 1px solid var(--glass-edge);
-    color: var(--text-muted);
-    font-weight: 650;
-    transition: color var(--dur-fast);
+    background: rgb(255 255 255 / 0.08);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px rgb(255 255 255 / 0.08);
+    color: var(--text);
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
   }
 
   .edit:hover {
-    color: var(--text);
-  }
-
-  .description {
-    margin: 0 0 var(--sp-2);
-    max-width: 60ch;
-    color: var(--text-muted);
+    background: rgb(255 255 255 / 0.15);
   }
 
   .notice {
     max-width: 62ch;
-    margin: 0 var(--sp-2);
+    margin: 0;
     padding: var(--sp-4) var(--sp-5);
-    border-radius: var(--r-md);
     color: var(--text-muted);
     line-height: 1.5;
   }

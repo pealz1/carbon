@@ -1,10 +1,13 @@
 <script lang="ts">
-  // Accessible range input with a glass track. The fill animates via transform only.
+  // Accessible range input on a thin track. The fill moves via transform only; the thumb shows
+  // on hover, drag and focus. `accent` fills with the accent (playback progress), `paper` with white.
   let {
     value,
     max,
     label,
     step = 1,
+    tone = "paper",
+    valuetext,
     oncommit,
     onpreview,
   }: {
@@ -12,6 +15,8 @@
     max: number;
     label: string;
     step?: number;
+    tone?: "accent" | "paper";
+    valuetext?: string;
     oncommit: (value: number) => void;
     onpreview?: (value: number) => void;
   } = $props();
@@ -34,19 +39,24 @@
   }
 </script>
 
-<div class="slider" class:dragging style="--ratio: {ratio}">
+<div class="slider {tone}" class:dragging style="--ratio: {ratio}" data-silent>
   <div class="track"><div class="fill"></div></div>
   <div class="thumb"></div>
-  <input type="range" min="0" {max} {step} value={shown} aria-label={label} oninput={onInput} onchange={onChange} />
+  <input type="range" min="0" {max} {step} value={shown} aria-label={label} aria-valuetext={valuetext} oninput={onInput} onchange={onChange} />
 </div>
 
 <style>
   .slider {
+    --fill: var(--paper);
     position: relative;
-    height: 18px;
+    height: 20px;
     display: flex;
     align-items: center;
     flex: 1;
+  }
+
+  .accent {
+    --fill: var(--accent);
   }
 
   .track {
@@ -54,14 +64,21 @@
     height: 4px;
     width: 100%;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.14);
+    background: rgb(255 255 255 / 0.16);
     overflow: hidden;
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .slider:hover .track,
+  .dragging .track {
+    transform: scaleY(1.5);
   }
 
   .fill {
     position: absolute;
     inset: 0;
-    background: var(--text);
+    border-radius: inherit;
+    background: var(--fill);
     transform-origin: left center;
     transform: scaleX(var(--ratio));
   }
@@ -73,17 +90,14 @@
     height: 12px;
     margin-left: -6px;
     border-radius: var(--r-pill);
-    background: var(--text);
-    box-shadow: 0 0 0 4px var(--accent-glow);
+    background: var(--paper);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
     opacity: 0;
-    transform: scale(0.6);
-    transition: opacity var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+    transform: scale(0.5);
+    transition:
+      opacity var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
     pointer-events: none;
-  }
-
-  .slider:hover .fill,
-  .dragging .fill {
-    background: var(--accent);
   }
 
   .slider:hover .thumb,
@@ -91,6 +105,10 @@
   .slider:focus-within .thumb {
     opacity: 1;
     transform: scale(1);
+  }
+
+  .dragging .thumb {
+    transform: scale(1.2);
   }
 
   input {
@@ -104,7 +122,7 @@
 
   .slider:has(input:focus-visible) {
     outline: 2px solid var(--accent);
-    outline-offset: 4px;
+    outline-offset: 3px;
     border-radius: var(--r-pill);
   }
 </style>

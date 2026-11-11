@@ -1,64 +1,85 @@
-/* Carbon design tokens: liquid glass over graphite. Every raw value lives here. */
+/* Carbon design tokens: black chrome over a living wallpaper, an inset graphite stage, glass
+   only where something floats. Every raw value lives here; docs/DESIGN.md explains the system. */
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
-  --bg-tint: rgb(9 10 13 / 0.58);
-  --bg-ambient-fallback: radial-gradient(120% 90% at 15% 10%, rgb(72 68 38 / 0.5) 0%, transparent 55%),
-    radial-gradient(90% 80% at 85% 90%, rgb(46 46 40 / 0.5) 0%, transparent 60%);
-  --glass: rgb(20 21 27 / 0.46);
-  --glass-strong: rgb(16 17 22 / 0.84);
-  --glass-hover: rgb(255 255 255 / 0.06);
-  --glass-active: rgb(255 255 255 / 0.1);
-  --glass-edge: rgb(255 255 255 / 0.09);
-  --glass-edge-top: rgb(255 255 255 / 0.16);
-  --glass-blur: blur(28px) saturate(1.6);
-  --glass-blur-heavy: blur(48px) saturate(1.8);
-  --scrim: linear-gradient(180deg, rgb(8 9 12 / 0) 0%, rgb(8 9 12 / 0.55) 100%);
-  --glass-rim: conic-gradient(
-    from 210deg,
-    rgb(255 255 255 / 0.4),
-    rgb(250 233 29 / 0.14),
-    rgb(255 255 255 / 0.06),
-    rgb(250 233 29 / 0.1),
-    rgb(255 255 255 / 0.4)
-  );
-  --spec-size: 420px;
+  /* Brand palette (brand/BRAND.md) */
+  --black: #000;
+  --graphite-950: #090907;
+  --graphite-900: #181714;
+  --graphite-800: #22221e;
+  --graphite-700: #33332e;
+  --graphite-300: #9f9f96;
+  --paper: #efefe6;
+  --ink: #10100d;
+  --brand-yellow: #fae91d;
 
-  /* Text */
-  --text: #f1f1f4;
-  --text-muted: rgb(241 241 244 / 0.62);
-  --text-faint: rgb(241 241 244 / 0.38);
+  /* Chrome: title bar, sidebar and player bar, drawn straight on the wallpaper. Its text is
+     alpha-white so it holds on whatever colour the artwork washes the chrome with. */
+  --chrome-text: rgb(255 255 255 / 0.95);
+  --chrome-text-muted: rgb(255 255 255 / 0.62);
+  --chrome-hover: rgb(255 255 255 / 0.07);
+  --chrome-active: rgb(255 255 255 / 0.12);
+  --chrome-field: rgb(255 255 255 / 0.09);
+
+  /* Stage: the inset panel content lives on. It stays near-black while the chrome takes colour. */
+  --stage: var(--graphite-950);
+  --stage-edge: rgb(255 255 255 / 0.07);
+  --plate: rgb(255 255 255 / 0.035);
+  --row-stripe: rgb(255 255 255 / 0.016);
+
+  /* Fills and lines on the stage (names kept from the first glass system) */
+  --glass: rgb(255 255 255 / 0.06);
+  --glass-hover: rgb(255 255 255 / 0.07);
+  --glass-active: rgb(255 255 255 / 0.11);
+  --glass-edge: rgb(255 255 255 / 0.08);
+  --glass-edge-top: rgb(255 255 255 / 0.16);
+
+  /* Glass: menus, dialogs, toasts, popovers and the queue. Grain sits under their content. */
+  --glass-strong: rgb(22 21 18 / 0.76);
+  --glass-blur: blur(26px) saturate(1.7);
+  --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.11), 0 0 0 1px rgb(255 255 255 / 0.07), 0 28px 64px -18px rgb(0 0 0 / 0.8);
+  --scrim: rgb(0 0 0 / 0.55);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.075'/%3E%3C/svg%3E");
+
+  /* Text on the stage. Faint still clears 4.5:1 on a hovered row. */
+  --text: var(--paper);
+  --text-muted: #a5a59c;
+  --text-faint: #86867e;
 
   /* Semantic colour. The accent is parameterised so Settings can swap its hue; the default is
-     Carbon Yellow (#FAE91D, brand/BRAND.md). Anything filled with the accent uses dark ink text. */
+     Carbon Yellow. Anything filled with the accent uses Ink text. */
   --accent-l: 92%;
   --accent-c: 0.19;
   --accent-h: 104;
   --accent: oklch(var(--accent-l) var(--accent-c) var(--accent-h));
   --accent-strong: oklch(calc(var(--accent-l) - 8%) calc(var(--accent-c) + 0.04) var(--accent-h));
-  --accent-ink: #10100d;
+  --accent-ink: var(--ink);
   --accent-deep: oklch(32% 0.12 var(--accent-h));
-  --accent-glow: oklch(var(--accent-l) var(--accent-c) var(--accent-h) / 0.35);
-  --brand-yellow: #fae91d;
+  --accent-glow: oklch(var(--accent-l) var(--accent-c) var(--accent-h) / 0.32);
   --danger: oklch(70% 0.17 25);
   --warning: oklch(76% 0.15 55);
+  /* Artwork tones; components set these from the art they show (src/lib/wallpaper.ts). */
+  --art-wash: var(--graphite-800);
+  --art-pill: var(--paper);
 
-  /* Type */
+  /* Type: one family, a fixed scale (product UI doesn't need fluid type). */
   --font-display-default: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
   --font-text-default: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   /* Settings → Appearance overrides these on :root with a chosen family ahead of the default stack. */
   --font-display: var(--font-display-default);
   --font-text: var(--font-text-default);
   --font-lyrics: var(--font-display-default);
-  --fs-hero: clamp(2.6rem, 4.2vw, 4.4rem);
-  --fs-title: clamp(1.9rem, 2.6vw, 2.6rem);
-  --fs-section: 1.3rem;
+  --fs-micro: 0.6875rem;
+  --fs-caption: 0.75rem;
+  --fs-small: 0.8125rem;
   --fs-body: 0.875rem;
-  --fs-small: 0.78rem;
-  --fs-micro: 0.68rem;
-  --tracking-tight: -0.035em;
-  --tracking-caps: 0.14em;
+  --fs-lead: 0.9375rem;
+  --fs-section: 1.25rem;
+  --fs-hero: 2.125rem;
+  --fs-title: 2.5rem;
+  --tracking-tight: -0.025em;
+  --tracking-caps: 0.06em;
 
   /* Space (deliberately uneven rhythm) */
   --sp-1: 4px;
@@ -69,27 +90,36 @@
   --sp-6: 44px;
   --sp-7: 72px;
 
-  /* Shape */
-  --r-sm: 8px;
-  --r-md: 14px;
-  --r-lg: 22px;
+  /* Shape. Artwork corners are fixed by Spotify's display rules: 8 px large, 4 px small. */
+  --r-art: 8px;
+  --r-art-sm: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 18px;
   --r-pill: 999px;
 
   /* Depth */
-  --shadow-float: 0 24px 60px -18px rgb(0 0 0 / 0.65), 0 2px 0 0 var(--glass-edge-top) inset;
-  --shadow-art: 0 30px 70px -20px rgb(0 0 0 / 0.75);
+  --shadow-float: 0 24px 60px -18px rgb(0 0 0 / 0.7);
+  --shadow-art: 0 18px 44px -18px rgb(0 0 0 / 0.85);
 
   /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-press: 90ms;
   --dur-fast: 140ms;
-  --dur-med: 260ms;
+  --dur-med: 240ms;
   --dur-slow: 900ms;
+  --press: 0.96;
+  --press-wide: 0.985;
 
   /* Layout */
-  --titlebar-h: 48px;
-  --sidebar-w: 248px;
-  --dock-h: 84px;
+  --titlebar-h: 56px;
+  --sidebar-w: 240px;
+  --rail-w: 68px;
+  --player-h: 96px;
+  --lyrics-w: 300px;
+  --inset: 8px;
 }
 
 /* Accent presets (Settings → Appearance). Yellow is the :root default. */
@@ -108,12 +138,11 @@
 [data-swatch="gold"] { --swatch: oklch(84% 0.13 90); }
 [data-swatch="ice"] { --swatch: oklch(82% 0.1 225); }
 
-/* Effects levels (Settings → Appearance). Minimal drops blur and motion for older GPUs. */
+/* Effects levels (Settings → Appearance). Minimal drops blur, grain and motion for older GPUs. */
 [data-effects="minimal"] {
-  --glass: rgb(20 21 27 / 0.92);
-  --glass-strong: rgb(16 17 22 / 0.97);
+  --glass-strong: rgb(24 23 20 / 0.98);
   --glass-blur: none;
-  --glass-blur-heavy: none;
+  --grain: none;
 }
 
 [data-effects="minimal"] *,
@@ -132,17 +161,12 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: transparent;
+  background: var(--black);
   color: var(--text);
   font-family: var(--font-text);
   font-size: var(--fs-body);
   -webkit-font-smoothing: antialiased;
   user-select: none;
-}
-
-/* Transparent so the Windows 11 Mica backdrop shows through; the ambient layer tints it. */
-body {
-  background: transparent;
 }
 
 h1,
@@ -151,6 +175,7 @@ h3 {
   font-family: var(--font-display);
   margin: 0;
   letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
 }
 
 a {
@@ -161,6 +186,7 @@ a {
 a:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
+  text-decoration-color: rgb(255 255 255 / 0.4);
 }
 
 button {
@@ -172,10 +198,32 @@ button {
   cursor: pointer;
 }
 
+/* Press feedback for every control: in fast, back out on a spring. Components add their own
+   transitions for colour; they keep `transform` in the list so the spring survives. */
+:where(button, [role="button"], .pressable) {
+  transition: transform var(--dur-med) var(--ease-spring);
+}
+
+:where(button, [role="button"], .pressable):where(:active:not(:disabled, [aria-disabled="true"])) {
+  transform: scale(var(--press));
+  transition-duration: var(--dur-press);
+  transition-timing-function: var(--ease-out);
+}
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--r-sm);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+input,
+textarea {
+  caret-color: var(--accent);
 }
 
 img {
@@ -186,95 +234,217 @@ img {
   font-variant-numeric: tabular-nums;
 }
 
+/* A field or group label (Effects, Accent, Port). Sentence case; never a kicker above a heading. */
 .eyebrow {
-  font-size: var(--fs-micro);
+  font-size: var(--fs-caption);
   font-weight: 600;
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
   color: var(--text-muted);
 }
 
+/* Glass: for surfaces that float over the stage. Grain is a background layer, so it never sits on artwork. */
 .glass {
-  background: var(--glass);
+  background: var(--grain), var(--glass-strong);
   backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-edge);
-  box-shadow: 0 1px 0 0 var(--glass-edge-top) inset;
+  box-shadow: var(--glass-shadow);
 }
 
-/* Liquid glass: frosted backdrop, an iridescent rim, a pointer-led specular highlight and, on
-   the Full effects level, refraction of whatever sits behind it. */
-.liquid {
+/* Plate: a quiet panel on the stage (settings groups, the EQ). */
+.plate {
+  background: var(--plate);
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 1px var(--glass-edge);
+}
+
+/* Page title row, shared by Home, Library, Local files, Sound, Settings and Search. */
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  padding: var(--sp-6) 0 var(--sp-5);
+}
+
+.page-head h1 {
+  font-size: var(--fs-hero);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+/* One button vocabulary for the whole app: a soft pill, a filled primary, a danger. */
+.pill {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-pill);
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  color: var(--text);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast),
+    transform var(--dur-med) var(--ease-spring);
+}
+
+.pill:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.15);
+  text-decoration: none;
+}
+
+.pill:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pill.accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: none;
+}
+
+.pill.accent:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+.pill.ghost {
+  background: none;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.pill.ghost:hover:not(:disabled) {
+  background: var(--glass-hover);
+  color: var(--text);
+}
+
+.pill.danger:hover:not(:disabled),
+.pill.danger.solid {
+  background: var(--danger);
+  color: var(--ink);
+}
+
+/* Segmented control (tabs, effects level, presets). The chosen segment is a Paper chip. */
+.segmented {
+  display: inline-flex;
+  align-self: flex-start;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 0 0 1px var(--glass-edge);
+}
+
+.segmented > button {
+  height: 30px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-pill);
+  color: var(--text-muted);
+  font-weight: 600;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast),
+    transform var(--dur-med) var(--ease-spring);
+}
+
+.segmented > button:hover {
+  color: var(--text);
+}
+
+.segmented > button.active,
+.segmented > button[aria-checked="true"],
+.segmented > button[aria-selected="true"] {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Form controls keep the browser's behaviour and take Carbon's materials. */
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+select,
+.input {
+  height: 36px;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 0 0 1px var(--glass-edge);
+  color: var(--text);
+  font: inherit;
+}
+
+select:focus-visible,
+.input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.input {
+  user-select: text;
+}
+
+.input::placeholder {
+  color: var(--text-faint);
+}
+
+/* Press-and-hold progress (src/lib/hold.ts sets --hold from 0 to 1). Painted under the content. */
+.holdable {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
-  background: var(--glass);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid transparent;
-  box-shadow:
-    inset 0 1px 0 var(--glass-edge-top),
-    inset 0 -1px 0 rgb(0 0 0 / 0.25),
-    var(--shadow-float);
 }
 
-[data-effects="full"] .liquid {
-  backdrop-filter: url(#carbon-refract) var(--glass-blur);
-}
-
-.liquid::before {
+.holdable::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  padding: 1px;
   border-radius: inherit;
-  background: var(--glass-rim);
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
+  background: var(--accent-glow);
+  clip-path: inset(0 calc((1 - var(--hold, 0)) * 100%) 0 0 round var(--r-md));
+  opacity: 0;
   pointer-events: none;
 }
 
-.liquid::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: -1;
-  width: var(--spec-size);
-  height: var(--spec-size);
-  margin: calc(var(--spec-size) / -2) 0 0 calc(var(--spec-size) / -2);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.11), transparent);
-  opacity: var(--spec, 0);
-  transform: translate3d(var(--mx, -999px), var(--my, -999px), 0);
-  transition: opacity var(--dur-med) var(--ease-out);
-  pointer-events: none;
+.holdable[data-holding]::before {
+  opacity: 1;
 }
 
-[data-effects="minimal"] .liquid::after {
+/* Page transitions (View Transitions API): only the page content glides; the chrome stays put. */
+::view-transition-old(root) {
   display: none;
 }
 
-/* Page transitions (View Transitions API): content glides, chrome stays put. */
-::view-transition-old(root) {
-  animation: vt-out 160ms var(--ease-out) both;
+::view-transition-new(root) {
+  animation: none;
 }
 
-::view-transition-new(root) {
-  animation: vt-in 340ms var(--ease-out) both;
+::view-transition-old(page) {
+  animation: vt-out 140ms var(--ease-out) both;
+}
+
+::view-transition-new(page) {
+  animation: vt-in 300ms var(--ease-out) both;
 }
 
 @keyframes vt-out {
   to {
     opacity: 0;
-    transform: translateY(-6px) scale(0.995);
   }
 }
 
 @keyframes vt-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.99);
+    transform: translateY(8px);
   }
 }
 
@@ -288,19 +458,27 @@ img {
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.1);
   border-radius: var(--r-pill);
-  border: 3px solid transparent;
+  border: 4px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: rgb(255 255 255 / 0.22);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -99,13 +99,16 @@
 <Modal title={editing ? "Edit playlist" : "New playlist"} onclose={close} wide>
   <form class="layout" onsubmit={submit} novalidate>
     <div class="preview" aria-label="Preview">
+      <!-- The hint sits under the cover: nothing is drawn on the artwork itself. -->
       <label class="cover" class:busy={coverBusy}>
-        {#if preview}
-          <img src={preview} alt="" width="220" height="220" />
-        {:else}
-          <span class="blank"><Icon name="lyrics" size={44} /></span>
-        {/if}
-        <span class="cover-hint"><Icon name="plus" size={18} />{preview ? "Change cover" : "Add a cover"}</span>
+        <span class="cover-art">
+          {#if preview}
+            <img src={preview} alt="" width="220" height="220" />
+          {:else}
+            <span class="blank"><Icon name="note" size={44} /></span>
+          {/if}
+        </span>
+        <span class="cover-hint"><Icon name="plus" size={15} />{coverBusy ? "Reading image…" : preview ? "Change cover" : "Add a cover"}</span>
         <input type="file" accept="image/jpeg,image/png,image/webp" onchange={pick} disabled={coverBusy} />
       </label>
       {#if coverError}<p class="field-error" role="alert">{coverError}</p>{/if}
@@ -184,16 +187,23 @@
 
   .cover {
     position: relative;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
     width: 220px;
-    height: 220px;
-    border-radius: var(--r-md);
-    overflow: hidden;
-    box-shadow: var(--shadow-art);
     cursor: pointer;
   }
 
-  .cover img,
+  .cover-art {
+    display: block;
+    width: 220px;
+    height: 220px;
+    border-radius: var(--r-art);
+    overflow: hidden;
+    box-shadow: var(--shadow-art);
+  }
+
+  .cover-art img,
   .blank {
     width: 100%;
     height: 100%;
@@ -203,33 +213,26 @@
   .blank {
     display: grid;
     place-items: center;
-    background: linear-gradient(135deg, var(--glass-active), var(--accent-deep));
+    background: var(--graphite-800);
     color: var(--text-faint);
   }
 
   .cover-hint {
-    position: absolute;
-    inset: auto 0 0;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    align-self: flex-start;
     gap: var(--sp-1);
-    padding: var(--sp-3);
-    background: var(--scrim);
+    height: 30px;
+    padding: 0 var(--sp-3);
+    border-radius: var(--r-pill);
+    background: rgb(255 255 255 / 0.08);
     font-size: var(--fs-small);
-    font-weight: 650;
-    opacity: 0;
-    transform: translateY(6px);
-    transition:
-      opacity var(--dur-fast),
-      transform var(--dur-fast) var(--ease-out);
+    font-weight: 600;
+    transition: background var(--dur-fast);
   }
 
-  .cover:hover .cover-hint,
-  .cover:focus-within .cover-hint,
-  .cover.busy .cover-hint {
-    opacity: 1;
-    transform: none;
+  .cover:hover .cover-hint {
+    background: rgb(255 255 255 / 0.15);
   }
 
   .cover input {
@@ -239,9 +242,9 @@
     cursor: pointer;
   }
 
-  .cover:has(input:focus-visible) {
+  .cover:has(input:focus-visible) .cover-hint {
     outline: 2px solid var(--accent);
-    outline-offset: 3px;
+    outline-offset: 2px;
   }
 
   .eyebrow {
@@ -298,9 +301,10 @@
   textarea {
     width: 100%;
     padding: var(--sp-2) var(--sp-3);
-    border-radius: var(--r-sm);
-    border: 1px solid var(--glass-edge);
-    background: var(--glass);
+    border: 0;
+    border-radius: var(--r-md);
+    background: rgb(0 0 0 / 0.25);
+    box-shadow: inset 0 0 0 1px var(--glass-edge-top);
     color: var(--text);
     font: inherit;
     resize: vertical;
@@ -310,12 +314,11 @@
   input:not([type]):focus,
   textarea:focus {
     outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 
   [aria-invalid="true"] {
-    border-color: var(--danger);
+    box-shadow: inset 0 0 0 2px var(--danger);
   }
 
   .field-error,
@@ -340,47 +343,5 @@
   .confirm {
     font-size: var(--fs-small);
     color: var(--warning);
-  }
-
-  .pill {
-    height: 38px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    background: var(--glass-active);
-    border: 1px solid var(--glass-edge);
-    font-weight: 600;
-    transition:
-      background var(--dur-fast),
-      transform var(--dur-fast) var(--ease-spring);
-  }
-
-  .pill:hover:not(:disabled) {
-    background: var(--glass-edge-top);
-  }
-
-  .pill:active:not(:disabled) {
-    transform: scale(0.97);
-  }
-
-  .pill:disabled {
-    opacity: 0.5;
-  }
-
-  .pill.accent {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: transparent;
-  }
-
-  .pill.ghost {
-    background: none;
-    border-color: transparent;
-    color: var(--text-muted);
-  }
-
-  .pill.danger:hover:not(:disabled),
-  .pill.ghost:hover:not(:disabled) {
-    background: var(--danger);
-    color: var(--accent-ink);
   }
 </style>

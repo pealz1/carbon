@@ -21,6 +21,10 @@ export interface Settings {
   fontText: string;
   fontDisplay: string;
   fontLyrics: string;
+  /** Interface sounds; silent over Spotify's audio whatever this says. */
+  uiSounds: boolean;
+  /** 0 to 1. */
+  uiSoundVolume: number;
   /** Brand updates applied to these settings; Rust owns it, the interface only passes it back. */
   brandVersion: number;
 }

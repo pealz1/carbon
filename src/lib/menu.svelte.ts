@@ -38,6 +38,11 @@ class Menu {
     this.current = { x, y, items, returnTo: (document.activeElement as HTMLElement | null) ?? target };
   }
 
+  /** Opens at a point, for press-and-hold (the press event is long gone by then). */
+  openAt(x: number, y: number, items: MenuEntry[], returnTo: HTMLElement | null = null): void {
+    this.current = { x, y, items, returnTo: returnTo ?? (document.activeElement as HTMLElement | null) };
+  }
+
   close(restoreFocus = true): void {
     const returnTo = this.current?.returnTo;
     this.current = null;

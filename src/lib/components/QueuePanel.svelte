@@ -6,7 +6,6 @@
   import Icon from "./Icon.svelte";
   import Status from "./Status.svelte";
   import TrackList from "./TrackList.svelte";
-  import { specular } from "$lib/liquid";
 
   let { onclose }: { onclose: () => void } = $props();
 
@@ -19,16 +18,16 @@
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && onclose()} />
 
-<aside class="queue liquid" use:specular transition:fly={{ x: 40, duration: 260 }} aria-label="Queue">
+<aside class="queue glass" transition:fly={{ x: 24, duration: 240 }} aria-label="Queue">
   <header>
     <h2>Up next</h2>
-    <button onclick={onclose} aria-label="Close queue"><Icon name="close" size={16} /></button>
+    <button onclick={onclose} aria-label="Close queue" title="Close"><Icon name="close" size={16} /></button>
   </header>
   {#if player.track}
-    <p class="eyebrow">Now playing</p>
+    <h3>Now playing</h3>
     <TrackList tracks={[player.track]} compact />
   {/if}
-  <p class="eyebrow">Next in queue</p>
+  <h3>Next in queue</h3>
   <div class="list">
     {#if player.upNext}
       <TrackList tracks={player.upNext} compact />
@@ -44,43 +43,53 @@
   .queue {
     position: absolute;
     top: var(--sp-2);
-    right: var(--sp-4);
-    bottom: calc(var(--dock-h) + var(--sp-5));
+    right: var(--sp-2);
+    bottom: var(--sp-2);
     z-index: 4;
-    width: 360px;
+    width: min(380px, calc(100% - var(--sp-4)));
     display: flex;
     flex-direction: column;
-    padding: var(--sp-4);
+    padding: var(--sp-3) var(--sp-2) var(--sp-2);
     border-radius: var(--r-lg);
-    --glass: var(--glass-strong);
-    --glass-blur: var(--glass-blur-heavy);
-    box-shadow: var(--shadow-float);
   }
 
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--sp-3);
+    padding: 0 var(--sp-1) 0 var(--sp-3);
+    margin-bottom: var(--sp-2);
   }
 
   h2 {
     font-size: var(--fs-section);
+    font-weight: 700;
+  }
+
+  h3 {
+    margin: var(--sp-3) var(--sp-3) var(--sp-1);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0;
   }
 
   header button {
-    padding: var(--sp-1);
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
     border-radius: var(--r-sm);
     color: var(--text-muted);
+    transition:
+      background var(--dur-fast),
+      color var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
   }
 
   header button:hover {
     color: var(--text);
     background: var(--glass-hover);
-  }
-
-  .eyebrow {
-    margin: var(--sp-3) 0 var(--sp-2);
   }
 
   .list {

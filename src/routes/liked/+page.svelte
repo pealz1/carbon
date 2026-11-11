@@ -16,9 +16,25 @@
   $effect(() => saved.remember(liked.items.map((t) => t.uri), true));
 </script>
 
-<DetailHeader kind="Playlist" title="Liked Songs" image={null} playUri={contextUri} shuffleCount={liked.total ?? undefined}>
-  {#snippet meta()}
-    {session.profile?.name}{liked.total !== null ? ` · ${liked.total.toLocaleString()} songs` : ""}
+<DetailHeader
+  title="Liked Songs"
+  image={null}
+  placeholder="heart"
+  playUri={contextUri}
+  shuffleCount={liked.total ?? undefined}
+  chips={[{ label: "Collection", icon: "heart" }, ...(liked.total !== null ? [{ label: `${liked.total.toLocaleString()} songs`, icon: "note" as const }] : [])]}
+>
+  {#snippet byline()}
+    {#if session.profile}
+      <span class="person">
+        {#if session.profile.image}
+          <img class="avatar" src={session.profile.image} alt="" width="28" height="28" />
+        {:else}
+          <span class="avatar">{session.profile.name.slice(0, 1).toUpperCase()}</span>
+        {/if}
+        {session.profile.name}
+      </span>
+    {/if}
   {/snippet}
 </DetailHeader>
 

@@ -1,30 +1,33 @@
 <script lang="ts">
   import "../app.css";
   import { afterNavigate, onNavigate } from "$app/navigation";
-  import { page } from "$app/state";
-  import { onMount, type Snippet } from "svelte";
+  import { onMount, tick, type Snippet } from "svelte";
   import { account } from "$lib/account.svelte";
+  import { dismissBootScreen } from "$lib/boot-screen";
   import Ambient from "$lib/components/Ambient.svelte";
   import CarbonSignIn from "$lib/components/CarbonSignIn.svelte";
   import Cinema from "$lib/components/Cinema.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
-  import LiquidFilter from "$lib/components/LiquidFilter.svelte";
-  import Logo from "$lib/components/Logo.svelte";
+  import LyricsPanel from "$lib/components/LyricsPanel.svelte";
   import NowPlayingBar from "$lib/components/NowPlayingBar.svelte";
   import PlaylistDialog from "$lib/components/PlaylistDialog.svelte";
+  import QueuePanel from "$lib/components/QueuePanel.svelte";
   import ShortcutsSheet from "$lib/components/ShortcutsSheet.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
   import SignIn from "$lib/components/SignIn.svelte";
   import TagsDialog from "$lib/components/TagsDialog.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
   import Toasts from "$lib/components/Toasts.svelte";
+  import Tooltip from "$lib/components/Tooltip.svelte";
   import { dialogs } from "$lib/dialogs.svelte";
   import { handleKey } from "$lib/keyboard";
   import { sound } from "$lib/local/sound.svelte";
   import { organizer } from "$lib/organizer.svelte";
   import { player } from "$lib/player.svelte";
+  import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
+  import { installSoundFeedback, setSoundGate } from "$lib/sfx";
   import { view } from "$lib/view.svelte";
 
   let { children }: { children: Snippet } = $props();
@@ -35,6 +38,13 @@
     void organizer.load();
     void view.syncFullscreen();
     void sound.boot();
+    setSoundGate(() => ({
+      enabled: prefs.value?.uiSounds ?? false,
+      volume: prefs.value?.uiSoundVolume ?? 0,
+      paused: player.paused,
+      trackUri: player.track?.uri ?? null,
+    }));
+    return installSoundFeedback(document);
   });
 
   // Spotify starts once the Carbon account gate (if this build has one) is passed.
@@ -44,9 +54,16 @@
     spotifyStarted = true;
     void session.boot();
   });
+
+  // The loading screen in app.html stays until we know which screen to show and it has painted.
+  const booting = $derived((account.required && account.status === "unknown") || (account.open && session.status === "booting"));
+  $effect(() => {
+    if (!booting) void tick().then(() => requestAnimationFrame(() => dismissBootScreen()));
+  });
+
   afterNavigate(() => main?.scrollTo({ top: 0 }));
 
-  // Native page transitions; sidebar, title bar and dock are named so they stay put.
+  // Native page transitions; only the page content (view-transition-name: page) moves.
   onNavigate((navigation) => {
     if (!document.startViewTransition || document.documentElement.dataset.effects === "minimal") return;
     return new Promise((resolve) => {
@@ -61,21 +78,18 @@
 <svelte:head><title>Carbon</title></svelte:head>
 <svelte:window onkeydown={(e) => session.status === "signed-in" && handleKey(e)} onresize={() => view.syncFullscreen()} />
 
-<LiquidFilter />
-<Ambient image={player.track?.album?.image ?? null} intense={page.url.pathname === "/now-playing"} />
+<Ambient image={player.track?.album?.image ?? null} playing={!player.paused} />
 
-{#if account.required && account.status === "unknown"}
-  <div class="boot" data-tauri-drag-region><Logo size={56} /></div>
+{#if booting}
+  <!-- app.html's loading screen covers this moment. -->
 {:else if !account.open}
   <CarbonSignIn />
-{:else if session.status === "booting"}
-  <div class="boot" data-tauri-drag-region><Logo size={56} /></div>
 {:else if session.status !== "signed-in"}
   <SignIn />
 {:else}
-  <div class="app" inert={view.cinema}>
-    <Sidebar />
+  <div class="app" class:rail={view.rail} class:lyrics={view.lyrics} inert={view.cinema}>
     <TitleBar />
+    <Sidebar />
     <div class="stage">
       <main bind:this={main}>
         {#if session.error}
@@ -95,9 +109,11 @@
         {/if}
         {@render children()}
       </main>
+      {#if view.queue}<QueuePanel onclose={() => (view.queue = false)} />{/if}
       <Toasts />
-      <NowPlayingBar />
     </div>
+    {#if view.lyrics}<LyricsPanel />{/if}
+    <NowPlayingBar />
   </div>
   {#if view.cinema}<Cinema />{/if}
   <ContextMenu />
@@ -112,86 +128,106 @@
   {/if}
   {#if dialogs.shortcuts}<ShortcutsSheet />{/if}
 {/if}
+<Tooltip />
 
 <style>
-  .boot {
-    position: relative;
-    z-index: 1;
-    height: 100vh;
-    display: grid;
-    place-items: center;
-    animation: breathe 1.4s var(--ease-out) infinite alternate;
-  }
-
-  @keyframes breathe {
-    from {
-      opacity: 0.4;
-      transform: scale(0.94);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
+  /* Chrome (title bar, sidebar, player bar) sits on the wallpaper; the stage is inset into it. */
   .app {
+    --side: var(--sidebar-w);
+    --aside: 0px;
     position: relative;
     z-index: 1;
     height: 100vh;
     display: grid;
-    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
-    grid-template-rows: var(--titlebar-h) minmax(0, 1fr);
-  }
-
-  .stage {
-    position: relative;
-    min-height: 0;
-  }
-
-  /* Excluded from the page transition so only the content glides. */
-  .app :global(.sidebar) {
-    view-transition-name: sidebar;
+    grid-template-columns: var(--side) minmax(0, 1fr) var(--aside);
+    grid-template-rows: var(--titlebar-h) minmax(0, 1fr) var(--player-h);
+    grid-template-areas:
+      "title title title"
+      "side stage lyrics"
+      "player player player";
+    color: var(--chrome-text);
   }
 
   .app :global(.titlebar) {
-    view-transition-name: titlebar;
+    grid-area: title;
   }
 
-  .stage :global(.dock) {
-    view-transition-name: dock;
+  .app.rail {
+    --side: var(--rail-w);
   }
 
-  :global(.ambient) {
-    view-transition-name: ambient;
+  .app.lyrics {
+    --aside: var(--lyrics-w);
+  }
+
+  .stage {
+    grid-area: stage;
+    position: relative;
+    min-height: 0;
+    margin-right: var(--inset);
+    border-radius: var(--r-lg);
+    background: var(--stage);
+    box-shadow:
+      0 0 0 1px var(--stage-edge),
+      0 30px 80px -40px rgb(0 0 0 / 0.9);
+    overflow: hidden;
+    color: var(--text);
+    container: stage / inline-size;
+  }
+
+  .app.lyrics .stage {
+    margin-right: 0;
   }
 
   main {
+    --page-x: 48px;
     height: 100%;
     overflow-y: auto;
-    padding: 0 var(--sp-5) calc(var(--dock-h) + var(--sp-6));
+    padding: 0 var(--page-x) var(--sp-6);
     scrollbar-gutter: stable;
+    view-transition-name: page;
   }
 
+  @container stage (max-width: 980px) {
+    main {
+      --page-x: var(--sp-5);
+    }
+  }
+
+  /* Above page washes, which reach up behind it. */
   .banner {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--sp-3);
-    margin: var(--sp-2) 0 0;
-    padding: var(--sp-2) var(--sp-4);
+    margin: var(--sp-4) 0 0;
+    padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4);
     border-radius: var(--r-md);
-    background: var(--glass-strong);
+    background: var(--plate);
+    box-shadow: inset 0 0 0 1px var(--glass-edge);
     color: var(--warning);
     font-size: var(--fs-small);
   }
 
   .banner button {
+    height: 30px;
+    padding: 0 var(--sp-3);
+    border-radius: var(--r-sm);
     color: var(--text);
     font-weight: 600;
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
+  }
+
+  .banner button:hover {
+    background: var(--glass-hover);
   }
 
   .banner-actions {
     display: flex;
-    gap: var(--sp-4);
+    gap: var(--sp-1);
   }
 </style>

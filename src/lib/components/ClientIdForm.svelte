@@ -91,7 +91,7 @@
   input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 4px var(--accent-glow);
+    box-shadow: 0 0 0 1px var(--accent);
   }
 
   .row {
@@ -111,7 +111,7 @@
   }
 
   .save:hover:not(:disabled) {
-    transform: scale(1.04);
+    background: var(--accent-strong);
   }
 
   .save:disabled {
