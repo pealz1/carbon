@@ -103,7 +103,7 @@
   .note {
     margin-top: var(--sp-2);
     padding: var(--sp-3) var(--sp-4);
-    border-left: 2px solid var(--warning);
+    border: 1px solid color-mix(in oklch, var(--warning) 30%, transparent);
     border-radius: var(--r-sm);
     background: var(--glass-hover);
     color: var(--text-muted);
