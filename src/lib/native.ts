@@ -7,7 +7,15 @@ export type Effects = "full" | "balanced" | "minimal";
 export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
 
+/** The music services the listener connected. */
+export interface Services {
+  spotify: boolean;
+  youtube: boolean;
+}
+
 export interface Settings {
+  /** Null until chosen on first run. */
+  services?: Services | null;
   closeToTray: boolean;
   discordPresence: boolean;
   lastfmScrobbling: boolean;

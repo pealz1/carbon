@@ -5,6 +5,7 @@
   import { cardMenu } from "$lib/menus";
   import { player } from "$lib/player.svelte";
   import type { Card } from "$lib/spotify/types";
+  import { pageHref } from "$lib/youtube/uri";
   import { css } from "$lib/wallpaper";
   import Icon from "./Icon.svelte";
 
@@ -13,7 +14,7 @@
   // from the artwork, for a shelf's lead row.
   let { card, feature = false }: { card: Card; feature?: boolean } = $props();
 
-  const href = $derived(card.kind === "track" ? null : `/${card.kind}/${card.id}`);
+  const href = $derived(card.kind === "track" ? null : pageHref(card.kind, card));
   const live = $derived(player.contextUri === card.playUri || player.isCurrent(card.playUri));
   const playing = $derived(live && !player.paused);
   const tones = artTones(() => (feature ? card.image : null));

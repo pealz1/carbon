@@ -1,16 +1,20 @@
 <script lang="ts">
   import LikeButton from "$lib/components/LikeButton.svelte";
   import Lyrics from "$lib/components/Lyrics.svelte";
+  import YoutubeSlot from "$lib/components/YoutubeSlot.svelte";
   import Status from "$lib/components/Status.svelte";
   import { hasPage } from "$lib/local/tracks";
   import { player } from "$lib/player.svelte";
+  import { pageHref } from "$lib/youtube/uri";
 </script>
 
 {#if player.track}
   {@const album = player.track.album}
   <div class="now">
     <section class="art-side">
-      {#if player.artwork}
+      {#if player.source === "youtube"}
+        <YoutubeSlot />
+      {:else if player.artwork}
         <img class="cover" src={player.artwork} alt="" width="440" height="440" />
       {/if}
       <div class="title-row">
@@ -19,11 +23,11 @@
       </div>
       <p class="by">
         {#each player.track.artists as artist, i (artist.uri)}
-          {#if i > 0}{", "}{/if}{#if hasPage(artist)}<a href="/artist/{artist.id}">{artist.name}</a>{:else}{artist.name}{/if}
+          {#if i > 0}{", "}{/if}{#if hasPage(artist)}<a href={pageHref("artist", artist)}>{artist.name}</a>{:else}{artist.name}{/if}
         {/each}
       </p>
       {#if album}
-        <p class="album">{#if hasPage(album)}<a href="/album/{album.id}">{album.name}</a>{:else}{album.name}{/if}</p>
+        <p class="album">{#if hasPage(album)}<a href={pageHref("album", album)}>{album.name}</a>{:else}{album.name}{/if}</p>
       {/if}
     </section>
 

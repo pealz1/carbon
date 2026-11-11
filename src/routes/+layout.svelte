@@ -1,6 +1,7 @@
 <script lang="ts">
   import "../app.css";
-  import { afterNavigate, onNavigate } from "$app/navigation";
+  import { afterNavigate, goto, onNavigate } from "$app/navigation";
+  import { page } from "$app/state";
   import { onMount, tick, type Snippet } from "svelte";
   import { account } from "$lib/account.svelte";
   import { dismissBootScreen } from "$lib/boot-screen";
@@ -15,9 +16,13 @@
   import QueuePanel from "$lib/components/QueuePanel.svelte";
   import ShortcutsSheet from "$lib/components/ShortcutsSheet.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
-  import SignIn from "$lib/components/SignIn.svelte";
+  import ServiceGate from "$lib/components/ServiceGate.svelte";
   import TagsDialog from "$lib/components/TagsDialog.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
+  import YoutubeStage from "$lib/components/YoutubeStage.svelte";
+  import YtPlaylistDialog from "$lib/components/YtPlaylistDialog.svelte";
+  import { redirectFor, services } from "$lib/services.svelte";
+  import { youtube } from "$lib/youtube/session.svelte";
   import Toasts from "$lib/components/Toasts.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import { dialogs } from "$lib/dialogs.svelte";
@@ -47,16 +52,20 @@
     return installSoundFeedback(document);
   });
 
-  // Spotify starts once the Carbon account gate (if this build has one) is passed.
-  let spotifyStarted = false;
+  // Music services start once the Carbon account gate (if this build has one) is passed.
+  let servicesStarted = false;
   $effect(() => {
-    if (!account.open || spotifyStarted) return;
-    spotifyStarted = true;
-    void session.boot();
+    if (!account.open || servicesStarted) return;
+    servicesStarted = true;
+    void services.boot();
   });
+  // Pages of a service that isn't running (Spotify's home with YouTube Music only) go home,
+  // without rendering first: they would call that service.
+  const redirect = $derived(services.screen === "app" ? redirectFor(page.url.pathname, services.active) : null);
+  $effect(() => void (redirect && goto(redirect, { replaceState: true })));
 
   // The loading screen in app.html stays until we know which screen to show and it has painted.
-  const booting = $derived((account.required && account.status === "unknown") || (account.open && session.status === "booting"));
+  const booting = $derived((account.required && account.status === "unknown") || (account.open && services.screen === "booting"));
   $effect(() => {
     if (!booting) void tick().then(() => requestAnimationFrame(() => dismissBootScreen()));
   });
@@ -76,7 +85,7 @@
 </script>
 
 <svelte:head><title>Carbon</title></svelte:head>
-<svelte:window onkeydown={(e) => session.status === "signed-in" && handleKey(e)} onresize={() => view.syncFullscreen()} />
+<svelte:window onkeydown={(e) => services.screen === "app" && handleKey(e)} onresize={() => view.syncFullscreen()} />
 
 <Ambient image={player.track?.album?.image ?? null} playing={!player.paused} />
 
@@ -84,8 +93,8 @@
   <!-- app.html's loading screen covers this moment. -->
 {:else if !account.open}
   <CarbonSignIn />
-{:else if session.status !== "signed-in"}
-  <SignIn />
+{:else if services.screen !== "app"}
+  <ServiceGate />
 {:else}
   <div class="app" class:rail={view.rail} class:lyrics={view.lyrics} inert={view.cinema}>
     <TitleBar />
@@ -107,7 +116,7 @@
             </span>
           </p>
         {/if}
-        {@render children()}
+        {#if !redirect}{@render children()}{/if}
       </main>
       {#if view.queue}<QueuePanel onclose={() => (view.queue = false)} />{/if}
       <Toasts />
@@ -116,6 +125,7 @@
     <NowPlayingBar />
   </div>
   {#if view.cinema}<Cinema />{/if}
+  <YoutubeStage />
   <ContextMenu />
   {#if dialogs.playlist}
     {#key dialogs.playlist}<PlaylistDialog request={dialogs.playlist} />{/key}
@@ -127,6 +137,9 @@
     {#key dialogs.tags}<TagsDialog playlist={dialogs.tags} />{/key}
   {/if}
   {#if dialogs.shortcuts}<ShortcutsSheet />{/if}
+  {#if youtube.dialog}
+    {#key youtube.dialog}<YtPlaylistDialog request={youtube.dialog} />{/key}
+  {/if}
 {/if}
 <Tooltip />
 

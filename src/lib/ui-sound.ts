@@ -1,6 +1,8 @@
 // Carbon's interface sounds: tiny WebAudio recipes, no audio files. They never play over Spotify's
-// audio (Spotify Developer Policy III.7); they may play while paused, idle or on a local file.
+// audio (Spotify Developer Policy III.7); they may play while paused, idle, on a local file or over
+// YouTube Music (YouTube's own player, not Spotify's).
 import { isLocalUri } from "$lib/local/tracks";
+import { isYoutubeUri } from "$lib/youtube/uri";
 
 export type UiSound = "tap" | "select" | "toggle-on" | "toggle-off" | "hold" | "error" | "whoosh";
 
@@ -13,9 +15,12 @@ export interface SoundGate {
   trackUri: string | null;
 }
 
-/** Spotify audio is playing whenever a non-local track isn't paused; then Carbon stays silent. */
+/**
+ * Spotify audio is playing whenever a track that isn't a local file or a YouTube Music song plays;
+ * then Carbon stays silent. Anything unrecognised counts as Spotify, so the rule fails safe.
+ */
 export function soundAllowed({ enabled, volume, paused, trackUri }: SoundGate): boolean {
-  return enabled && volume > 0 && (paused || !trackUri || isLocalUri(trackUri));
+  return enabled && volume > 0 && (paused || !trackUri || isLocalUri(trackUri) || isYoutubeUri(trackUri));
 }
 
 /** Peak level at full volume: −18 dBFS. The default volume (0.5) peaks near −24 dBFS. */

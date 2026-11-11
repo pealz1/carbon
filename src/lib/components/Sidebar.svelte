@@ -1,11 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { isActive, NAV_SECTIONS } from "$lib/nav";
+  import { isActive, sectionsFor } from "$lib/nav";
+  import { services } from "$lib/services.svelte";
   import { session } from "$lib/session.svelte";
   import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
   import SidebarPlaylists from "./SidebarPlaylists.svelte";
+  import YoutubePlaylists from "./YoutubePlaylists.svelte";
 
   const path = $derived(page.url.pathname);
 </script>
@@ -18,7 +20,7 @@
   </button>
 
   <div class="scroll">
-    {#each NAV_SECTIONS as section (section.id)}
+    {#each sectionsFor(services.active) as section (section.id)}
       {@const open = view.rail || !view.closed.includes(section.id)}
       <section class="section">
         <button class="section-head" aria-expanded={open} onclick={() => view.toggleSection(section.id)}>
@@ -39,6 +41,7 @@
       </section>
     {/each}
     <SidebarPlaylists rail={view.rail} />
+    {#if services.active.youtube}<YoutubePlaylists rail={view.rail} />{/if}
   </div>
 
   {#if session.profile}

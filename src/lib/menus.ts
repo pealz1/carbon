@@ -12,6 +12,8 @@ import { saved } from "$lib/saved.svelte";
 import { session } from "$lib/session.svelte";
 import type { Card, PlaylistSummary, Track } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
+import { ytCardMenu, ytTrackMenu } from "$lib/youtube/menus";
+import { isYoutubeUri } from "$lib/youtube/uri";
 
 const LINKABLE = new Set(["track", "album", "artist", "playlist", "show", "episode"]);
 
@@ -81,6 +83,8 @@ export function trackMenu(track: Track, options: TrackMenuOptions = {}): MenuEnt
   const toQueue: MenuItem = { label: "Add to queue", icon: "queue", action: () => queue([track.uri], [track]) };
   // Local files exist only in Carbon: no Spotify playlists, likes, album pages or links.
   if (isLocalUri(track.uri)) return [toQueue];
+  // YouTube Music songs get their own menu: they never go to Spotify playlists.
+  if (isYoutubeUri(track.uri)) return ytTrackMenu(track, options);
   return [
     toQueue,
     { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([track.uri]) },
@@ -188,6 +192,7 @@ export function folderMenu(folder: { id: string; name: string; folders: unknown[
 
 /** Menu for any media card (home shelves, search, library grids). */
 export function cardMenu(card: Card): MenuEntry[] {
+  if (isYoutubeUri(card.uri)) return ytCardMenu(card);
   if (card.kind === "album") return albumMenu(card);
   if (card.kind === "artist") return artistMenu(card);
   if (card.kind === "track") {

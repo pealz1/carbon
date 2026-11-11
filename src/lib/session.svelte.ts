@@ -25,10 +25,15 @@ class Session {
   signInPrompt = $state<string | null>(null);
   #listening = false;
 
-  async boot(): Promise<void> {
+  /** `spotify` false (YouTube Music only): settings and media keys, but nothing from Spotify. */
+  async boot(spotify = true): Promise<void> {
     try {
       const settings = await prefs.load();
       this.#listenForMediaKeys();
+      if (!spotify) {
+        this.status = "signed-out";
+        return;
+      }
       onApiNotice((notice) => this.#onApiNotice(notice));
       useClientId(settings.spotifyClientId || BUILT_IN_CLIENT_ID);
       if (!hasClientId()) {

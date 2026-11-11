@@ -1,6 +1,7 @@
 // Carbon's player: Spotify's Web Playback SDK running inside this window, plus Carbon's own engine
 // for local files (via MixedPlayback, which owns Carbon-managed queues and the hand-off between
-// the two). UI state comes from SDK/engine events; position is interpolated locally.
+// the two), and YouTube Music through YouTube's embedded player (YoutubePlayback), which never
+// shares a queue with them. UI state comes from SDK/engine/embed events; position is interpolated.
 import { getAccessToken, refreshAccessToken, withTimeout } from "$lib/auth";
 import { DEFAULT_VOLUME, PLAYER_NAME, SPOTIFY, TIMING } from "$lib/config";
 import { EngineError, explain, isDeviceGone, SdkError, sentence, type Problem } from "$lib/errors";
@@ -12,6 +13,9 @@ import * as sp from "$lib/spotify/endpoints";
 import { pickLargestImage, toTrack } from "$lib/spotify/mappers";
 import type { Track } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
+import { canJoinQueue, ownerOf, planSwitch, SEPARATE_SERVICES, type Owner } from "$lib/sources";
+import { YoutubePlayback } from "$lib/youtube/playback.svelte";
+import { isYoutubeUri } from "$lib/youtube/uri";
 
 export type RepeatMode = "off" | "context" | "track";
 const REPEAT_MODES: RepeatMode[] = ["off", "context", "track"];
@@ -56,6 +60,8 @@ class Player {
   repeat = $state<RepeatMode>("off");
   volume = $state(DEFAULT_VOLUME);
   contextUri = $state<string | null>(null);
+  /** False when Spotify isn't one of the connected services: its SDK then never loads. */
+  spotifyEnabled = $state(true);
   #positionMs = $state(0);
   #positionAt = $state(0);
   #seekAt = 0;
@@ -83,14 +89,29 @@ class Player {
     spotifyToggle: async () => void (await this.#sdk?.togglePlay()),
     spotifyEnqueue: (uri) => this.#run((id) => sp.addToQueue(uri, id)),
   });
+  /** YouTube Music, played through YouTube's embedded player. Never shares a queue with the others. */
+  #youtube = new YoutubePlayback({
+    volume: () => this.volume,
+    repeat: () => this.repeat,
+    setModes: (shuffle, repeat) => ((this.shuffle = shuffle), (this.repeat = repeat), this.#report()),
+    show: (track) => this.#show(track),
+    sync: (paused, positionMs, durationMs) => this.#sync(paused, positionMs, durationMs),
+    fail: (message) => this.#warn(message),
+    setContext: (uri) => (this.contextUri = uri),
+  });
 
   get error(): string | null {
     return this.problem && sentence(this.problem);
   }
 
-  /** Tracks after the current one when Carbon owns the queue (local files, Carbon playlists). */
+  /** Tracks after the current one when Carbon owns the queue (local files, Carbon playlists, YouTube Music). */
   get upNext(): Track[] | null {
-    return this.#mixed.upNext;
+    return this.#youtube.upNext ?? this.#mixed.upNext;
+  }
+
+  /** Which service is playing; the YouTube player is only on screen for "youtube". */
+  get source(): "spotify" | "local" | "youtube" {
+    return this.#youtube.active ? "youtube" : this.#mixed.backend;
   }
 
   /** Current position in ms, extrapolated from the last SDK update while playing. */
@@ -102,7 +123,7 @@ class Player {
   isCurrent = (uri: string): boolean => this.track?.uri === uri;
 
   async start(): Promise<void> {
-    if (this.#sdk || this.#opening) return;
+    if (this.#sdk || this.#opening || !this.spotifyEnabled) return;
     this.volume = savedVolume();
     await this.#open().catch((e) => this.#fail(e));
   }
@@ -220,7 +241,7 @@ class Player {
 
   #apply(state: Spotify.PlaybackState | null): void {
     if (state) this.#sdkModes = { shuffle: state.shuffle, repeat: REPEAT_MODES[state.repeat_mode] ?? "off" };
-    if (this.#mixed.backend === "local" || (state && this.#mixed.active && !this.#mixed.spotifyState(state))) return;
+    if (this.#youtube.active || this.#mixed.backend === "local" || (state && this.#mixed.active && !this.#mixed.spotifyState(state))) return;
     if (!state) {
       this.paused = true; // playback moved to another device
       this.#report();
@@ -267,12 +288,47 @@ class Player {
 
   /** Plain Spotify playback takes over from a Carbon queue (stopping local audio first). */
   async #spotify<T>(action: () => Promise<T>): Promise<T> {
+    await this.#switchTo("carbon");
     if (this.#mixed.active || this.#mixed.backend === "local") await this.#mixed.leave();
     return action();
   }
 
-  /** Plays a list in Carbon's own queue: local files, Carbon playlists, or both mixed. */
-  playQueue = (tracks: Track[], index = 0) => this.#mixed.play(tracks, index);
+  #owner(): Owner | null {
+    return this.#youtube.active ? "youtube" : this.track ? "carbon" : null;
+  }
+
+  /** Stops the other service, and waits until it has, before `next` starts (they never overlap). */
+  async #switchTo(next: Owner): Promise<void> {
+    for (const step of planSwitch(this.#owner(), next)) {
+      if (step.op === "start") continue;
+      if (step.owner === "youtube") await this.#youtube.stop();
+      else {
+        await this.#mixed.stop();
+        await this.#sdk?.pause().catch((e) => console.warn("[player] Spotify pause failed", e));
+      }
+    }
+  }
+
+  /** YouTube Music takes over: Spotify and local audio go quiet first. Resolves false on failure. */
+  async #playYoutube(action: () => unknown): Promise<boolean> {
+    try {
+      await this.#switchTo("youtube");
+      await action();
+      return true;
+    } catch (e) {
+      this.#warn(e);
+      return false;
+    }
+  }
+
+  /** Plays a list in Carbon's own queue: local files, Carbon playlists, or both mixed; or YouTube Music songs. */
+  playQueue = async (tracks: Track[], index = 0, contextUri?: string): Promise<unknown> => {
+    const owner = ownerOf(tracks.map((t) => t.uri));
+    if (!owner) return void (this.problem = explain(SEPARATE_SERVICES));
+    if (owner === "youtube") return this.#playYoutube(() => this.#youtube.play(tracks, index, contextUri ?? null));
+    await this.#switchTo("carbon");
+    return this.#mixed.play(tracks, index);
+  };
 
   /** Tells the Rust core what's playing: Windows media overlay, tray, Discord, Last.fm. */
   #report(): void {
@@ -291,7 +347,7 @@ class Player {
           repeat: this.repeat,
           volume: this.volume,
           // A Carbon queue (local files, Carbon playlists) is the real queue, not what Spotify holds.
-          queue: (this.#mixed.upNext ?? this.#upNext).slice(0, QUEUE_PREVIEW).map((t) => ({ title: t.name, artists: t.artists.map((a) => a.name) })),
+          queue: (this.upNext ?? this.#upNext).slice(0, QUEUE_PREVIEW).map((t) => ({ title: t.name, artists: t.artists.map((a) => a.name) })),
         }
       : null;
     reportPlayback(info).catch((e) => console.error("[player] native update failed", e));
@@ -299,6 +355,10 @@ class Player {
 
   /** Resolves false (with `problem` set) when the action failed. */
   async #run(action: (deviceId: string) => Promise<unknown>): Promise<boolean> {
+    if (!this.spotifyEnabled) {
+      this.problem = explain(this.track ? "Spotify isn't connected. Turn it on in Settings." : "Pick something to play first.");
+      return false;
+    }
     try {
       await this.#onDevice(action);
       return true;
@@ -324,11 +384,15 @@ class Player {
   }
 
   playContext = (contextUri: string, offsetUri?: string) =>
-    this.#spotify(() => this.#run((id) => sp.playOn(id, { context_uri: contextUri, ...(offsetUri && { offset: { uri: offsetUri } }) })));
+    isYoutubeUri(contextUri)
+      ? this.#playYoutube(() => this.#youtube.playContext(contextUri, offsetUri))
+      : this.#spotify(() => this.#run((id) => sp.playOn(id, { context_uri: contextUri, ...(offsetUri && { offset: { uri: offsetUri } }) })));
 
   /** Shuffle on, then play. `count` lets the first song be random too when shuffle has to wait. */
   shufflePlay = (contextUri: string, count?: number) =>
-    this.#spotify(() =>
+    isYoutubeUri(contextUri)
+      ? this.#playYoutube(() => this.#youtube.playContext(contextUri, undefined, true))
+      : this.#spotify(() =>
       this.#run(async (id) => {
         // Spotify refuses shuffle (404) until Carbon is the active device; then it's set after play starts.
         const shuffled = await sp.setShuffle(true, id).then(
@@ -341,14 +405,21 @@ class Player {
       }),
     );
 
-  /** `tracks` lets lists that contain local files play them through Carbon's queue. */
-  playTracks = (uris: string[], index = 0, tracks?: Track[]) =>
-    tracks?.some((t) => isLocalUri(t.uri))
+  /**
+   * `tracks` lets lists that contain local files play them through Carbon's queue. A YouTube Music
+   * song on its own (no list) starts its radio, as it does on YouTube Music.
+   */
+  playTracks = (uris: string[], index = 0, tracks?: Track[]): Promise<unknown> => {
+    const owner = ownerOf(uris);
+    if (!owner) return Promise.resolve(void (this.problem = explain(SEPARATE_SERVICES)));
+    if (owner === "youtube") return tracks ? this.playQueue(tracks, index) : this.playContext(uris[index] ?? uris[0]);
+    return tracks?.some((t) => isLocalUri(t.uri))
       ? this.playQueue(tracks, index)
       : this.#spotify(() => this.#run((id) => sp.playOn(id, { uris, offset: { position: index } })));
+  };
 
   togglePlay = () =>
-    this.#mixed.active ? this.#mixed.toggle() : this.#run(async (id) => {
+    this.#youtube.active ? this.#youtube.toggle() : this.#mixed.active ? this.#mixed.toggle() : this.#run(async (id) => {
       if (this.track && this.#sdk) return this.#sdk.togglePlay();
       // Nothing loaded on Carbon yet: pick up where Spotify left off, else your last song.
       const last = await sp.lastPlayback();
@@ -367,12 +438,15 @@ class Player {
     });
   };
 
-  next = () => (this.#mixed.active ? this.#mixed.next() : this.#run(async () => this.#sdk?.nextTrack()));
-  previous = () => (this.#mixed.active ? this.#mixed.previous() : this.#run(async () => this.#sdk?.previousTrack()));
+  next = () =>
+    this.#youtube.active ? this.#youtube.next() : this.#mixed.active ? this.#mixed.next() : this.#run(async () => this.#sdk?.nextTrack());
+  previous = () =>
+    this.#youtube.active ? this.#youtube.previous() : this.#mixed.active ? this.#mixed.previous() : this.#run(async () => this.#sdk?.previousTrack());
 
   seek = (ms: number) => {
     this.#positionMs = ms;
     this.#positionAt = this.#seekAt = performance.now();
+    if (this.#youtube.active) return this.#youtube.seek(ms);
     // Carbon queues seek without waiting on Spotify's SDK, which local files don't need.
     if (this.#mixed.active) return this.#mixed.seek(ms).catch((e) => this.#warn(e));
     return this.#run(async () => {
@@ -383,7 +457,7 @@ class Player {
 
   /** Re-reads the position from the SDK's local state (no Web API call) to correct drift. */
   syncPosition = async (): Promise<void> => {
-    if (this.#mixed.backend === "local") return; // the engine reports its own position
+    if (this.#mixed.backend === "local" || this.#youtube.active) return; // they report their own position
     const state = await this.#sdk?.getCurrentState().catch((e) => (console.warn("[player] state read failed", e), null));
     if (!state || state.track_window.current_track?.uri !== this.track?.uri) return;
     const now = performance.now();
@@ -404,30 +478,46 @@ class Player {
     }
     void this.#sdk?.setVolume(this.volume);
     this.#mixed.setVolume(this.volume);
+    if (this.#youtube.active) this.#youtube.setVolume(this.volume);
     this.#report();
   };
 
   toggleShuffle = () =>
-    this.#mixed.active ? this.#mixed.toggleShuffle(!this.shuffle) : this.#run((id) => sp.setShuffle(!this.shuffle, id));
+    this.#youtube.active
+      ? this.#youtube.toggleShuffle(!this.shuffle)
+      : this.#mixed.active
+        ? this.#mixed.toggleShuffle(!this.shuffle)
+        : this.#run((id) => sp.setShuffle(!this.shuffle, id));
 
   setShuffle = (on: boolean) => {
+    if (this.#youtube.active) return on !== this.shuffle && this.#youtube.toggleShuffle(on);
     if (!this.#mixed.active) return this.#run((id) => sp.setShuffle(on, id));
     // Re-shuffling an already shuffled Carbon queue would lose its original order.
     if (on !== this.shuffle) return this.#mixed.toggleShuffle(on);
   };
 
-  setRepeat = (mode: RepeatMode) => (this.#mixed.active ? this.#mixed.setRepeat(mode) : this.#run((id) => sp.setRepeat(mode, id)));
+  setRepeat = (mode: RepeatMode) =>
+    this.#youtube.active
+      ? this.#youtube.setRepeat(mode)
+      : this.#mixed.active
+        ? this.#mixed.setRepeat(mode)
+        : this.#run((id) => sp.setRepeat(mode, id));
 
   cycleRepeat = () =>
-    this.#mixed.active
-      ? this.#mixed.cycleRepeat()
-      : this.#run((id) => sp.setRepeat(REPEAT_MODES[(REPEAT_MODES.indexOf(this.repeat) + 1) % REPEAT_MODES.length], id));
+    this.#youtube.active
+      ? this.#youtube.cycleRepeat()
+      : this.#mixed.active
+        ? this.#mixed.cycleRepeat()
+        : this.#run((id) => sp.setRepeat(REPEAT_MODES[(REPEAT_MODES.indexOf(this.repeat) + 1) % REPEAT_MODES.length], id));
 
   /**
    * Local files can only join a queue Carbon owns, so a playing Spotify track is adopted into one.
-   * Resolves false (with `error` set) when Spotify refused.
+   * YouTube Music songs only join a YouTube Music queue (or start one when nothing plays).
+   * Resolves false (with `problem` set) when the song was refused.
    */
   addToQueue = async (uri: string, track?: Track): Promise<boolean> => {
+    if (!canJoinQueue(this.#owner(), uri)) return ((this.problem = explain(SEPARATE_SERVICES)), false);
+    if (isYoutubeUri(uri)) return this.#youtube.active && track ? this.#youtube.add(track) : this.playTracks([uri], 0, track && [track]).then(() => true);
     if (this.#mixed.active && track) return this.#mixed.add(track);
     if (!track || !isLocalUri(uri)) return this.#run((id) => sp.addToQueue(uri, id));
     if (!this.track) await this.playQueue([track]);
@@ -437,6 +527,7 @@ class Player {
 
   stop(): void {
     void this.#mixed.stop();
+    void this.#youtube.stop();
     this.#sdk?.disconnect();
     this.#sdk = null;
     this.#device = null;

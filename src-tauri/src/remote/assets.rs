@@ -20,8 +20,10 @@ const ASSETS: [(&str, &str, &[u8]); 9] = [
     ("/icon-512.png", PNG, include_bytes!("../../icons/icon.png")),
 ];
 
-// Artwork comes from Spotify's CDN; everything else is same-origin. No inline script or style.
-const CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://i.scdn.co; \
+// Artwork comes from Spotify's or YouTube's image CDNs; everything else is same-origin. No inline
+// script or style.
+const CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; \
+    img-src 'self' https://i.scdn.co https://i.ytimg.com https://lh3.googleusercontent.com https://yt3.ggpht.com https://yt3.googleusercontent.com; \
     connect-src 'self' ws:; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 pub fn find(path: &str) -> Option<(&'static str, &'static [u8])> {

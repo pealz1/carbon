@@ -10,6 +10,7 @@
   import { buildTree, canMoveFolder, folderOf, moveFolder, movePlaylist, toggleCollapsed, type FolderNode } from "$lib/organizer";
   import { organizer } from "$lib/organizer.svelte";
   import { player } from "$lib/player.svelte";
+  import { services } from "$lib/services.svelte";
   import { session } from "$lib/session.svelte";
   import type { PlaylistSummary } from "$lib/spotify/types";
   import { view } from "$lib/view.svelte";
@@ -154,9 +155,11 @@
     <button class="tool" onclick={() => (dialogs.folder = { mode: "create", parentId: null })} aria-label="New folder" title="New folder">
       <Icon name="folder" size={15} />
     </button>
-    <button class="tool" onclick={() => (dialogs.playlist = { mode: "create" })} aria-label="New Spotify playlist" title="New Spotify playlist">
-      <Icon name="plus" size={16} />
-    </button>
+    {#if services.active.spotify}
+      <button class="tool" onclick={() => (dialogs.playlist = { mode: "create" })} aria-label="New Spotify playlist" title="New Spotify playlist">
+        <Icon name="plus" size={16} />
+      </button>
+    {/if}
   </div>
   {#if open}
     {#each carbonPlaylists.list as playlist (playlist.id)}

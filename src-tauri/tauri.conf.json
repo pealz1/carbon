@@ -33,7 +33,7 @@
       "csp": {
         "default-src": "'self'",
         "script-src": "'self' https://sdk.scdn.co",
-        "frame-src": "https://sdk.scdn.co",
+        "frame-src": "https://sdk.scdn.co https://www.youtube.com",
         "connect-src": "'self' ipc: http://ipc.localhost https://api.spotify.com https://accounts.spotify.com https://lrclib.net https://api.getcarbon.cc",
         "img-src": "'self' data: blob: https: asset: http://asset.localhost",
         "media-src": "'self' blob: https:",

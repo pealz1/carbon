@@ -16,6 +16,11 @@ describe("soundAllowed (policy III.7: never over Spotify audio)", () => {
     expect(soundAllowed({ ...IDLE, paused: false, trackUri: "local:42" })).toBe(true);
   });
 
+  it("plays over YouTube Music, which isn't Spotify audio, and stays silent for anything unknown", () => {
+    expect(soundAllowed({ ...IDLE, paused: false, trackUri: "ytm:video:7374CZQoS2Y" })).toBe(true);
+    expect(soundAllowed({ ...IDLE, paused: false, trackUri: "something:else" })).toBe(false);
+  });
+
   it("respects the Settings switch and a zero volume", () => {
     expect(soundAllowed({ ...IDLE, enabled: false })).toBe(false);
     expect(soundAllowed({ ...IDLE, volume: 0 })).toBe(false);

@@ -6,6 +6,10 @@
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import FontPicker from "$lib/components/FontPicker.svelte";
   import RemotePanel from "$lib/components/RemotePanel.svelte";
+  import ServicesPanel from "$lib/components/ServicesPanel.svelte";
+  import YoutubePanel from "$lib/components/YoutubePanel.svelte";
+  import { services } from "$lib/services.svelte";
+  import { youtube } from "$lib/youtube/session.svelte";
   import Toggle from "$lib/components/Toggle.svelte";
   import { BUILT_IN_CLIENT_ID, CARBON } from "$lib/config";
   import { describeError } from "$lib/errors";
@@ -92,6 +96,7 @@
   async function removeEverything() {
     await session.signOut();
     await account.signOut();
+    await youtube.signOut();
     try {
       await removeSavedData();
       notice = "Signed out and removed everything Carbon saved on this PC.";
@@ -113,6 +118,7 @@
   <div class="grid">
     <section class="panel plate account">
       <h2>Account</h2>
+      {#if services.active.spotify}
       {#if session.profile}
         <div class="me">
           {#if session.profile.image}<img src={session.profile.image} alt="" width="56" height="56" />{/if}
@@ -132,6 +138,7 @@
         Changing it signs you out.
       </p>
       <ClientIdForm initial={customId} compact />
+      {/if}
       {#if account.required || account.status === "signed-in"}
         <h3>Carbon account</h3>
         {#if account.status === "signed-in"}
@@ -240,6 +247,10 @@
     </section>
 
     <RemotePanel />
+
+    <ServicesPanel />
+
+    {#if services.active.youtube}<YoutubePanel />{/if}
 
     <section class="panel plate">
       <h2>Sound</h2>

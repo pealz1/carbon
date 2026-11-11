@@ -13,6 +13,7 @@ mod settings;
 mod system;
 mod token_store;
 mod tray;
+mod youtube;
 
 use discord::Discord;
 use lastfm::Lastfm;
@@ -66,6 +67,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let sound = engine::sound::load(&handle);
     app.manage(local_library::LocalLibrary::load(&handle));
     app.manage(carbon_playlists::Store::load(&handle));
+    app.manage(youtube::Youtube::new());
     app.manage(engine::spotify_eq::SpotifyEqInjected(sound.spotify_eq));
     let window = engine::spotify_eq::create_main_window(app, sound.spotify_eq)?;
     app.manage(engine::Engine::spawn(&handle, sound));
@@ -151,6 +153,21 @@ pub fn run() {
             carbon_playlists::carbon_playlist_add,
             carbon_playlists::carbon_playlist_remove,
             carbon_playlists::carbon_playlist_move,
+            youtube::ytm_signed_in,
+            youtube::signin::ytm_sign_in,
+            youtube::ytm_sign_out,
+            youtube::ytm_account,
+            youtube::ytm_search,
+            youtube::ytm_browse,
+            youtube::ytm_browse_more,
+            youtube::ytm_next,
+            youtube::ytm_playability,
+            youtube::ytm_rate,
+            youtube::ytm_playlist_create,
+            youtube::ytm_playlist_rename,
+            youtube::ytm_playlist_add,
+            youtube::ytm_playlist_remove,
+            youtube::ytm_playlist_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Carbon");
