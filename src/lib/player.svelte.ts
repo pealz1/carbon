@@ -55,6 +55,8 @@ class Player {
   repeat = $state<RepeatMode>("off");
   volume = $state(DEFAULT_VOLUME);
   contextUri = $state<string | null>(null);
+  /** False when Spotify isn't one of the connected services: its SDK then never loads. */
+  spotifyEnabled = $state(true);
   #positionMs = $state(0);
   #positionAt = $state(0);
   #seekAt = 0;
@@ -107,7 +109,7 @@ class Player {
   isCurrent = (uri: string): boolean => this.track?.uri === uri;
 
   async start(): Promise<void> {
-    if (this.#deviceId) return;
+    if (this.#deviceId || !this.spotifyEnabled) return;
     this.status = "connecting";
     this.volume = savedVolume();
     this.#deviceId = this.#connect();
@@ -258,6 +260,10 @@ class Player {
 
   /** Resolves false (with `error` set) when the action failed. */
   async #run(action: (deviceId: string) => Promise<unknown>): Promise<boolean> {
+    if (!this.spotifyEnabled) {
+      this.error = this.track ? "Spotify isn't connected. Turn it on in Settings." : "Pick something to play first.";
+      return false;
+    }
     try {
       if (!this.#deviceId) await this.start();
       await action(await this.#deviceId!);

@@ -31,10 +31,15 @@ class Session {
   needsReconsent = $state(false);
   #listening = false;
 
-  async boot(): Promise<void> {
+  /** `spotify` false (YouTube Music only): settings and media keys, but nothing from Spotify. */
+  async boot(spotify = true): Promise<void> {
     try {
       const settings = await prefs.load();
       this.#listenForMediaKeys();
+      if (!spotify) {
+        this.status = "signed-out";
+        return;
+      }
       useClientId(settings.spotifyClientId || BUILT_IN_CLIENT_ID);
       if (!hasClientId()) {
         this.status = "needs-client-id";

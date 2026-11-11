@@ -16,9 +16,18 @@ pub enum Effects {
     Minimal,
 }
 
+/// The music services the listener connected (asked on first run, changeable in Settings).
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Services {
+    pub spotify: bool,
+    pub youtube: bool,
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
+    /// None until the listener has chosen.
+    pub services: Option<Services>,
     pub close_to_tray: bool,
     pub discord_presence: bool,
     pub lastfm_scrobbling: bool,
@@ -35,6 +44,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            services: None,
             close_to_tray: true,
             discord_presence: true,
             lastfm_scrobbling: true,
@@ -67,6 +77,9 @@ impl Settings {
         }
         if self.remote_port < 1024 {
             return Err("the remote port must be between 1024 and 65535".into());
+        }
+        if self.services.is_some_and(|s| !s.spotify && !s.youtube) {
+            return Err("connect at least one music service".into());
         }
         Ok(())
     }
@@ -159,6 +172,10 @@ mod tests {
         assert!(bad_id.validate().is_err());
         let bad_port = Settings { remote_port: 80, ..Settings::default() };
         assert!(bad_port.validate().is_err());
+        let no_service = Settings { services: Some(Services { spotify: false, youtube: false }), ..Settings::default() };
+        assert!(no_service.validate().is_err());
+        let youtube_only = Settings { services: Some(Services { spotify: false, youtube: true }), ..Settings::default() };
+        assert!(youtube_only.validate().is_ok());
     }
 
     #[test]
@@ -176,5 +193,8 @@ mod tests {
         assert_eq!(parsed.accent, "periwinkle");
         assert!(!parsed.remote_enabled);
         assert_eq!(parsed.remote_port, 10767);
+        assert_eq!(parsed.services, None); // settings from before the service choice
+        let chosen: Settings = serde_json::from_str(r#"{"services":{"spotify":false,"youtube":true}}"#).unwrap();
+        assert_eq!(chosen.services, Some(Services { spotify: false, youtube: true }));
     }
 }
