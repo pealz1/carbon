@@ -27,10 +27,18 @@ describe("parse helpers", () => {
     expect(durationOf("5M plays")).toBe(0);
   });
 
-  it("asks for large square art when the CDN allows it", () => {
+  it("uses sizes the image CDN already serves, upgrading small row thumbnails", () => {
     const thumb = { thumbnails: [{ url: "https://lh3.googleusercontent.com/abc=w60-h60-l90-rj" }, { url: "https://lh3.googleusercontent.com/abc=w120-h120-l90-rj" }] };
     expect(imageOf(thumb)).toBe("https://lh3.googleusercontent.com/abc=w544-h544-l90-rj");
     expect(imageOf({ thumbnails: [{ url: "https://i.ytimg.com/vi/x/hqdefault.jpg" }] })).toBe("https://i.ytimg.com/vi/x/hqdefault.jpg");
+    // Sizes YouTube already lists are used as they are: on-demand resizes get HTTP 429.
+    expect(imageOf({ thumbnails: [{ url: "https://lh3.googleusercontent.com/abc=w226-h226-l90-rj" }, { url: "https://lh3.googleusercontent.com/abc=w544-h544-l90-rj" }] })).toBe(
+      "https://lh3.googleusercontent.com/abc=w544-h544-l90-rj",
+    );
+    expect(imageOf({ thumbnails: [{ url: "https://yt3.ggpht.com/p=s1200" }] })).toBe("https://yt3.ggpht.com/p=s1200");
+    // The smallest listed size that fits, not the largest: s576 rather than s1200.
+    const sized = (n: number) => ({ url: `https://yt3.ggpht.com/p=s${n}`, width: n, height: n });
+    expect(imageOf({ thumbnails: [sized(192), sized(576), sized(1200)] })).toBe("https://yt3.ggpht.com/p=s576");
     expect(imageOf({ thumbnails: [{ url: "http://insecure.example/a.jpg" }] })).toBeNull();
     expect(imageOf(null)).toBeNull();
   });
@@ -98,8 +106,8 @@ describe("pages", () => {
     const a = albumPage(album, "MPREb_yXhSI4FCUo6");
     expect(a).toMatchObject({ name: "OK Computer", type: "Album", year: "1997", artists: [RADIOHEAD] });
     expect(a.description).toMatch(/^OK Computer is the third studio album/);
-    expect(a.largeImage).toMatch(/=w1200-h1200/);
-    expect(a.artistImage).toMatch(/^https:\/\/.*=w88-h88/);
+    expect(a.largeImage).toMatch(/=w544-h544/);
+    expect(a.artistImage).toMatch(/^https:\/\//);
     expect(a.tracks[0]).toMatchObject({ name: "Airbag", durationMs: 288_000, artists: [RADIOHEAD], setVideoId: "E09F47EBF57B19B1" });
     expect(a.tracks[0].album).toMatchObject({ id: "MPREb_yXhSI4FCUo6", name: "OK Computer" });
   });

@@ -92,8 +92,6 @@ export interface YtAccount {
   image: string | null;
 }
 
-const LARGE = 1200;
-const SMALL = 300;
 /** Songs ("art tracks") and music videos; podcast episodes are left out. */
 const MUSIC_VIDEO_TYPES = new Set(["MUSIC_VIDEO_TYPE_ATV", "MUSIC_VIDEO_TYPE_OMV", "MUSIC_VIDEO_TYPE_UGC", "MUSIC_VIDEO_TYPE_OFFICIAL_SOURCE_MUSIC"]);
 const TYPE_LABELS = new Set(["Song", "Video", "Album", "Single", "EP", "Playlist", "Artist", "Episode", "Profile", "Podcast"]);
@@ -161,14 +159,14 @@ export function rowCard(row: Json): Card | null {
   const kind = kindOf(pageTypeOf(nav));
   if (!kind) return null;
   const cols = flexColumns(row);
-  return cardFrom(kind, nav.browseEndpoint.browseId, textOf(cols[0]), subtitleOf(cols[1], kind), imageOf(row?.thumbnail, SMALL));
+  return cardFrom(kind, nav.browseEndpoint.browseId, textOf(cols[0]), subtitleOf(cols[1], kind), imageOf(row?.thumbnail));
 }
 
 /** A tile on a shelf (musicTwoRowItemRenderer): a song/video, album, playlist or artist. */
 export function twoRowCard(item: Json): Card | null {
   const nav = item?.navigationEndpoint;
   const title = textOf(item?.title);
-  const image = imageOf(item?.thumbnailRenderer, SMALL);
+  const image = imageOf(item?.thumbnailRenderer);
   const videoId: string | undefined = nav?.watchEndpoint?.videoId;
   if (videoId) {
     const type = videoTypeOf(nav);
@@ -221,7 +219,7 @@ export const homeMore = (res: Json): ShelfPage => shelfPage(res?.continuationCon
 function topCard(card: Json): Card | null {
   const run = runsOf(card?.title)[0];
   const nav = run?.navigationEndpoint ?? card?.onTap;
-  const image = imageOf(card?.thumbnail, SMALL);
+  const image = imageOf(card?.thumbnail);
   const videoId: string | undefined = nav?.watchEndpoint?.videoId;
   if (videoId) {
     const runs = runsOf(card?.subtitle);
@@ -267,7 +265,7 @@ export function albumPage(res: Json, id: string): YtAlbum {
   const name = textOf(header?.title);
   const segments = segmentsOf(header?.subtitle);
   const artists = artistsFrom(runsOf(header?.straplineTextOne));
-  const image = imageOf(header?.thumbnail, SMALL);
+  const image = imageOf(header?.thumbnail);
   const album: AlbumRef = { id, name, uri: ytmUri("album", id), image };
   const rows: Json[] = secondaryOf(res)?.musicShelfRenderer?.contents ?? [];
   return {
@@ -277,9 +275,9 @@ export function albumPage(res: Json, id: string): YtAlbum {
     type: segments[0] ?? "Album",
     year: segments.find((s) => /^\d{4}$/.test(s)) ?? "",
     artists,
-    artistImage: imageOf(header?.straplineThumbnail, 88),
+    artistImage: imageOf(header?.straplineThumbnail),
     image,
-    largeImage: imageOf(header?.thumbnail, LARGE),
+    largeImage: imageOf(header?.thumbnail),
     description: descriptionOf(header),
     tracks: rows.map((r) => rowTrack(r?.musicResponsiveListItemRenderer, { artists, album })).filter((t): t is YtTrack => t !== null),
   };
@@ -302,8 +300,8 @@ export function playlistPage(res: Json, id: string): YtPlaylist {
     uri: ytmUri("playlist", id),
     name: textOf(header?.title),
     description: descriptionOf(header),
-    image: imageOf(header?.thumbnail, SMALL),
-    largeImage: imageOf(header?.thumbnail, LARGE),
+    image: imageOf(header?.thumbnail),
+    largeImage: imageOf(header?.thumbnail),
     ownerName: header?.facepile?.avatarStackViewModel?.text?.content ?? textOf(header?.straplineTextOne),
     trackCount: count ? Number(count.replace(/,/g, "")) : null,
     owned: Boolean(first?.musicEditablePlaylistDetailHeaderRenderer),
@@ -322,8 +320,8 @@ export function artistPage(res: Json, id: string): YtArtist {
     id,
     uri: ytmUri("artist", id),
     name: textOf(header?.title),
-    image: imageOf(header?.thumbnail, SMALL),
-    largeImage: imageOf(header?.thumbnail, LARGE),
+    image: imageOf(header?.thumbnail),
+    largeImage: imageOf(header?.thumbnail),
     songs: songRows.map((r) => rowTrack(r?.musicResponsiveListItemRenderer)).filter((t): t is YtTrack => t !== null),
     shelves: shelvesOf(sections),
   };
@@ -380,5 +378,5 @@ export function accountOf(res: Json): YtAccount | null {
   const header = res?.actions?.[0]?.openPopupAction?.popup?.multiPageMenuRenderer?.header?.activeAccountHeaderRenderer;
   const name = textOf(header?.accountName);
   if (!name) return null;
-  return { name, handle: textOf(header?.channelHandle) || null, image: imageOf(header?.accountPhoto, 88) };
+  return { name, handle: textOf(header?.channelHandle) || null, image: imageOf(header?.accountPhoto) };
 }

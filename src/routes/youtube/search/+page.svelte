@@ -41,9 +41,15 @@
     return () => clearTimeout(timer);
   });
 
+  // The all-results page lists songs without length or album, so its songs come from the songs tab.
+  async function allResults(query: string) {
+    const [all, songs] = await Promise.all([api.search(query), api.search(query, "songs")]);
+    return { ...all, songs: songs.songs.length ? songs.songs : all.songs };
+  }
+
   const results = resource(() => {
-    const filter = tab === "all" ? undefined : tab;
-    return term ? api.search(term, filter) : Promise.resolve(null);
+    if (!term) return Promise.resolve(null);
+    return tab === "all" ? allResults(term) : api.search(term, tab);
   });
   $effect(() => void (results.data && rememberLikes([...results.data.songs, ...results.data.videos])));
 

@@ -53,7 +53,13 @@
   const dropRow = (uri: string) => (tracks.items = tracks.items.filter((t) => t.uri !== uri));
 </script>
 
-{#if info.loading && !info.data}
+{#if liked && !youtube.signedIn}
+  <header class="page-head"><h1>Liked Music</h1></header>
+  <div class="signin plate">
+    <p>Sign in to YouTube Music to see the songs you've liked. Browsing and playing work without it.</p>
+    <a class="pill accent" href="/settings">Open Settings</a>
+  </div>
+{:else if info.loading && !info.data}
   <Status loading />
 {:else if info.error}
   <Status error={info.error} onretry={retry} />
@@ -109,5 +115,25 @@
 
   .edit:hover {
     background: rgb(255 255 255 / 0.15);
+  }
+
+  .signin {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-4);
+    max-width: 68ch;
+    padding: var(--sp-4) var(--sp-5);
+    color: var(--text-muted);
+  }
+
+  .signin p {
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .signin .pill {
+    flex: none;
+    align-self: center;
   }
 </style>

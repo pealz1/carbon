@@ -83,7 +83,7 @@
       <span class="carbon-btn">{#if !isYoutubeUri(track.uri)}<AddToCarbon tracks={[track]} />{/if}</span>
       <!-- Liked Songs is Spotify-only; the empty cell keeps local rows on the grid. -->
       {#if isLocalUri(track.uri)}<span></span>{:else}<LikeButton uri={track.uri} label={track.name} />{/if}
-      <span class="duration tabular">{formatDuration(track.durationMs)}</span>
+      <span class="duration tabular">{track.durationMs ? formatDuration(track.durationMs) : ""}</span>
       <button class="more" onclick={(e) => openMenu(e, track)} aria-label="More options for {track.name}" aria-haspopup="menu" title="More">
         <Icon name="more" size={16} />
       </button>

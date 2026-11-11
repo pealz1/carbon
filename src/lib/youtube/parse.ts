@@ -7,24 +7,36 @@ import { ytmUri } from "./uri";
 /** Raw InnerTube JSON. */
 export type Json = any; // shortcut: untyped renderer trees; the fixture tests are the contract
 
-export const ART_SIZE = 544;
+/** The square size YouTube Music itself loads, so Google's image CDN has it ready. Other sizes are
+ * resized on demand, and the CDN soon refuses those with HTTP 429. */
+const READY_SIZE = 544;
+/** Row thumbnails (60 or 120 px) are too small for cards and headers. */
+const TOO_SMALL = 226;
 const TIME = /^\d{1,2}(?::\d{2}){1,2}$/;
 const BULLET = " • ";
 
 export const textOf = (t: Json): string => (t?.runs ?? []).map((r: Json) => r?.text ?? "").join("") || t?.simpleText || "";
 export const runsOf = (t: Json): Json[] => (Array.isArray(t?.runs) ? t.runs : []);
 
-/** Largest thumbnail, asking Google's image CDN for a square of `size` when the URL allows it. */
-export function imageOf(node: Json, size = ART_SIZE): string | null {
+/** Big enough for a card or a header at 1.5x without asking for YouTube's largest (and slowest). */
+const FIT = 400;
+
+/** The smallest thumbnail YouTube lists that fits a card or header (else its largest). Square row
+ * thumbnails are swapped for YouTube Music's own card size; nothing else is resized, so every URL
+ * is one the CDN already serves. */
+export function imageOf(node: Json): string | null {
   const list: Json[] =
     node?.musicThumbnailRenderer?.thumbnail?.thumbnails ??
     node?.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails ??
     node?.thumbnail?.thumbnails ??
     node?.thumbnails ??
     [];
-  const url: unknown = list.at(-1)?.url;
+  const fit = list.find((t) => Math.min(Number(t?.width) || 0, Number(t?.height) || 0) >= FIT) ?? list.at(-1);
+  const url: unknown = fit?.url;
   if (typeof url !== "string" || !url.startsWith("https://")) return null;
-  return url.replace(/=w\d+-h\d+/, `=w${size}-h${size}`).replace(/=s\d+(?=[-?]|$)/, `=s${size}`);
+  const size = /=w(\d+)-h(\d+)/.exec(url);
+  const smallSquare = size && size[1] === size[2] && Number(size[1]) < TOO_SMALL;
+  return smallSquare ? url.replace(/=w\d+-h\d+/, `=w${READY_SIZE}-h${READY_SIZE}`) : url;
 }
 
 export const pageTypeOf = (endpoint: Json): string =>
