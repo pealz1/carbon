@@ -74,7 +74,8 @@
     <span class="name" style:font-family={family(value)}>{value || "Default"}</span>
   </button>
   {#if open}
-    <div class="menu">
+    <!-- Focusable so a click on its padding keeps focus inside and doesn't close it. -->
+    <div class="menu" tabindex="-1">
       <input
         bind:this={search}
         bind:value={query}
@@ -130,7 +131,6 @@
     border: 1px solid var(--glass-edge);
     background: var(--glass);
     text-align: left;
-    transition: background var(--dur-fast);
   }
 
   .current:hover,

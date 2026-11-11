@@ -106,9 +106,10 @@ interface Payload {
   type: string;
 }
 
-async function request(method: string, path: string, payload?: Payload, attempt = 0, refreshed = false): Promise<Response> {
+/** `refreshed`: a 401 already cost one refresh; `refreshNow`: this attempt is the one that refreshes. */
+async function request(method: string, path: string, payload?: Payload, attempt = 0, refreshed = false, refreshNow = false): Promise<Response> {
   if (!tokens) throw new ApiError(401, "Not signed in");
-  const token = await bearer(tokens, refreshed);
+  const token = await bearer(tokens, refreshNow);
   const again = () => request(method, path, payload, attempt + 1, refreshed);
   let res: Response;
   try {
@@ -121,7 +122,7 @@ async function request(method: string, path: string, payload?: Payload, attempt 
     if (!canRetry(method, attempt)) throw new NetworkError(attempt, e);
     return wait("network", backoffMs(attempt)).then(again);
   }
-  if (res.status === 401 && !refreshed) return request(method, path, payload, attempt, true);
+  if (res.status === 401 && !refreshed) return request(method, path, payload, attempt, true, true);
   // Spotify didn't process a rate-limited request, so even a POST is safe to send again.
   if (res.status === 429 && attempt < TIMING.maxRetries) return wait("rate-limit", retryAfterMs(res.headers.get("Retry-After"))).then(again);
   if (res.status >= 500 && canRetry(method, attempt)) return wait("server", backoffMs(attempt)).then(again);

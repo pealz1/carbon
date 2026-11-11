@@ -165,6 +165,13 @@ describe("recovery bounds", () => {
     expect(notices).toEqual([{ kind: "auth-lost" }]);
   });
 
+  it("refreshes only once even when the refreshed request is then retried", async () => {
+    fetchMock.mockResolvedValueOnce(json(401, {})).mockResolvedValueOnce(json(503, {})).mockResolvedValueOnce(json(200, { ok: true }));
+    await expect(settle(get("/401-then-503"))).resolves.toEqual({ ok: true });
+    expect(tokens.refresh).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it("treats a revoked refresh token as signed out", async () => {
     fetchMock.mockResolvedValue(json(401, {}));
     tokens.refresh.mockRejectedValue(new ApiError(400, "Refresh token revoked"));
