@@ -74,7 +74,18 @@ describe("specular", () => {
 });
 
 describe("preferences", () => {
-  const settings = { closeToTray: true, discordPresence: true, lastfmScrobbling: true, effects: "full", accent: "mint", lyricsScale: 1.2, spotifyClientId: "" };
+  const settings = {
+    closeToTray: true,
+    discordPresence: true,
+    lastfmScrobbling: true,
+    effects: "full",
+    accent: "mint",
+    lyricsScale: 1.2,
+    spotifyClientId: "",
+    fontText: "",
+    fontDisplay: "",
+    fontLyrics: "Georgia",
+  };
 
   it("loads Rust's settings onto the document and saves changes", async () => {
     const { prefs } = await import("./preferences.svelte");
@@ -82,8 +93,12 @@ describe("preferences", () => {
     await prefs.load();
     expect(document.documentElement.dataset.accent).toBe("mint");
     expect(document.documentElement.style.getPropertyValue("--lyrics-scale")).toBe("1.2");
+    expect(document.documentElement.style.getPropertyValue("--font-lyrics")).toBe('"Georgia", var(--font-display-default)');
     expect(await prefs.update({ effects: "minimal" })).toBe(true);
     expect(document.documentElement.dataset.effects).toBe("minimal");
+    expect(await prefs.update({ fontText: "Bahnschrift", fontLyrics: "" })).toBe(true);
+    expect(document.documentElement.style.getPropertyValue("--font-text")).toBe('"Bahnschrift", var(--font-text-default)');
+    expect(document.documentElement.style.getPropertyValue("--font-lyrics")).toBe("");
     vi.spyOn(console, "error").mockImplementation(() => {});
     invoke.mockRejectedValueOnce(new Error("lyrics size must be between 75% and 150%"));
     expect(await prefs.update({ lyricsScale: 9 })).toBe(false);

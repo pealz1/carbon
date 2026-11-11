@@ -102,15 +102,4 @@
   .act:active {
     transform: scale(0.97);
   }
-
-  .act:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .act {
-      transition: none;
-    }
-  }
 </style>

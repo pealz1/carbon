@@ -44,8 +44,12 @@
   --warning: oklch(83% 0.13 85);
 
   /* Type */
-  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
-  --font-text: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display-default: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-text-default: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  /* Settings → Appearance overrides these on :root with a chosen family ahead of the default stack. */
+  --font-display: var(--font-display-default);
+  --font-text: var(--font-text-default);
+  --font-lyrics: var(--font-display-default);
   --fs-hero: clamp(2.6rem, 4.2vw, 4.4rem);
   --fs-title: clamp(1.9rem, 2.6vw, 2.6rem);
   --fs-section: 1.3rem;

@@ -17,6 +17,10 @@ export interface Settings {
   spotifyClientId: string;
   remoteEnabled: boolean;
   remotePort: number;
+  /** Installed font family names; "" = Carbon's own fonts. */
+  fontText: string;
+  fontDisplay: string;
+  fontLyrics: string;
 }
 
 export type RepeatMode = "off" | "context" | "track";
@@ -82,6 +86,8 @@ export interface LastfmStatus {
 
 export const getSettings = () => invoke<Settings>("settings_get");
 export const saveSettings = (settings: Settings) => invoke<Settings>("settings_set", { settings });
+/** Installed font families, A–Z, already limited to names that are safe in CSS. */
+export const installedFonts = () => invoke<string[]>("fonts_installed");
 export const reportPlayback = (info: PlaybackInfo | null) => invoke("playback_update", { info });
 export const onMediaCommand = (handler: (command: MediaCommand) => void): Promise<UnlistenFn> =>
   listen<MediaCommand>("media-command", (event) => handler(event.payload));
