@@ -34,7 +34,13 @@ pub struct Settings {
     pub font_text: String,
     pub font_display: String,
     pub font_lyrics: String,
+    /// Brand updates already applied to this file (see `migrate`). Missing in older files, so 0.
+    #[serde(default)]
+    pub brand_version: u8,
 }
+
+/// 1: the yellow rebrand.
+const BRAND_VERSION: u8 = 1;
 
 impl Default for Settings {
     fn default() -> Self {
@@ -51,6 +57,7 @@ impl Default for Settings {
             font_text: String::new(),
             font_display: String::new(),
             font_lyrics: String::new(),
+            brand_version: BRAND_VERSION,
         }
     }
 }
@@ -80,6 +87,18 @@ impl Settings {
             return Err(format!("\u{201c}{bad}\u{201d} isn't a font name Carbon can use"));
         }
         Ok(())
+    }
+
+    /// Periwinkle was everyone's saved default before the yellow rebrand, so it moves to yellow once.
+    /// Picking periwinkle again afterwards sticks, because saving writes the new brand version.
+    fn migrate(mut self) -> Self {
+        if self.brand_version < BRAND_VERSION {
+            if self.accent == "periwinkle" {
+                self.accent = ACCENTS[0].into();
+            }
+            self.brand_version = BRAND_VERSION;
+        }
+        self
     }
 
     fn fonts(&self) -> [&str; 3] {
@@ -116,6 +135,7 @@ pub fn load(app: &AppHandle) -> Settings {
         Ok(text) => serde_json::from_str::<Settings>(&text)
             .ok()
             .filter(|s| s.validate().is_ok())
+            .map(Settings::migrate)
             .unwrap_or_else(|| {
                 eprintln!("[settings] {} is invalid, using defaults", file.display());
                 Settings::default()
@@ -182,10 +202,14 @@ mod tests {
     }
 
     #[test]
-    fn keeps_accents_saved_before_the_yellow_default() {
-        let saved: Settings = serde_json::from_str(r#"{"accent":"periwinkle"}"#).unwrap();
-        assert_eq!(saved.accent, "periwinkle");
-        assert!(saved.validate().is_ok());
+    fn moves_the_old_default_accent_to_yellow_once() {
+        let old: Settings = serde_json::from_str(r#"{"accent":"periwinkle"}"#).unwrap();
+        assert!(old.validate().is_ok());
+        assert_eq!(old.migrate().accent, "yellow");
+        let picked_mint: Settings = serde_json::from_str(r#"{"accent":"mint"}"#).unwrap();
+        assert_eq!(picked_mint.migrate().accent, "mint");
+        let picked_after: Settings = serde_json::from_str(r#"{"accent":"periwinkle","brandVersion":1}"#).unwrap();
+        assert_eq!(picked_after.migrate().accent, "periwinkle");
     }
 
     #[test]

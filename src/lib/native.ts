@@ -21,6 +21,8 @@ export interface Settings {
   fontText: string;
   fontDisplay: string;
   fontLyrics: string;
+  /** Brand updates applied to these settings; Rust owns it, the interface only passes it back. */
+  brandVersion: number;
 }
 
 export type RepeatMode = "off" | "context" | "track";
