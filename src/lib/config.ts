@@ -45,6 +45,8 @@ export const CARBON = {
 export const TIMING = {
   loginTimeoutMs: 300_000,
   sdkTimeoutMs: 20_000,
+  /** How long a play/transfer call waits for Spotify's player to report a ready device. */
+  deviceReadyMs: 10_000,
   tokenRefreshMarginMs: 60_000,
   apiCacheTtlMs: 60_000,
   maxRetryAfterMs: 30_000,

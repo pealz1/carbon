@@ -1,5 +1,23 @@
 import { ApiError } from "$lib/spotify/api";
 
+/** Events from Spotify's Web Playback SDK that Carbon treats as failures (plus waiting on it in vain). */
+export type SdkEvent = "initialization_error" | "authentication_error" | "account_error" | "playback_error" | "autoplay_failed" | "not_ready";
+
+export class SdkError extends Error {
+  constructor(
+    readonly event: SdkEvent,
+    message: string = event,
+  ) {
+    super(message);
+  }
+}
+
+/** Spotify no longer knows Carbon's device id, or the SDK never reported one in time. */
+export function isDeviceGone(e: unknown): boolean {
+  if (e instanceof SdkError) return e.event === "not_ready";
+  return e instanceof ApiError && e.status === 404 && /device not found/i.test(e.message);
+}
+
 /** Turns API/network failures into a sentence a listener can act on. Full detail goes to the console. */
 export function describeError(e: unknown): string {
   if (e instanceof ApiError) {

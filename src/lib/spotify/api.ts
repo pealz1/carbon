@@ -6,6 +6,8 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** Spotify's machine-readable `error.reason` (player endpoints), e.g. PREMIUM_REQUIRED. */
+    readonly reason: string | null = null,
   ) {
     super(message);
   }
@@ -43,12 +45,13 @@ export function retryAfterMs(header: string | null, max: number = TIMING.maxRetr
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function errorMessage(res: Response): Promise<string> {
+async function apiError(res: Response): Promise<ApiError> {
   try {
     const body = await res.json();
-    return body?.error?.message ?? body?.error_description ?? res.statusText;
+    const reason = typeof body?.error?.reason === "string" ? body.error.reason : null;
+    return new ApiError(res.status, body?.error?.message ?? body?.error_description ?? res.statusText, reason);
   } catch {
-    return res.statusText;
+    return new ApiError(res.status, res.statusText);
   }
 }
 
@@ -70,7 +73,7 @@ async function request(method: string, path: string, payload?: Payload, attempt 
     await sleep(retryAfterMs(res.headers.get("Retry-After")));
     return request(method, path, payload, attempt + 1, refreshed);
   }
-  if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
+  if (!res.ok) throw await apiError(res);
   return res;
 }
 
