@@ -196,7 +196,7 @@
     border-radius: 1px;
     background: var(--accent);
     transform-origin: bottom;
-    animation: bounce 0.9s var(--ease-out) infinite alternate;
+    animation: level 0.9s var(--ease-out) infinite alternate;
   }
 
   .bars i:nth-child(2) {
@@ -207,7 +207,7 @@
     animation-delay: -0.7s;
   }
 
-  @keyframes bounce {
+  @keyframes level {
     from {
       transform: scaleY(0.25);
     }
