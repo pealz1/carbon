@@ -7,7 +7,7 @@ import type { Track } from "$lib/spotify/types";
 const h = vi.hoisted(() => ({ log: [] as string[] }));
 
 vi.mock("$lib/native", () => ({ reportPlayback: vi.fn(async () => {}) }));
-vi.mock("$lib/auth", () => ({ getAccessToken: vi.fn(async () => "token") }));
+vi.mock("$lib/auth", () => ({ getAccessToken: vi.fn(async () => "token"), withTimeout: <T>(p: Promise<T>) => p }));
 vi.mock("$lib/spotify/endpoints", () => ({
   setShuffle: vi.fn(async () => {}),
   setRepeat: vi.fn(async () => {}),
@@ -81,7 +81,7 @@ describe("Spotify and YouTube Music hand-offs", () => {
 
   beforeEach(() => {
     h.log = [];
-    player.error = null;
+    player.problem = null;
   });
 
   it("pauses Spotify, and waits for it, before YouTube Music starts", async () => {

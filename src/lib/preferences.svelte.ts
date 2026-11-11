@@ -1,5 +1,6 @@
 // Reactive copy of the Rust-owned settings, applied to the document as data attributes.
 import { describeError } from "$lib/errors";
+import { applyFonts } from "$lib/fonts";
 import { getSettings, saveSettings, type Settings } from "$lib/native";
 
 class Preferences {
@@ -32,6 +33,7 @@ class Preferences {
     root.dataset.accent = this.value.accent;
     root.dataset.effects = this.value.effects;
     root.style.setProperty("--lyrics-scale", String(this.value.lyricsScale));
+    applyFonts(root, this.value);
   }
 }
 

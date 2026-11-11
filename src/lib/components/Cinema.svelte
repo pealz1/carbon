@@ -3,13 +3,15 @@
   import { formatDuration } from "$lib/format";
   import { player } from "$lib/player.svelte";
   import { view } from "$lib/view.svelte";
+  import Ambient from "./Ambient.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import Lyrics from "./Lyrics.svelte";
   import YoutubeSlot from "./YoutubeSlot.svelte";
   import Slider from "./Slider.svelte";
 
-  // Immersive now playing: artwork-lit backdrop, big lyrics, controls that step aside when idle.
+  // Immersive now playing: colour from the artwork (never the artwork blurred), big lyrics,
+  // controls that step aside when idle.
   const IDLE_MS = 3_000;
   const TICK_MS = 250;
   let idle = $state(false);
@@ -47,19 +49,14 @@
   onkeydown={wake}
   transition:fade={{ duration: 260 }}
 >
-  {#if player.artwork}
-    {#key player.artwork}
-      <img class="backdrop" src={player.artwork} alt="" aria-hidden="true" transition:fade={{ duration: 900 }} />
-    {/key}
-  {/if}
-  <div class="scrim" aria-hidden="true"></div>
+  <Ambient image={player.artwork} playing={!player.paused} />
 
   {#if player.track}
     <div class="stage">
       <section class="art">
         {#if player.source === "youtube"}<YoutubeSlot />{:else if player.artwork}<img src={player.artwork} alt="" width="560" height="560" />{/if}
       </section>
-      <Lyrics cinema />
+      <Lyrics variant="cinema" />
     </div>
   {:else}
     <p class="empty">Play something to fill the screen.</p>
@@ -98,33 +95,12 @@
     inset: 0;
     z-index: 40;
     overflow: hidden;
-    background: rgb(6 7 10);
+    background: var(--black);
     outline: none;
   }
 
   .cinema.idle {
     cursor: none;
-  }
-
-  /* Rendered tiny and scaled up (like the ambient layer): a cheap, very soft blur. */
-  .backdrop {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 96px;
-    height: 96px;
-    object-fit: cover;
-    filter: blur(5px) saturate(1.7);
-    opacity: 0.8;
-    transform: translate(-50%, -50%) scale(24);
-  }
-
-  .scrim {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(120% 90% at 20% 40%, transparent 0%, rgb(6 7 10 / 0.55) 70%),
-      linear-gradient(180deg, rgb(6 7 10 / 0.1) 0%, rgb(6 7 10 / 0.6) 100%);
   }
 
   .stage {
@@ -134,7 +110,7 @@
     grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.6fr);
     gap: var(--sp-7);
     align-items: center;
-    padding: var(--sp-7) var(--sp-7) calc(var(--sp-7) + var(--dock-h));
+    padding: var(--sp-7) var(--sp-7) calc(var(--sp-7) + var(--player-h));
   }
 
   .art img {
@@ -142,9 +118,9 @@
     max-width: 560px;
     height: auto;
     aspect-ratio: 1;
-    border-radius: var(--r-lg);
+    border-radius: var(--r-art);
     object-fit: cover;
-    box-shadow: var(--shadow-art), 0 60px 160px -40px var(--accent-glow);
+    box-shadow: var(--shadow-art);
   }
 
   .stage :global(.lyrics) {
@@ -172,7 +148,6 @@
     width: min(980px, calc(100% - 2 * var(--sp-5)));
     padding: var(--sp-3) var(--sp-4);
     border-radius: var(--r-pill);
-    --glass: var(--glass-strong);
     transform: translateX(-50%);
     transition:
       opacity var(--dur-med) var(--ease-out),

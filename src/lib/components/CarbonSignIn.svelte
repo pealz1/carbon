@@ -1,18 +1,16 @@
 <script lang="ts">
   import { account } from "$lib/account.svelte";
-  import Logo from "./Logo.svelte";
   import TitleBar from "./TitleBar.svelte";
+  import Wordmark from "./Wordmark.svelte";
 
   const waiting = $derived(account.status === "signing-in");
 </script>
 
 <div class="signin">
-  <TitleBar showSearch={false} />
+  <TitleBar controls={false} />
   <section class="hero">
-    <div class="mark"><Logo size={88} /></div>
-    <p class="eyebrow">Step one · your Carbon account</p>
-    <h1>carbon</h1>
-    <p class="lede">Sign in to your Carbon account, or create one, in your browser. Then connect Spotify and start listening.</p>
+    <h1><Wordmark height={120} /><span class="sr-only">carbon</span></h1>
+    <p class="lede">Step one: sign in to your Carbon account, or create one, in your browser. Then connect Spotify and start listening.</p>
     <div class="cta">
       <button onclick={() => account.signIn()} disabled={waiting}>{waiting ? "Waiting for your browser…" : "Sign in to Carbon"}</button>
       {#if waiting}
@@ -40,17 +38,14 @@
     max-width: 760px;
   }
 
-  .mark {
-    margin-bottom: var(--sp-6);
-    filter: drop-shadow(0 0 40px var(--accent-glow));
+  h1 {
+    display: flex;
+    margin: var(--sp-4) 0 var(--sp-5);
   }
 
-  h1 {
-    font-size: clamp(6rem, 13vw, 10.5rem);
-    font-weight: 700;
-    line-height: 0.82;
-    letter-spacing: -0.06em;
-    margin: var(--sp-2) 0 var(--sp-5);
+  h1 :global(svg) {
+    width: auto;
+    height: clamp(5rem, 11vw, 8.5rem);
   }
 
   .lede {
@@ -83,7 +78,7 @@
   }
 
   button:hover:not(:disabled) {
-    transform: scale(1.04);
+    background: var(--accent-strong);
   }
 
   button:disabled {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import DetailHeader from "$lib/components/DetailHeader.svelte";
+  import DetailHeader, { type Chip } from "$lib/components/DetailHeader.svelte";
   import Icon from "$lib/components/Icon.svelte";
   import LoadMore from "$lib/components/LoadMore.svelte";
   import Status from "$lib/components/Status.svelte";
@@ -23,6 +23,12 @@
     load = api.playlist(id);
     info.reload();
   };
+  const tracks = tokenPager<Track>(
+    () => load.then((p) => ({ items: p.tracks, continuation: p.continuation })),
+    (token) => api.playlistMore(token).then((p) => ({ items: p.tracks, continuation: p.continuation })),
+  );
+  // svelte-ignore state_referenced_locally
+  const liked = id === api.LIKED_PLAYLIST;
 
   // Re-read the details after edits (renames refresh the library list).
   let seen = false;
@@ -31,12 +37,6 @@
     if (seen) untrack(retry);
     seen = true;
   });
-  const tracks = tokenPager<Track>(
-    () => load.then((p) => ({ items: p.tracks, continuation: p.continuation })),
-    (token) => api.playlistMore(token).then((p) => ({ items: p.tracks, continuation: p.continuation })),
-  );
-  // svelte-ignore state_referenced_locally
-  const liked = id === api.LIKED_PLAYLIST;
 
   // Every row of Liked Music is liked; elsewhere, use what each row says.
   $effect(() => (liked ? saved.remember(tracks.items.map((t) => t.uri), true) : rememberLikes(tracks.items)));
@@ -44,6 +44,12 @@
   const card = $derived<Card | null>(
     info.data ? { kind: "playlist", id, uri: info.data.uri, title: info.data.name, subtitle: info.data.ownerName, image: info.data.image, playUri: info.data.uri } : null,
   );
+  const chips = $derived.by<Chip[]>(() => {
+    const p = info.data;
+    if (!p) return [];
+    return [{ label: "Playlist", icon: "note" }, ...(p.trackCount !== null ? [{ label: `${p.trackCount.toLocaleString()} ${p.trackCount === 1 ? "song" : "songs"}`, icon: "listAdd" as const }] : [])];
+  });
+  const owner = $derived(info.data?.ownerName || (liked ? youtube.account?.name : "") || "");
   const dropRow = (uri: string) => (tracks.items = tracks.items.filter((t) => t.uri !== uri));
 </script>
 
@@ -54,20 +60,20 @@
 {:else if info.data}
   {@const p = info.data}
   <DetailHeader
-    kind="Playlist"
     title={liked ? "Liked Music" : p.name}
-    image={p.largeImage}
+    image={liked ? null : p.largeImage}
+    placeholder={liked ? "heart" : "note"}
+    {chips}
+    description={p.description || null}
     playUri={p.uri}
     shuffleCount={p.trackCount ?? undefined}
     menuItems={card ? () => ytCardMenu(card!) : undefined}
   >
-    {#snippet meta()}
-      {#if p.description}<p class="description">{p.description}</p>{/if}
-      {p.ownerName || (liked ? youtube.account?.name : "") || ""}
-      {#if p.trackCount !== null}· {p.trackCount.toLocaleString()} songs{/if}
+    {#snippet byline()}
+      {#if owner}<span class="person"><span class="avatar"><Icon name="artist" size={15} /></span>{owner}</span>{/if}
     {/snippet}
     {#if p.owned && !liked && card}
-      <button class="edit" onclick={() => (youtube.dialog = { mode: "rename", playlist: card! })}><Icon name="edit" size={16} />Rename</button>
+      <button class="edit" onclick={() => (youtube.dialog = { mode: "rename", playlist: card! })} aria-label="Rename" title="Rename"><Icon name="edit" size={18} /></button>
     {/if}
   </DetailHeader>
 
@@ -84,27 +90,24 @@
 {/if}
 
 <style>
+  /* Same as the Spotify playlist page's edit button: a 44 px circle in the header. */
   .edit {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-    height: 46px;
-    padding: 0 var(--sp-4);
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
     border-radius: var(--r-pill);
-    background: var(--glass);
-    border: 1px solid var(--glass-edge);
-    color: var(--text-muted);
-    font-weight: 650;
-    transition: color var(--dur-fast);
+    background: rgb(255 255 255 / 0.08);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      inset 0 0 0 1px rgb(255 255 255 / 0.08);
+    color: var(--text);
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
   }
 
   .edit:hover {
-    color: var(--text);
-  }
-
-  .description {
-    margin: 0 0 var(--sp-2);
-    max-width: 60ch;
-    color: var(--text-muted);
+    background: rgb(255 255 255 / 0.15);
   }
 </style>

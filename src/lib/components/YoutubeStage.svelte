@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { player } from "$lib/player.svelte";
   import { embed } from "$lib/youtube/embed";
+  import { view } from "$lib/view.svelte";
   import { stage } from "$lib/youtube/stage.svelte";
   import Icon from "./Icon.svelte";
 
@@ -36,6 +37,8 @@
   class="stage"
   class:visible
   class:docked={!box}
+  class:glass={!box}
+  class:aside={view.lyrics}
   style:transform={box ? `translate3d(${box.left}px, ${box.top}px, 0)` : undefined}
   style:width={box ? `${box.width}px` : undefined}
   style:height={box ? `${box.height}px` : undefined}
@@ -45,7 +48,7 @@
 >
   {#if !box}
     <header class="bar">
-      <span class="badge">YouTube</span>
+      <span class="badge">YouTube Music</span>
       <span class="title">{player.track?.name ?? ""}</span>
       <a href="/now-playing" class="expand" aria-label="Show the video in Now Playing" title="Now Playing"><Icon name="expand" size={14} /></a>
     </header>
@@ -54,6 +57,7 @@
 </section>
 
 <style>
+  /* In a slot it's large artwork-sized video: 8 px corners, no frame. Docked it floats, so glass. */
   .stage {
     position: fixed;
     z-index: 41;
@@ -61,10 +65,9 @@
     top: 0;
     display: flex;
     flex-direction: column;
-    border-radius: var(--r-lg);
+    border-radius: var(--r-art);
     overflow: hidden;
     background: #000;
-    box-shadow: var(--shadow-art);
     visibility: hidden;
     opacity: 0;
     transition: opacity var(--dur-med) var(--ease-out);
@@ -75,21 +78,30 @@
     opacity: 1;
   }
 
-  /* YouTube requires embedded players to be at least 200 × 200 px: 16:9 at 200 px tall. */
+  /* YouTube requires embedded players to be at least 200 x 200 px: 16:9 at 200 px tall. Docked
+     above the player bar, clear of the lyrics panel when it's open. */
   .docked {
+    --aside-w: 0px;
     z-index: 30;
     left: auto;
     top: auto;
-    right: var(--sp-4);
-    bottom: calc(var(--dock-h) + var(--sp-3) * 2);
+    right: calc(var(--aside-w) + var(--inset) + var(--sp-4));
+    bottom: calc(var(--player-h) + var(--sp-4));
     width: 356px;
-    border: 1px solid var(--glass-edge);
-    background: var(--glass-strong);
-    box-shadow: var(--shadow-float);
+    padding: 0 var(--sp-1) var(--sp-1);
+    border-radius: var(--r-lg);
+  }
+
+  .docked.aside {
+    --aside-w: var(--lyrics-w);
   }
 
   .docked .frame {
     height: 200px;
+    flex: none;
+    border-radius: var(--r-art);
+    overflow: hidden;
+    background: #000;
   }
 
   .frame {
@@ -108,16 +120,14 @@
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    height: 32px;
-    padding: 0 var(--sp-2) 0 var(--sp-3);
+    height: 34px;
+    padding: 0 var(--sp-1) 0 var(--sp-2);
     font-size: var(--fs-small);
   }
 
   .badge {
-    font-size: var(--fs-micro);
+    flex: none;
     font-weight: 700;
-    letter-spacing: var(--tracking-caps);
-    text-transform: uppercase;
     color: var(--accent);
   }
 
@@ -131,13 +141,16 @@
   }
 
   .expand {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     display: grid;
     place-items: center;
     border-radius: var(--r-pill);
     color: var(--text-muted);
-    transition: color var(--dur-fast);
+    transition:
+      color var(--dur-fast),
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
   }
 
   .expand:hover,

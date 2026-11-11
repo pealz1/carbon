@@ -43,6 +43,8 @@ export interface YtAlbum {
   type: string;
   year: string;
   artists: ArtistRef[];
+  /** The lead artist's photo, for the byline. */
+  artistImage: string | null;
   image: string | null;
   largeImage: string | null;
   description: string;
@@ -275,6 +277,7 @@ export function albumPage(res: Json, id: string): YtAlbum {
     type: segments[0] ?? "Album",
     year: segments.find((s) => /^\d{4}$/.test(s)) ?? "",
     artists,
+    artistImage: imageOf(header?.straplineThumbnail, 88),
     image,
     largeImage: imageOf(header?.thumbnail, LARGE),
     description: descriptionOf(header),

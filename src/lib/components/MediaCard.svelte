@@ -1,15 +1,23 @@
 <script lang="ts">
+  import { artTones } from "$lib/art-tones.svelte";
+  import { hold } from "$lib/hold";
   import { menu } from "$lib/menu.svelte";
   import { cardMenu } from "$lib/menus";
   import { player } from "$lib/player.svelte";
   import type { Card } from "$lib/spotify/types";
   import { pageHref } from "$lib/youtube/uri";
+  import { css } from "$lib/wallpaper";
   import Icon from "./Icon.svelte";
 
-  let { card }: { card: Card } = $props();
+  // An album, playlist, artist or song tile. Artwork is shown whole and untouched, so the play and
+  // "…" buttons sit beside the caption, never on the art. `feature` sets it on a plate coloured
+  // from the artwork, for a shelf's lead row.
+  let { card, feature = false }: { card: Card; feature?: boolean } = $props();
 
   const href = $derived(card.kind === "track" ? null : pageHref(card.kind, card));
   const live = $derived(player.contextUri === card.playUri || player.isCurrent(card.playUri));
+  const playing = $derived(live && !player.paused);
+  const tones = artTones(() => (feature ? card.image : null));
 
   function play(event: MouseEvent) {
     event.preventDefault();
@@ -19,62 +27,86 @@
     player.playContext(card.playUri);
   }
 
-  const openMenu = (event: MouseEvent | KeyboardEvent) => menu.open(event, cardMenu(card));
+  function openMenu(event: MouseEvent | KeyboardEvent) {
+    event.preventDefault();
+    menu.open(event, cardMenu(card));
+  }
 </script>
 
-<svelte:element this={href ? "a" : "div"} {href} class="card" class:artist={card.kind === "artist"} oncontextmenu={openMenu} role={href ? undefined : "group"}>
+<svelte:element
+  this={href ? "a" : "div"}
+  {href}
+  class="card"
+  class:artist={card.kind === "artist"}
+  class:feature
+  class:live
+  style={tones.current ? `--plate-tone: ${css(tones.current.fields[0])}` : undefined}
+  oncontextmenu={openMenu}
+  role={href ? undefined : "group"}
+  aria-label={href ? undefined : card.title}
+  use:hold={{ onhold: (at, node) => menu.openAt(at.x, at.y, cardMenu(card), node) }}
+>
   <div class="art">
     {#if card.image}
-      <img src={card.image} alt="" width="300" height="300" loading="lazy" decoding="async" />
+      <img src={card.image} alt="" width="300" height="300" loading="lazy" decoding="async" draggable="false" />
     {:else}
-      <div class="placeholder"><Icon name={card.kind === "artist" ? "library" : "lyrics"} size={30} /></div>
+      <div class="placeholder"><Icon name={card.kind === "artist" ? "artist" : "note"} size={34} /></div>
     {/if}
-    <button class="play" class:live onclick={play} aria-label="{live && !player.paused ? 'Pause' : 'Play'} {card.title}">
-      <Icon name={live && !player.paused ? "pause" : "play"} size={18} />
-    </button>
-    <button class="more" onclick={openMenu} aria-label="More options for {card.title}" aria-haspopup="menu" title="More">
-      <Icon name="more" size={16} />
-    </button>
   </div>
-  <span class="title">{card.title}</span>
-  <span class="subtitle">{card.subtitle}</span>
+  <div class="caption">
+    <div class="text">
+      <span class="title">{card.title}</span>
+      {#if card.subtitle}<span class="subtitle">{card.subtitle}</span>{/if}
+    </div>
+    <div class="actions">
+      <button class="act play" onclick={play} aria-label="{playing ? 'Pause' : 'Play'} {card.title}" title={playing ? "Pause" : "Play"}>
+        <Icon name={playing ? "pause" : "play"} size={14} />
+      </button>
+      <button class="act" onclick={openMenu} aria-label="More options for {card.title}" aria-haspopup="menu" title="More">
+        <Icon name="more" size={15} />
+      </button>
+    </div>
+  </div>
 </svelte:element>
 
 <style>
   .card {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
+    gap: var(--sp-3);
     width: 100%;
     padding: var(--sp-2);
-    border-radius: var(--r-md);
+    border-radius: var(--r-lg);
+    color: var(--text);
     text-decoration: none;
-    transition: background var(--dur-med);
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
   }
 
-  .card:hover {
+  /* Hover lifts the tile's surface, not the artwork. */
+  .card:hover,
+  .card:focus-within {
     background: var(--glass-hover);
     text-decoration: none;
   }
 
+  /* Pressing deepens the surface; the artwork itself never scales. */
+  .card:active:not(:has(.act:active)) {
+    background: var(--glass-active);
+  }
+
   .art {
-    position: relative;
     aspect-ratio: 1;
-    margin-bottom: var(--sp-2);
   }
 
   .art img,
   .placeholder {
     width: 100%;
     height: 100%;
-    border-radius: var(--r-md);
+    border-radius: var(--r-art);
     object-fit: cover;
-    box-shadow: 0 14px 34px -14px rgb(0 0 0 / 0.75);
-    transition: transform var(--dur-med) var(--ease-out);
-  }
-
-  .card:hover .art img {
-    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 30px -16px rgb(0 0 0 / 0.9);
   }
 
   .artist .art img,
@@ -85,63 +117,35 @@
   .placeholder {
     display: grid;
     place-items: center;
-    background: var(--glass-active);
+    background: var(--graphite-800);
     color: var(--text-faint);
   }
 
-  .play {
-    position: absolute;
-    right: var(--sp-2);
-    bottom: var(--sp-2);
-    width: 44px;
-    height: 44px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--r-pill);
-    background: var(--accent);
-    color: var(--accent-ink);
-    box-shadow: 0 10px 24px -8px var(--accent-glow);
-    opacity: 0;
-    transform: translateY(8px);
-    transition: opacity var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-spring);
+  .caption {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-2);
+    min-width: 0;
+    padding: 0 2px 2px;
   }
 
-  .card:hover .play,
-  .play:focus-visible,
-  .play.live {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .play:hover {
-    transform: scale(1.06);
-  }
-
-  .more {
-    position: absolute;
-    top: var(--sp-2);
-    right: var(--sp-2);
-    width: 30px;
-    height: 30px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--r-pill);
-    background: var(--glass-strong);
-    color: var(--text);
-    opacity: 0;
-    transition: opacity var(--dur-fast);
-  }
-
-  .card:hover .more,
-  .more:focus-visible {
-    opacity: 1;
+  .text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
   }
 
   .title {
-    font-weight: 650;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .live .title {
+    color: var(--accent);
   }
 
   .subtitle {
@@ -152,5 +156,72 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .actions {
+    display: flex;
+    gap: 2px;
+    margin-top: -3px;
+    opacity: 0;
+    transition: opacity var(--dur-fast);
+  }
+
+  .card:hover .actions,
+  .card:focus-within .actions,
+  .live .actions {
+    opacity: 1;
+  }
+
+  .act {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-pill);
+    color: var(--text-muted);
+    transition:
+      background var(--dur-fast),
+      color var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
+  }
+
+  .act:hover {
+    background: var(--glass-active);
+    color: var(--text);
+  }
+
+  .act.play {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .act.play:hover {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  /* Feature: the tile becomes a plate coloured from its own artwork. */
+  .feature {
+    --plate-tone: var(--graphite-900);
+    padding: var(--sp-3) var(--sp-3) var(--sp-4);
+    background: var(--plate-tone);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+    gap: var(--sp-4);
+  }
+
+  .feature:hover,
+  .feature:focus-within {
+    background: var(--plate-tone);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      inset 0 0 0 100vmax rgb(255 255 255 / 0.05);
+  }
+
+  .feature .title {
+    font-size: var(--fs-lead);
+  }
+
+  .feature .subtitle {
+    color: rgb(255 255 255 / 0.7);
   }
 </style>

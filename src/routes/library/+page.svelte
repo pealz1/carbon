@@ -51,10 +51,10 @@
   );
 </script>
 
-<header class="head">
+<header class="page-head">
   <h1>Library</h1>
-  <button class="new" onclick={() => (dialogs.playlist = { mode: "create" })}><Icon name="plus" size={16} />New playlist</button>
-  <div class="tabs" role="tablist" aria-label="Library sections">
+  <button class="pill new" onclick={() => (dialogs.playlist = { mode: "create" })}><Icon name="plus" size={16} />New playlist</button>
+  <div class="segmented" role="tablist" aria-label="Library sections">
     {#each TABS as t (t.id)}
       <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => goto(`?tab=${t.id}`, { replaceState: true, noScroll: true })}>
         {t.label}
@@ -77,11 +77,11 @@
 <div class="grid">
   {#if tab === "playlists"}
     {#if !tag}
-    <a href="/liked" class="liked">
-      <Icon name="heart" size={34} filled />
-      <span class="liked-title">Liked Songs</span>
-      <span class="liked-sub">Everything you've hearted</span>
-    </a>
+      <a href="/liked" class="liked pressable">
+        <Icon name="heart" size={30} filled />
+        <span class="liked-title">Liked Songs</span>
+        <span class="liked-sub">Everything you've hearted</span>
+      </a>
     {/if}
     {#each playlistCards as card (card.id)}
       <MediaCard {card} />
@@ -107,44 +107,15 @@
 {/if}
 
 <style>
-  .head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--sp-4);
-    padding: var(--sp-6) var(--sp-2) var(--sp-5);
-  }
-
-  h1 {
-    font-size: var(--fs-hero);
-    font-weight: 750;
-    line-height: 1;
-  }
-
   .new {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-    height: 38px;
     margin-left: auto;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    background: var(--glass);
-    border: 1px solid var(--glass-edge);
-    color: var(--text-muted);
-    font-weight: 650;
-    transition: color var(--dur-fast);
-  }
-
-  .new:hover {
-    color: var(--text);
   }
 
   .filters {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
-    margin: calc(var(--sp-3) * -1) var(--sp-2) var(--sp-4);
+    margin: calc(var(--sp-3) * -1) 0 var(--sp-4);
   }
 
   .filters button {
@@ -154,12 +125,15 @@
     height: 30px;
     padding: 0 var(--sp-3);
     border-radius: var(--r-pill);
-    background: var(--glass);
-    border: 1px solid var(--glass-edge);
+    background: rgb(255 255 255 / 0.06);
+    box-shadow: inset 0 0 0 1px var(--glass-edge);
     color: var(--text-muted);
     font-size: var(--fs-small);
     font-weight: 600;
-    transition: background var(--dur-fast), color var(--dur-fast);
+    transition:
+      background var(--dur-fast),
+      color var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
   }
 
   .filters button:hover {
@@ -167,44 +141,19 @@
   }
 
   .filters button.active {
-    background: var(--accent);
-    border-color: transparent;
-    color: var(--accent-ink);
-  }
-
-  .tabs {
-    display: flex;
-    gap: var(--sp-1);
-    padding: var(--sp-1);
-    border-radius: var(--r-pill);
-    background: var(--glass);
-    border: 1px solid var(--glass-edge);
-  }
-
-  .tabs button {
-    height: 34px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    color: var(--text-muted);
-    font-weight: 600;
-    transition: background var(--dur-fast), color var(--dur-fast);
-  }
-
-  .tabs button:hover {
-    color: var(--text);
-  }
-
-  .tabs button.active {
-    background: var(--text);
-    color: var(--accent-ink);
+    background: var(--paper);
+    box-shadow: none;
+    color: var(--ink);
   }
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(clamp(160px, 14cqw, 232px), 1fr));
     gap: var(--sp-2);
+    margin: 0 calc(var(--sp-2) * -1);
   }
 
+  /* Liked Songs is Carbon's own tile: a graphite plate with the yellow heart, like its page. */
   .liked {
     grid-column: span 2;
     display: flex;
@@ -212,29 +161,37 @@
     justify-content: flex-end;
     gap: var(--sp-1);
     min-height: 220px;
+    margin: var(--sp-2);
     padding: var(--sp-5);
     border-radius: var(--r-lg);
-    color: var(--accent-ink);
-    background: linear-gradient(140deg, var(--accent) 0%, var(--accent-strong) 60%, var(--accent-deep) 100%);
-    box-shadow: var(--shadow-art);
+    color: var(--accent);
+    background: radial-gradient(90% 120% at 20% 0%, var(--graphite-700), var(--graphite-900));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
     text-decoration: none;
-    transition: transform var(--dur-med) var(--ease-out);
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
+    --press: var(--press-wide);
   }
 
   .liked:hover {
-    transform: translateY(-3px);
     text-decoration: none;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      inset 0 0 0 100vmax rgb(255 255 255 / 0.04);
   }
 
   .liked-title {
+    margin-top: auto;
+    color: var(--text);
     font-family: var(--font-display);
-    font-size: 1.9rem;
-    font-weight: 750;
+    font-size: 1.75rem;
+    font-weight: 800;
     letter-spacing: var(--tracking-tight);
   }
 
   .liked-sub {
+    color: var(--text-muted);
     font-weight: 600;
-    opacity: 0.75;
   }
 </style>

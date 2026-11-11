@@ -45,10 +45,14 @@ export const CARBON = {
 export const TIMING = {
   loginTimeoutMs: 300_000,
   sdkTimeoutMs: 20_000,
+  /** How long a play/transfer call waits for Spotify's player to report a ready device. */
+  deviceReadyMs: 10_000,
   tokenRefreshMarginMs: 60_000,
   apiCacheTtlMs: 60_000,
   maxRetryAfterMs: 30_000,
-  maxRateLimitRetries: 2,
+  /** Retries after a 429, 5xx or network failure (5xx/network back off from retryBaseMs). */
+  maxRetries: 2,
+  retryBaseMs: 500,
 } as const;
 
 export const PLAYER_NAME = "Carbon";

@@ -10,7 +10,6 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invoke(
 vi.mock("@tauri-apps/api/event", () => ({ listen: (event: string, handler: (e: { payload: unknown }) => void) => listen(event, handler) }));
 
 const native = await import("./native");
-const { specular } = await import("./liquid");
 
 describe("native bridge", () => {
   it("calls each Rust command by name with its arguments", async () => {
@@ -53,28 +52,21 @@ describe("native bridge", () => {
   });
 });
 
-describe("specular", () => {
-  it("follows the pointer with CSS variables and cleans up", () => {
-    const frames: FrameRequestCallback[] = [];
-    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => frames.push(cb));
-    vi.stubGlobal("cancelAnimationFrame", vi.fn());
-    const node = document.createElement("div");
-    vi.spyOn(node, "getBoundingClientRect").mockReturnValue({ left: 10, top: 20 } as DOMRect);
-    const action = specular(node);
-    node.dispatchEvent(new MouseEvent("pointermove", { clientX: 50, clientY: 70 }));
-    expect(node.style.getPropertyValue("--spec")).toBe("1");
-    frames.forEach((f) => f(0));
-    expect(node.style.getPropertyValue("--mx")).toBe("40px");
-    expect(node.style.getPropertyValue("--my")).toBe("50px");
-    node.dispatchEvent(new MouseEvent("pointerleave"));
-    expect(node.style.getPropertyValue("--spec")).toBe("0");
-    action.destroy();
-    vi.unstubAllGlobals();
-  });
-});
-
 describe("preferences", () => {
-  const settings = { closeToTray: true, discordPresence: true, lastfmScrobbling: true, effects: "full", accent: "mint", lyricsScale: 1.2, spotifyClientId: "" };
+  const settings = {
+    closeToTray: true,
+    discordPresence: true,
+    lastfmScrobbling: true,
+    effects: "full",
+    accent: "mint",
+    lyricsScale: 1.2,
+    spotifyClientId: "",
+    fontText: "",
+    fontDisplay: "",
+    fontLyrics: "Georgia",
+    uiSounds: true,
+    uiSoundVolume: 0.5,
+  };
 
   it("loads Rust's settings onto the document and saves changes", async () => {
     const { prefs } = await import("./preferences.svelte");
@@ -82,8 +74,12 @@ describe("preferences", () => {
     await prefs.load();
     expect(document.documentElement.dataset.accent).toBe("mint");
     expect(document.documentElement.style.getPropertyValue("--lyrics-scale")).toBe("1.2");
+    expect(document.documentElement.style.getPropertyValue("--font-lyrics")).toBe('"Georgia", var(--font-display-default)');
     expect(await prefs.update({ effects: "minimal" })).toBe(true);
     expect(document.documentElement.dataset.effects).toBe("minimal");
+    expect(await prefs.update({ fontText: "Bahnschrift", fontLyrics: "" })).toBe(true);
+    expect(document.documentElement.style.getPropertyValue("--font-text")).toBe('"Bahnschrift", var(--font-text-default)');
+    expect(document.documentElement.style.getPropertyValue("--font-lyrics")).toBe("");
     vi.spyOn(console, "error").mockImplementation(() => {});
     invoke.mockRejectedValueOnce(new Error("lyrics size must be between 75% and 150%"));
     expect(await prefs.update({ lyricsScale: 9 })).toBe(false);

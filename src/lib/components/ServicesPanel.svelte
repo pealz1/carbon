@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { specular } from "$lib/liquid";
   import { prefs } from "$lib/preferences.svelte";
   import { services } from "$lib/services.svelte";
   import { session } from "$lib/session.svelte";
@@ -19,7 +18,7 @@
   }
 </script>
 
-<section class="panel liquid" use:specular>
+<section class="panel plate">
   <h2>Services</h2>
   <Toggle
     checked={on.spotify}
@@ -52,16 +51,18 @@
 </section>
 
 <style>
+  /* Matches the other Settings groups (stage plates). */
   .panel {
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
     padding: var(--sp-5);
-    border-radius: var(--r-lg);
   }
 
   h2 {
+    margin-bottom: var(--sp-1);
     font-size: var(--fs-section);
+    font-weight: 700;
   }
 
   .connect {
@@ -69,9 +70,8 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--sp-2);
-    padding: var(--sp-3) var(--sp-4);
-    border-radius: var(--r-md);
-    background: var(--glass-hover);
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--glass-edge);
   }
 
   .muted,
@@ -87,24 +87,5 @@
 
   .warn {
     color: var(--warning);
-  }
-
-  .pill {
-    height: 34px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    background: var(--glass-active);
-    border: 1px solid var(--glass-edge);
-    font-weight: 600;
-  }
-
-  .pill.accent {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: transparent;
-  }
-
-  .pill:disabled {
-    opacity: 0.6;
   }
 </style>

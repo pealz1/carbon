@@ -7,8 +7,8 @@
   import type { Shelf as ShelfData } from "$lib/youtube/mappers";
   import { youtube } from "$lib/youtube/session.svelte";
 
-  // YouTube Music's home shelves. The first page is thin (two or three shelves), so a couple more
-  // load right after it.
+  // YouTube Music's home shelves, laid out like Carbon's Spotify home. The first page is thin (two
+  // or three shelves), so a couple more load right after it.
   const EXTRA_PAGES = 2;
 
   const first = resource(() => {
@@ -39,8 +39,7 @@
 </script>
 
 <header class="hero">
-  <p class="eyebrow">YouTube Music</p>
-  <h1>{greeting(new Date())}{firstName ? `, ${firstName}` : ""}.</h1>
+  <h1>{greeting(new Date())}{firstName ? `, ${firstName}` : ""}</h1>
 </header>
 
 {#if first.loading && !first.data}
@@ -52,23 +51,17 @@
 {/if}
 
 {#each shelves as shelf, i (shelf.title + i)}
-  <Shelf title={shelf.title} cards={shelf.cards} />
+  <Shelf title={shelf.title} cards={shelf.cards} feature={i === 0} />
 {/each}
 
 <style>
   .hero {
-    padding: var(--sp-6) var(--sp-2) var(--sp-5);
+    padding: var(--sp-6) 0 var(--sp-5);
   }
 
   h1 {
     font-size: var(--fs-hero);
-    font-weight: 750;
-    line-height: 1;
-    max-width: 16ch;
-  }
-
-  .eyebrow {
-    margin: 0 0 var(--sp-3);
-    color: var(--accent);
+    font-weight: 800;
+    line-height: 1.05;
   }
 </style>

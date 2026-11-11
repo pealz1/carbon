@@ -6,11 +6,11 @@
 
 **A fast, beautiful Spotify client for Windows, built in Rust.**
 
-[![Latest release](https://img.shields.io/github/v/release/pealz1/carbon?style=flat-square&color=a99cff&label=release)](https://github.com/pealz1/carbon/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/pealz1/carbon/total?style=flat-square&color=7fe7ff)](https://github.com/pealz1/carbon/releases)
+[![Latest release](https://img.shields.io/github/v/release/pealz1/carbon?style=flat-square&color=fae91d&label=release)](https://github.com/pealz1/carbon/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/pealz1/carbon/total?style=flat-square&color=33332e)](https://github.com/pealz1/carbon/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/pealz1/carbon/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/pealz1/carbon/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-ff8ad4?style=flat-square)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/pealz1/carbon?style=flat-square&color=f1f1f4)](https://github.com/pealz1/carbon/stargazers)
+[![License: MIT](https://img.shields.io/badge/license-MIT-fae91d?style=flat-square)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/pealz1/carbon?style=flat-square&color=efefe6)](https://github.com/pealz1/carbon/stargazers)
 
 [**Download**](https://github.com/pealz1/carbon/releases/latest) · [Website](https://getcarbon.cc) · [Setup guide](https://getcarbon.cc/setup) · [Report a bug](https://github.com/pealz1/carbon/issues/new/choose)
 

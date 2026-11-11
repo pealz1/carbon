@@ -52,12 +52,12 @@ describe("which screen shows", () => {
 });
 
 describe("what runs in the app", () => {
-  it("lists only running services as sources, with Local always there", () => {
-    expect(activeFor(SPOTIFY, true)).toEqual({ spotify: true, youtube: false, sources: ["spotify", "local"], home: "/" });
-    expect(activeFor(YOUTUBE, false)).toEqual({ spotify: false, youtube: true, sources: ["youtube", "local"], home: "/youtube" });
-    expect(activeFor(BOTH, true).sources).toEqual(["spotify", "youtube", "local"]);
+  it("runs only connected services, and Spotify only once signed in", () => {
+    expect(activeFor(SPOTIFY, true)).toEqual({ spotify: true, youtube: false, home: "/" });
+    expect(activeFor(YOUTUBE, false)).toEqual({ spotify: false, youtube: true, home: "/youtube" });
+    expect(activeFor(BOTH, true)).toEqual({ spotify: true, youtube: true, home: "/" });
     // Spotify on but not signed in yet: none of its pages, playlists or player.
-    expect(activeFor(BOTH, false)).toEqual({ spotify: false, youtube: true, sources: ["youtube", "local"], home: "/youtube" });
+    expect(activeFor(BOTH, false)).toEqual({ spotify: false, youtube: true, home: "/youtube" });
   });
 
   it("sends pages of a service that isn't running home", () => {

@@ -10,7 +10,6 @@ import { youtube } from "$lib/youtube/session.svelte";
 
 export type { Services } from "$lib/native";
 export type Screen = "booting" | "choose" | "spotify-setup" | "app";
-export type Source = "spotify" | "youtube" | "local";
 type SpotifyStatus = typeof session.status;
 
 /** What's running once the app is open. */
@@ -18,8 +17,6 @@ export interface Active {
   /** Spotify is on and signed in: its pages, playlists and player are live. */
   spotify: boolean;
   youtube: boolean;
-  /** Sources the sidebar offers, in order. Local files are Carbon's own and always there. */
-  sources: Source[];
   /** Where Home goes. */
   home: string;
 }
@@ -41,8 +38,7 @@ export function screenFor(services: Services | null | undefined, spotify: Spotif
 export function activeFor(services: Services | null | undefined, spotifySignedIn: boolean): Active {
   const spotify = Boolean(services?.spotify) && spotifySignedIn;
   const youtube = Boolean(services?.youtube);
-  const sources: Source[] = [...(spotify ? (["spotify"] as const) : []), ...(youtube ? (["youtube"] as const) : []), "local"];
-  return { spotify, youtube, sources, home: spotify ? "/" : youtube ? "/youtube" : "/local" };
+  return { spotify, youtube, home: spotify ? "/" : youtube ? "/youtube" : "/local" };
 }
 
 const SPOTIFY_PAGES = /^\/(search|library|liked|album|artist|playlist)(\/|$)/;

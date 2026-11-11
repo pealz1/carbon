@@ -64,7 +64,7 @@
       <label class="field">
         <span class="label">Name</span>
         <!-- svelte-ignore a11y_autofocus -->
-        <input bind:value={name} maxlength={MAX_NAME + 10} autofocus placeholder="Late night drives" aria-invalid={!!problem} />
+        <input class="input" bind:value={name} maxlength={MAX_NAME + 10} autofocus placeholder="Late night drives" aria-invalid={!!problem} />
         {#if problem}<span class="error">{problem}</span>{/if}
       </label>
       {#if request.mode === "create"}<p class="muted">New playlists are private.</p>{/if}
@@ -72,7 +72,7 @@
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     <div class="actions">
       <button type="button" class="pill" onclick={close}>Cancel</button>
-      <button type="submit" class="pill" class:accent={request.mode !== "delete"} class:danger={request.mode === "delete"} disabled={saving}>
+      <button type="submit" class="pill" class:accent={request.mode !== "delete"} class:danger={request.mode === "delete"} class:solid={request.mode === "delete"} disabled={saving}>
         {actions[request.mode]}
       </button>
     </div>
@@ -102,24 +102,8 @@
     line-height: 1.5;
   }
 
-  input {
-    padding: var(--sp-2) var(--sp-3);
-    border-radius: var(--r-sm);
-    border: 1px solid var(--glass-edge);
-    background: var(--glass);
-    color: var(--text);
-    font: inherit;
-    user-select: text;
-  }
-
-  input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-  }
-
   [aria-invalid="true"] {
-    border-color: var(--danger);
+    box-shadow: inset 0 0 0 2px var(--danger);
   }
 
   .error {
@@ -132,34 +116,5 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--sp-2);
-  }
-
-  .pill {
-    height: 38px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    background: var(--glass-active);
-    border: 1px solid var(--glass-edge);
-    font-weight: 600;
-  }
-
-  .pill:hover:not(:disabled) {
-    background: var(--glass-edge-top);
-  }
-
-  .pill.accent {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: transparent;
-  }
-
-  .pill.danger {
-    background: var(--danger);
-    color: var(--accent-ink);
-    border-color: transparent;
-  }
-
-  .pill:disabled {
-    opacity: 0.5;
   }
 </style>

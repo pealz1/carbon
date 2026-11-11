@@ -51,13 +51,13 @@
   const nothing = $derived(r && !r.top && !r.songs.length && !r.videos.length && !r.albums.length && !r.artists.length && !r.playlists.length);
 </script>
 
-<div class="field glass">
+<div class="field">
   <Icon name="search" size={22} />
   <!-- svelte-ignore a11y_autofocus -->
-  <input bind:value={query} placeholder="Search YouTube Music" aria-label="Search YouTube Music" autofocus spellcheck="false" />
+  <input bind:value={query} type="search" placeholder="Search YouTube Music" aria-label="Search YouTube Music" autofocus spellcheck="false" />
 </div>
 
-<div class="tabs" role="tablist" aria-label="Result type">
+<div class="segmented filters" role="tablist" aria-label="Result type">
   {#each TABS as t (t.id)}
     <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => (tab = t.id)}>{t.label}</button>
   {/each}
@@ -78,11 +78,11 @@
         {#if r.top}
           <section class="best">
             <h2>Top result</h2>
-            <div class="best-card glass"><MediaCard card={r.top} /></div>
+            <div class="best-card"><MediaCard card={r.top} feature /></div>
           </section>
         {/if}
         {#if r.songs.length}
-          <section>
+          <section class="songs">
             <h2>Songs</h2>
             <TrackList tracks={r.songs.slice(0, TOP_SONGS)} compact />
           </section>
@@ -90,7 +90,7 @@
       </div>
     {/if}
     {#if r.videos.length}
-      <section class="list">
+      <section class="songs videos">
         <h2>Videos</h2>
         <TrackList tracks={r.videos.slice(0, TOP_SONGS)} compact />
       </section>
@@ -99,27 +99,29 @@
     <Shelf title="Albums" cards={r.albums} />
     <Shelf title="Playlists" cards={r.playlists} />
   {:else if tab === "songs" || tab === "videos"}
-    <TrackList tracks={tab === "songs" ? r.songs : r.videos} showAlbum={tab === "songs"} />
+    <div class="songs"><TrackList tracks={tab === "songs" ? r.songs : r.videos} showAlbum={tab === "songs"} /></div>
   {:else}
     <Shelf title={TABS.find((t) => t.id === tab)?.label ?? ""} cards={tab === "albums" ? r.albums : tab === "artists" ? r.artists : r.playlists} wrap />
   {/if}
 {/if}
 
 <style>
+  /* The Spotify search page's field. */
   .field {
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    height: 60px;
+    height: 56px;
     margin: var(--sp-5) 0 var(--sp-4);
     padding: 0 var(--sp-5);
     border-radius: var(--r-pill);
+    background: rgb(255 255 255 / 0.06);
+    box-shadow: inset 0 0 0 1px var(--glass-edge);
     color: var(--text-muted);
   }
 
   .field:focus-within {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px var(--accent-glow);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 
   input {
@@ -131,64 +133,53 @@
     color: var(--text);
     font: inherit;
     font-family: var(--font-display);
-    font-size: 1.35rem;
+    font-size: 1.25rem;
+    font-weight: 600;
     user-select: text;
   }
 
   input::placeholder {
     color: var(--text-faint);
+    font-weight: 500;
   }
 
-  .tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-    margin: 0 var(--sp-1) var(--sp-5);
+  input::-webkit-search-cancel-button {
+    display: none;
   }
 
-  .tabs button {
-    height: 32px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    background: var(--glass);
-    border: 1px solid var(--glass-edge);
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: var(--fs-small);
-    transition:
-      background var(--dur-fast),
-      color var(--dur-fast);
-  }
-
-  .tabs button:hover {
-    color: var(--text);
-    background: var(--glass-hover);
-  }
-
-  .tabs button.active {
-    background: var(--text);
-    color: var(--accent-ink);
-    border-color: transparent;
+  .filters {
+    margin-bottom: var(--sp-6);
   }
 
   .top {
     display: grid;
-    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 2fr);
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
     gap: var(--sp-5);
     margin-bottom: var(--sp-6);
   }
 
-  .list {
-    margin-bottom: var(--sp-6);
+  @container stage (max-width: 820px) {
+    .top {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .best-card {
+      max-width: 300px;
+    }
   }
 
   h2 {
+    margin-bottom: var(--sp-3);
     font-size: var(--fs-section);
-    margin: 0 var(--sp-2) var(--sp-3);
+    font-weight: 700;
   }
 
-  .best-card {
-    border-radius: var(--r-lg);
-    padding: var(--sp-2);
+  .songs {
+    min-width: 0;
+    margin-right: calc(var(--sp-2) * -1);
+  }
+
+  .videos {
+    margin-bottom: var(--sp-6);
   }
 </style>

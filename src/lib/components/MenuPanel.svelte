@@ -112,7 +112,7 @@
 
 <div
   bind:this={panel}
-  class="menu-panel liquid"
+  class="menu-panel glass"
   class:ready={place.ready}
   role="menu"
   tabindex="-1"
@@ -156,22 +156,21 @@
   .menu-panel {
     position: fixed;
     z-index: 50;
-    min-width: 220px;
+    min-width: 232px;
     max-width: 320px;
-    max-height: min(420px, calc(100vh - 16px));
+    max-height: min(460px, calc(100vh - 16px));
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding: var(--sp-1);
-    border-radius: var(--r-md);
-    --glass: var(--glass-strong);
-    --glass-blur: var(--glass-blur-heavy);
+    gap: 1px;
+    padding: 5px;
+    border-radius: var(--r-lg);
     opacity: 0;
-    transform: scale(0.97);
+    transform: scale(0.96);
     transform-origin: top left;
     transition:
       opacity var(--dur-fast) var(--ease-out),
-      transform var(--dur-fast) var(--ease-out);
+      transform var(--dur-med) var(--ease-out);
   }
 
   .menu-panel.ready {
@@ -186,13 +185,17 @@
   button {
     display: flex;
     align-items: center;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
     min-height: 34px;
-    padding: 0 var(--sp-3) 0 calc(var(--sp-2) + var(--depth) * var(--sp-3));
-    border-radius: var(--r-sm);
+    padding: 0 var(--sp-3) 0 calc(var(--sp-3) + var(--depth) * var(--sp-3));
+    border-radius: var(--r-md);
     color: var(--text);
-    font-size: var(--fs-small);
+    font-size: var(--fs-body);
     text-align: left;
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
+    --press: var(--press-wide);
   }
 
   button:hover,
@@ -203,7 +206,7 @@
   }
 
   button:focus-visible {
-    box-shadow: inset 0 0 0 1px var(--accent);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 
   button:disabled {
@@ -237,7 +240,7 @@
 
   .separator {
     height: 1px;
-    margin: var(--sp-1) var(--sp-2);
+    margin: 4px var(--sp-3);
     background: var(--glass-edge);
     flex: none;
   }

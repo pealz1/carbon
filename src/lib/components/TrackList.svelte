@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatDuration } from "$lib/format";
+  import { hold } from "$lib/hold";
   import { hasPage, isLocalUri } from "$lib/local/tracks";
   import { isYoutubeUri, pageHref } from "$lib/youtube/uri";
   import { menu } from "$lib/menu.svelte";
@@ -32,8 +33,9 @@
     onremove?: (uri: string) => void;
   } = $props();
 
-  const openMenu = (event: MouseEvent | KeyboardEvent, track: Track) =>
-    menu.open(event, trackMenu(track, { removeFrom, onRemoved: () => onremove?.(track.uri) }));
+  const menuFor = (track: Track) => trackMenu(track, { removeFrom, onRemoved: () => onremove?.(track.uri) });
+  const openMenu = (event: MouseEvent | KeyboardEvent, track: Track) => menu.open(event, menuFor(track));
+  const holdFor = (track: Track) => ({ onhold: (at: { x: number; y: number }, node: HTMLElement) => menu.openAt(at.x, at.y, menuFor(track), node) });
 
   function play(index: number) {
     const track = tracks[index];
@@ -47,7 +49,7 @@
 <ol class="tracks" class:compact class:with-album={showAlbum}>
   {#each tracks as track, i (track.uri + i)}
     {@const current = player.isCurrent(track.uri)}
-    <li class="row" class:current ondblclick={() => play(i)} oncontextmenu={(e) => openMenu(e, track)}>
+    <li class="row" class:current ondblclick={() => play(i)} oncontextmenu={(e) => openMenu(e, track)} use:hold={holdFor(track)}>
       <button class="lead" onclick={() => play(i)} aria-label="Play {track.name}">
         {#if current && !player.paused}
           <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -63,7 +65,7 @@
         <div class="text">
           <span class="name">
             {track.name}
-            {#if track.explicit}<span class="explicit" title="Explicit">E</span>{/if}
+            {#if track.explicit}<span class="explicit" data-tip="Explicit" aria-label="Explicit">E</span>{/if}
           </span>
           <span class="artists">
             {#each track.artists as artist, j (artist.uri)}
@@ -98,30 +100,50 @@
 
   .row {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) 28px 32px 52px 32px;
+    grid-template-columns: 40px minmax(0, 1fr) 28px 30px 48px 30px;
     align-items: center;
     gap: var(--sp-3);
-    height: 56px;
-    padding: 0 var(--sp-3) 0 var(--sp-2);
+    height: 54px;
+    padding: 0 var(--sp-2);
     border-radius: var(--r-md);
     content-visibility: auto;
-    contain-intrinsic-size: auto 56px;
-    transition: background var(--dur-fast);
+    contain-intrinsic-size: auto 54px;
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
+  }
+
+  /* Near-invisible stripes keep long lists trackable without drawing lines. */
+  .row:nth-child(odd) {
+    background: var(--row-stripe);
   }
 
   .with-album .row {
-    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 28px 32px 52px 32px;
+    grid-template-columns: 40px minmax(0, 1.4fr) minmax(0, 1fr) 28px 30px 48px 30px;
   }
 
+  /* Compact (queue, search, home): tighter columns so names get the room. */
   .compact .row {
     height: 50px;
-    grid-template-columns: 28px minmax(0, 1fr) 28px 28px 44px 28px;
-    gap: var(--sp-2);
+    grid-template-columns: 22px minmax(0, 1fr) 28px 28px 38px 28px;
+    gap: 6px;
+    padding: 0 var(--sp-1);
+    contain-intrinsic-size: auto 50px;
+  }
+
+  .compact .row:nth-child(odd) {
+    background: none;
   }
 
   .row:hover,
   .row:focus-within {
     background: var(--glass-hover);
+  }
+
+  /* Pressing the row (or its play button) gives it a slight push; its own small buttons don't. */
+  .row:active:not(:has(.more:active, .carbon-btn :active, :global(.like:active), a:active)) {
+    transform: scale(var(--press-wide));
+    transition-duration: var(--dur-press);
   }
 
   .row.current .name {
@@ -133,8 +155,12 @@
     height: 32px;
     display: grid;
     place-items: center;
-    color: var(--text-muted);
+    color: var(--text-faint);
     border-radius: var(--r-sm);
+  }
+
+  .lead:active {
+    transform: none;
   }
 
   .play-icon {
@@ -174,7 +200,7 @@
     border-radius: 1px;
     background: var(--accent);
     transform-origin: bottom;
-    animation: bounce 0.9s var(--ease-out) infinite alternate;
+    animation: level 0.9s var(--ease-out) infinite alternate;
   }
 
   .bars i:nth-child(2) {
@@ -185,7 +211,7 @@
     animation-delay: -0.7s;
   }
 
-  @keyframes bounce {
+  @keyframes level {
     from {
       transform: scaleY(0.25);
     }
@@ -205,13 +231,14 @@
     width: 40px;
     height: 40px;
     flex: none;
-    border-radius: var(--r-sm);
+    border-radius: var(--r-art-sm);
     object-fit: cover;
   }
 
   .text {
     display: flex;
     flex-direction: column;
+    gap: 1px;
     min-width: 0;
   }
 
@@ -234,8 +261,8 @@
     height: 15px;
     margin-left: var(--sp-1);
     border-radius: 3px;
-    background: var(--text-faint);
-    color: var(--accent-ink);
+    background: rgb(255 255 255 / 0.2);
+    color: var(--text);
     font-size: 9px;
     font-weight: 800;
     vertical-align: 1px;
@@ -248,35 +275,32 @@
   }
 
   .row :global(.like:not(.on)),
-  .more {
-    opacity: 0;
-  }
-
-  .row:hover :global(.like),
-  .row :global(.like:focus-visible),
-  .row:hover .more,
-  .more:focus-visible {
-    opacity: 1;
-  }
-
-  .more {
-    width: 28px;
-    height: 28px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--r-pill);
-    color: var(--text-muted);
-    transition: opacity var(--dur-fast);
-  }
-
+  .more,
   .carbon-btn {
     opacity: 0;
     transition: opacity var(--dur-fast);
   }
 
+  .row:hover :global(.like),
+  .row :global(.like:focus-visible),
+  .row:hover .more,
+  .more:focus-visible,
   .row:hover .carbon-btn,
   .carbon-btn:focus-within {
     opacity: 1;
+  }
+
+  .more {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-pill);
+    color: var(--text-muted);
+    transition:
+      opacity var(--dur-fast),
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
   }
 
   .more:hover {

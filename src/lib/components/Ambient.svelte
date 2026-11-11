@@ -1,144 +1,162 @@
 <script lang="ts">
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { fade } from "svelte/transition";
-  import { paletteFrom, type Rgb } from "$lib/palette";
+  import { artTones } from "$lib/art-tones.svelte";
+  import { css } from "$lib/wallpaper";
 
-  // The window's light: blurred artwork plus drifting colour fields sampled from it.
-  // Everything here is rendered small and scaled up, and only transform/opacity animate.
-  let { image, intense = false }: { image: string | null; intense?: boolean } = $props();
-  let colors = $state<Rgb[]>([]);
+  // The window's wallpaper: the chrome is drawn straight on it. Black with nothing loaded; with a
+  // track, four colour fields read from its artwork (never the artwork itself) drift slowly and
+  // cross-fade when the song changes. Only transform and opacity animate.
+  let { image, playing }: { image: string | null; playing: boolean } = $props();
+  const tones = artTones(() => image);
+  let hidden = $state(false);
+  let minimized = $state(false);
 
+  // The page stays "visible" when the window is minimized or hidden to the tray, so ask the window too.
   $effect(() => {
-    const url = image;
-    if (!url) return void (colors = []);
-    let current = true;
-    paletteFrom(url).then(
-      (found) => current && (colors = found),
-      (e) => console.warn("[ambient] palette unavailable", e),
-    );
-    return () => (current = false);
+    const win = getCurrentWindow();
+    const sync = () =>
+      Promise.all([win.isMinimized(), win.isVisible()]).then(
+        ([min, visible]) => (minimized = min || !visible),
+        (e) => console.warn("[wallpaper] couldn't read the window state", e),
+      );
+    void sync();
+    const listening = [win.onResized(sync), win.onFocusChanged(sync)];
+    return () => listening.forEach((off) => void off.then((stop) => stop()));
   });
 
-  const rgb = (c: Rgb | undefined, alpha: number) => (c ? `rgb(${c[0]} ${c[1]} ${c[2]} / ${alpha})` : "transparent");
+  const style = $derived(tones.current ? tones.current.fields.map((f, i) => `--f${i}: ${css(f)}`).join("; ") : null);
 </script>
 
-<div class="ambient" class:intense aria-hidden="true">
-  <div class="fallback"></div>
-  {#key image}
-    {#if image}
-      <img class="art" src={image} alt="" width="96" height="96" crossorigin="anonymous" transition:fade={{ duration: 900 }} />
+<svelte:document onvisibilitychange={() => (hidden = document.visibilityState === "hidden")} />
+
+<div class="wallpaper" class:paused={hidden || minimized} aria-hidden="true">
+  {#key style}
+    {#if style}
+      <div class="wash" class:dim={!playing} {style} in:fade={{ duration: 1400 }} out:fade={{ duration: 1400 }}>
+        <span class="field a"></span>
+        <span class="field b"></span>
+        <span class="field c"></span>
+        <span class="field d"></span>
+      </div>
     {/if}
   {/key}
-  <div class="fields">
-    <span class="field a" style="background: radial-gradient(closest-side, {rgb(colors[0], 0.9)}, transparent)"></span>
-    <span class="field b" style="background: radial-gradient(closest-side, {rgb(colors[1], 0.8)}, transparent)"></span>
-    <span class="field c" style="background: radial-gradient(closest-side, {rgb(colors[2], 0.7)}, transparent)"></span>
-  </div>
-  <div class="tint"></div>
   <div class="grain"></div>
 </div>
 
 <style>
-  .ambient {
+  .wallpaper {
     position: fixed;
     inset: 0;
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
+    background: var(--black);
   }
 
-  .fallback,
-  .tint,
-  .fields,
+  .wash,
   .grain {
     position: absolute;
     inset: 0;
   }
 
-  .fallback {
-    background: var(--bg-ambient-fallback);
+  /* The deepest tone fills the gaps between fields, so the chrome reads as one continuous wash. */
+  .wash {
+    background: var(--f2);
+    transition: opacity var(--dur-slow) var(--ease-out);
   }
 
-  .art {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 96px;
-    height: 96px;
-    object-fit: cover;
-    filter: blur(7px) saturate(1.8);
-    opacity: 0.6;
-    transform: translate(-50%, -50%) scale(18) rotate(-12deg);
+  /* Paused keeps the colour but lowers it, so the frame itself says whether music is playing. */
+  .wash.dim {
+    opacity: 0.55;
   }
 
+  /* Each field is drawn at half size and scaled 2x: a soft gradient loses nothing, and the GPU
+     composites a quarter of the pixels every frame. */
   .field {
     position: absolute;
-    width: 64vmax;
-    height: 64vmax;
+    width: 38vmax;
+    height: 38vmax;
     border-radius: 50%;
-    opacity: 0.55;
-    transition: opacity var(--dur-slow) var(--ease-out);
+    transform: scale(2);
     will-change: transform;
   }
 
   .a {
-    left: -18vmax;
-    top: -22vmax;
-    animation: drift-a 38s var(--ease-out) infinite alternate;
+    left: -7vmax;
+    top: -15vmax;
+    background: radial-gradient(closest-side, var(--f0), transparent);
+    animation: drift-a 46s var(--ease-out) infinite alternate;
   }
 
   .b {
-    right: -20vmax;
-    top: 10vmax;
-    animation: drift-b 46s var(--ease-out) infinite alternate;
+    right: -11vmax;
+    top: -19vmax;
+    background: radial-gradient(closest-side, var(--f1), transparent);
+    animation: drift-b 58s var(--ease-out) infinite alternate;
   }
 
   .c {
-    left: 20vmax;
-    bottom: -30vmax;
+    left: -11vmax;
+    bottom: -21vmax;
+    background: radial-gradient(closest-side, var(--f3), transparent);
     animation: drift-c 52s var(--ease-out) infinite alternate;
   }
 
-  .intense .field {
-    opacity: 0.85;
-  }
-
-  .intense .art {
-    opacity: 0.85;
+  .d {
+    right: -5vmax;
+    bottom: -25vmax;
+    background: radial-gradient(closest-side, var(--f0), transparent);
+    animation: drift-d 64s var(--ease-out) infinite alternate;
   }
 
   @keyframes drift-a {
     to {
-      transform: translate3d(14vmax, 10vmax, 0) scale(1.2);
+      transform: translate3d(18vmax, 8vmax, 0) scale(2.24);
     }
   }
 
   @keyframes drift-b {
     to {
-      transform: translate3d(-16vmax, 8vmax, 0) scale(0.85);
+      transform: translate3d(-22vmax, 10vmax, 0) scale(1.8);
     }
   }
 
   @keyframes drift-c {
     to {
-      transform: translate3d(10vmax, -14vmax, 0) scale(1.15);
+      transform: translate3d(16vmax, -6vmax, 0) scale(2.3);
     }
   }
 
-  .tint {
-    background: var(--bg-tint);
+  @keyframes drift-d {
+    to {
+      transform: translate3d(-20vmax, -8vmax, 0) scale(1.84);
+    }
   }
 
-  /* Film grain keeps big gradients from banding and gives the glass something to refract. */
+  .paused .field {
+    animation-play-state: paused;
+  }
+
+  /* Film grain: on the wallpaper, so it shows on the chrome and never on artwork above it. */
   .grain {
-    opacity: 0.05;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-image: var(--grain);
   }
 
+  /* Balanced: the same light, standing still. */
   :global([data-effects="balanced"]) .field {
     animation: none;
   }
 
-  :global([data-effects="minimal"]) .fields {
+  /* Minimal: one flat tone, no fields, no grain. */
+  :global([data-effects="minimal"]) .field,
+  :global([data-effects="minimal"]) .grain {
     display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .field {
+      animation: none;
+    }
   }
 </style>

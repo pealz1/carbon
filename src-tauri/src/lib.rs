@@ -1,6 +1,7 @@
 mod carbon_playlists;
 mod discord;
 mod engine;
+mod fonts;
 mod lastfm;
 mod library;
 mod local_library;
@@ -116,6 +117,7 @@ pub fn run() {
             token_store::carbon_token_clear,
             settings::settings_get,
             settings::settings_set,
+            fonts::fonts_installed,
             library::library_get,
             library::library_set,
             lastfm::lastfm_status,

@@ -39,13 +39,13 @@
   font: inherit;
   font-weight: 600;
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--c-violet) 70%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--c-yellow) 60%, transparent);
   text-underline-offset: .22em;
   cursor: pointer;
   transition: transform var(--d-fast) var(--ease-out);
 }
 
-.text-btn:hover { text-decoration-color: var(--c-cyan); }
+.text-btn:hover { text-decoration-color: var(--c-yellow); }
 .text-btn:active { transform: scale(.96); }
 .text-btn .spinner { display: inline-block; width: .9em; height: .9em; margin-left: .4em; vertical-align: -.1em; }
 .text-btn[disabled] { color: var(--c-text-3); text-decoration: none; cursor: default; transform: none; }
@@ -63,8 +63,8 @@
   border-radius: var(--r-xl);
   overflow: hidden;
   background:
-    radial-gradient(60% 50% at 70% 20%, color-mix(in srgb, var(--c-violet) 22%, transparent), transparent 70%),
-    radial-gradient(50% 45% at 20% 90%, color-mix(in srgb, var(--c-cyan) 12%, transparent), transparent 70%),
+    radial-gradient(60% 50% at 70% 20%, color-mix(in srgb, var(--c-yellow) 14%, transparent), transparent 70%),
+    radial-gradient(50% 45% at 20% 90%, color-mix(in srgb, var(--c-white) 6%, transparent), transparent 70%),
     linear-gradient(170deg, var(--c-surface-2), var(--c-bg));
   box-shadow: 0 0 0 1px var(--c-line) inset, 0 1px 0 var(--c-line-2) inset;
   transform: perspective(1400px) rotateX(var(--rx)) rotateY(var(--ry));
@@ -139,7 +139,7 @@
   content: "";
   width: 2px;
   height: 40%;
-  background: var(--c-cyan);
+  background: var(--c-yellow);
   animation: caret 1s steps(1) infinite;
 }
 
@@ -201,7 +201,7 @@
 
 .meter[data-score="1"] { --meter: var(--c-err); }
 .meter[data-score="2"] { --meter: var(--c-warn); }
-.meter[data-score="3"] { --meter: var(--c-cyan); }
+.meter[data-score="3"] { --meter: var(--c-yellow); }
 .meter[data-score="4"] { --meter: var(--c-ok); }
 
 .meter[data-score="1"] i:nth-child(-n+1)::after,

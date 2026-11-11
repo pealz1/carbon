@@ -99,6 +99,7 @@ describe("pages", () => {
     expect(a).toMatchObject({ name: "OK Computer", type: "Album", year: "1997", artists: [RADIOHEAD] });
     expect(a.description).toMatch(/^OK Computer is the third studio album/);
     expect(a.largeImage).toMatch(/=w1200-h1200/);
+    expect(a.artistImage).toMatch(/^https:\/\/.*=w88-h88/);
     expect(a.tracks[0]).toMatchObject({ name: "Airbag", durationMs: 288_000, artists: [RADIOHEAD], setVideoId: "E09F47EBF57B19B1" });
     expect(a.tracks[0].album).toMatchObject({ id: "MPREb_yXhSI4FCUo6", name: "OK Computer" });
   });

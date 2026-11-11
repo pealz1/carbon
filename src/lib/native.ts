@@ -4,7 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { LibraryData } from "$lib/organizer";
 
 export type Effects = "full" | "balanced" | "minimal";
-export const ACCENTS = ["periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
+export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
 
 /** The music services the listener connected. */
@@ -25,6 +25,16 @@ export interface Settings {
   spotifyClientId: string;
   remoteEnabled: boolean;
   remotePort: number;
+  /** Installed font family names; "" = Carbon's own fonts. */
+  fontText: string;
+  fontDisplay: string;
+  fontLyrics: string;
+  /** Interface sounds; silent over Spotify's audio whatever this says. */
+  uiSounds: boolean;
+  /** 0 to 1. */
+  uiSoundVolume: number;
+  /** Brand updates applied to these settings; Rust owns it, the interface only passes it back. */
+  brandVersion: number;
 }
 
 export type RepeatMode = "off" | "context" | "track";
@@ -90,6 +100,8 @@ export interface LastfmStatus {
 
 export const getSettings = () => invoke<Settings>("settings_get");
 export const saveSettings = (settings: Settings) => invoke<Settings>("settings_set", { settings });
+/** Installed font families, A–Z, already limited to names that are safe in CSS. */
+export const installedFonts = () => invoke<string[]>("fonts_installed");
 export const reportPlayback = (info: PlaybackInfo | null) => invoke("playback_update", { info });
 export const onMediaCommand = (handler: (command: MediaCommand) => void): Promise<UnlistenFn> =>
   listen<MediaCommand>("media-command", (event) => handler(event.payload));

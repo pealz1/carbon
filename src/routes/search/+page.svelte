@@ -31,14 +31,14 @@
   const topResult = $derived(results.data?.artists[0] ?? (results.data?.tracks[0] ? trackCard(results.data.tracks[0]) : null));
 </script>
 
-<div class="field glass">
+<div class="field">
   <Icon name="search" size={22} />
   <!-- svelte-ignore a11y_autofocus -->
   <input bind:value={query} placeholder="What do you want to hear?" aria-label="Search Spotify" autofocus spellcheck="false" />
 </div>
 
 {#if !term}
-  <Status empty="Search for songs, artists, albums and playlists." />
+  <Status empty="Search Spotify for songs, artists, albums and playlists. Ctrl K brings you here from anywhere." />
 {:else if results.loading && !results.data}
   <Status loading />
 {:else if results.error}
@@ -49,7 +49,7 @@
       {#if topResult}
         <section class="best">
           <h2>Top result</h2>
-          <div class="best-card glass"><MediaCard card={topResult} /></div>
+          <div class="best-card"><MediaCard card={topResult} feature /></div>
         </section>
       {/if}
       {#if results.data.tracks.length}
@@ -72,16 +72,17 @@
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    height: 60px;
+    height: 56px;
     margin: var(--sp-5) 0 var(--sp-6);
     padding: 0 var(--sp-5);
     border-radius: var(--r-pill);
+    background: rgb(255 255 255 / 0.06);
+    box-shadow: inset 0 0 0 1px var(--glass-edge);
     color: var(--text-muted);
   }
 
   .field:focus-within {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px var(--accent-glow);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 
   input {
@@ -93,28 +94,45 @@
     color: var(--text);
     font: inherit;
     font-family: var(--font-display);
-    font-size: 1.35rem;
+    font-size: 1.25rem;
+    font-weight: 600;
     user-select: text;
   }
 
   input::placeholder {
     color: var(--text-faint);
+    font-weight: 500;
+  }
+
+  input::-webkit-search-cancel-button {
+    display: none;
   }
 
   .top {
     display: grid;
-    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 2fr);
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
     gap: var(--sp-5);
     margin-bottom: var(--sp-6);
   }
 
-  h2 {
-    font-size: var(--fs-section);
-    margin: 0 var(--sp-2) var(--sp-3);
+  @container stage (max-width: 820px) {
+    .top {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .best-card {
+      max-width: 300px;
+    }
   }
 
-  .best-card {
-    border-radius: var(--r-lg);
-    padding: var(--sp-2);
+  h2 {
+    margin-bottom: var(--sp-3);
+    font-size: var(--fs-section);
+    font-weight: 700;
+  }
+
+  .songs {
+    min-width: 0;
+    margin-right: calc(var(--sp-2) * -1);
   }
 </style>

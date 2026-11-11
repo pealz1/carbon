@@ -70,7 +70,7 @@ fn build(app: &AppHandle, tx: UnboundedSender<Event>) -> Result<WebviewWindow, S
 #[cfg(windows)]
 pub fn clear_profile(app: &AppHandle) -> Result<(), String> {
     use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2_2;
-    use windows_core::Interface;
+    use windows::core::Interface;
     let Some(main) = app.get_webview_window(MAIN) else { return Ok(()) };
     let (tx, rx) = std::sync::mpsc::channel();
     main.with_webview(move |webview| {

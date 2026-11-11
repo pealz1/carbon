@@ -1,34 +1,28 @@
 // App-level sign-in state plus the library data the sidebar needs everywhere.
 import { hasClientId, missingScopes, restoreSession, signIn as authSignIn, signOut as authSignOut, useClientId } from "$lib/auth";
 import { BUILT_IN_CLIENT_ID } from "$lib/config";
-import { describeError } from "$lib/errors";
+import { describeError, describeNotice } from "$lib/errors";
 import { runMediaCommand } from "$lib/media-commands";
 import { isClientId, onMediaCommand } from "$lib/native";
 import { player } from "$lib/player.svelte";
 import { prefs } from "$lib/preferences.svelte";
-import { ApiError } from "$lib/spotify/api";
+import { onApiNotice, type ApiNotice } from "$lib/spotify/api";
 import * as sp from "$lib/spotify/endpoints";
 import type { PlaylistSummary, Profile } from "$lib/spotify/types";
+import { toasts } from "$lib/toast.svelte";
 
 const MAX_SIDEBAR_PLAYLISTS = 200;
+const OLD_SCOPES = "Playlist editing needs a few more Spotify permissions.";
 
 type Status = "booting" | "needs-client-id" | "signed-out" | "signing-in" | "signed-in";
-
-/** Spotify answers 403 "user not registered" when the account isn't allowed on that Client ID. */
-function explain(e: unknown): string {
-  if (e instanceof ApiError && e.status === 403 && /registered/i.test(e.message)) {
-    return "This Spotify account isn't allowed on that Client ID. Use your own Spotify app (see the guide).";
-  }
-  return describeError(e);
-}
 
 class Session {
   status = $state<Status>("booting");
   error = $state<string | null>(null);
   profile = $state<Profile | null>(null);
   playlists = $state<PlaylistSummary[]>([]);
-  /** Signed in before Carbon asked for newer permissions (playlist editing, covers). */
-  needsReconsent = $state(false);
+  /** Why signing in again would help (missing permissions, a session Carbon couldn't renew); null when it wouldn't. */
+  signInPrompt = $state<string | null>(null);
   #listening = false;
 
   /** `spotify` false (YouTube Music only): settings and media keys, but nothing from Spotify. */
@@ -40,6 +34,7 @@ class Session {
         this.status = "signed-out";
         return;
       }
+      onApiNotice((notice) => this.#onApiNotice(notice));
       useClientId(settings.spotifyClientId || BUILT_IN_CLIENT_ID);
       if (!hasClientId()) {
         this.status = "needs-client-id";
@@ -49,7 +44,7 @@ class Session {
       if (this.status === "signed-in") await this.#afterSignIn();
     } catch (e) {
       console.error("[session] restore failed", e);
-      this.error = explain(e);
+      this.error = describeError(e);
       this.status = hasClientId() ? "signed-out" : "needs-client-id";
     }
   }
@@ -81,7 +76,7 @@ class Session {
       await this.#afterSignIn();
     } catch (e) {
       console.error("[session] sign-in failed", e);
-      this.error = explain(e);
+      this.error = describeError(e);
       this.status = "signed-out";
     }
   }
@@ -118,15 +113,21 @@ class Session {
 
   /** Loads sidebar data. Failures here are shown but don't sign you out: the token is fine. */
   async #afterSignIn(): Promise<void> {
-    this.needsReconsent = missingScopes().length > 0;
+    this.signInPrompt = missingScopes().length > 0 ? OLD_SCOPES : null;
     void player.start();
     try {
       const [profile] = await Promise.all([sp.me(), this.refreshPlaylists()]);
       this.profile = profile;
     } catch (e) {
       console.error("[session] loading library failed", e);
-      this.error = explain(e);
+      this.error = describeError(e);
     }
+  }
+
+  /** The API client retried, or found that only signing in again will help. */
+  #onApiNotice(notice: ApiNotice): void {
+    if (notice.kind === "retrying") toasts.show(describeNotice(notice));
+    else if (this.status === "signed-in") this.signInPrompt = describeNotice(notice);
   }
 
   #listenForMediaKeys(): void {

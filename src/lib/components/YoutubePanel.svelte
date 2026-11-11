@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { specular } from "$lib/liquid";
   import { youtube } from "$lib/youtube/session.svelte";
 
   // Settings → YouTube Music: sign in or out, and what using YouTube's private API means.
 </script>
 
-<section class="panel liquid" use:specular>
+<section class="panel plate">
   <h2>YouTube Music</h2>
   {#if youtube.signedIn}
     <div class="me">
@@ -43,16 +42,18 @@
 </section>
 
 <style>
+  /* Matches the other Settings groups (stage plates). */
   .panel {
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
     padding: var(--sp-5);
-    border-radius: var(--r-lg);
   }
 
   h2 {
+    margin-bottom: var(--sp-1);
     font-size: var(--fs-section);
+    font-weight: 700;
   }
 
   .me {
@@ -65,6 +66,7 @@
   .avatar {
     width: 48px;
     height: 48px;
+    flex: none;
     border-radius: var(--r-pill);
     object-fit: cover;
   }
@@ -79,7 +81,7 @@
   .name {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 1.15rem;
+    font-size: 1.25rem;
     font-weight: 700;
   }
 
@@ -99,13 +101,12 @@
     color: var(--warning);
   }
 
-  /* The risk note: set apart, quieter than the controls but never hidden. */
+  /* The risk note: set apart by an outline, quieter than the controls but never hidden. */
   .note {
     margin-top: var(--sp-2);
     padding: var(--sp-3) var(--sp-4);
     border: 1px solid color-mix(in oklch, var(--warning) 30%, transparent);
-    border-radius: var(--r-sm);
-    background: var(--glass-hover);
+    border-radius: var(--r-md);
     color: var(--text-muted);
   }
 
@@ -113,35 +114,5 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
-  }
-
-  .pill {
-    height: 34px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    background: var(--glass-active);
-    border: 1px solid var(--glass-edge);
-    font-weight: 600;
-    transition:
-      background var(--dur-fast),
-      transform var(--dur-fast) var(--ease-spring);
-  }
-
-  .pill:hover:not(:disabled) {
-    background: var(--glass-edge-top);
-  }
-
-  .pill:active {
-    transform: scale(0.97);
-  }
-
-  .pill.accent {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: transparent;
-  }
-
-  .pill:disabled {
-    opacity: 0.6;
   }
 </style>

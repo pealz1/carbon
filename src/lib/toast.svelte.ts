@@ -1,4 +1,6 @@
-// Short, plain-language notices ("Added to Road trip", "Couldn't like that song") above the dock.
+// Short, plain-language notices ("Added to Road trip", "Couldn't like that song") at the foot of the stage.
+import { playSound } from "$lib/sfx";
+
 const TOAST_MS = 4_000;
 
 export interface Toast {
@@ -19,6 +21,7 @@ class Toasts {
 
   error(text: string): void {
     this.show(text, "error");
+    playSound("error");
   }
 
   dismiss(id: number): void {

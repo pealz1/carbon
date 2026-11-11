@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("$lib/native", () => ({ reportPlayback: vi.fn(async () => {}) }));
-vi.mock("$lib/auth", () => ({ getAccessToken: vi.fn(async () => "token") }));
+vi.mock("$lib/auth", () => ({ getAccessToken: vi.fn(async () => "token"), withTimeout: <T>(p: Promise<T>) => p }));
 vi.mock("$lib/spotify/endpoints", () => ({ playOn: vi.fn(), setShuffle: vi.fn(), setRepeat: vi.fn(), addToQueue: vi.fn(), lastPlayback: vi.fn(), recentlyPlayed: vi.fn() }));
 
 const sp = await import("$lib/spotify/endpoints");

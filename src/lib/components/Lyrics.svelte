@@ -7,8 +7,8 @@
   import { lineProgress, LYRICS_LEAD_MS, wordProgress } from "$lib/words";
   import Status from "./Status.svelte";
 
-  // Synced lyrics shared by Now Playing and cinema mode.
-  let { cinema = false }: { cinema?: boolean } = $props();
+  // Synced lyrics shared by Now Playing, the docked lyrics panel and cinema mode.
+  let { variant = "page" }: { variant?: "page" | "panel" | "cinema" } = $props();
 
   /** Where the sung line sits, as a fraction of the lyrics viewport height. */
   const FOCUS = 0.36;
@@ -73,7 +73,7 @@
   const offsetLabel = $derived(`${offset > 0 ? "+" : offset < 0 ? "−" : "±"}${(Math.abs(offset) / 1000).toFixed(2)} s`);
 </script>
 
-<section class="lyrics" class:cinema aria-label="Lyrics" bind:this={viewport}>
+<section class="lyrics {variant}" aria-label="Lyrics" bind:this={viewport}>
   {#if lyricsError}
     <Status error={lyricsError} />
   {:else if !lyrics}
@@ -81,7 +81,7 @@
   {:else if lyrics.kind === "synced"}
     <ol style="transform: translate3d(0, {shift}px, 0)">
       {#each lines as line, i (i)}
-        <li bind:this={lineEls[i]} class:active={i === active} class:past={i < active} class:near={Math.abs(i - active) === 1}>
+        <li bind:this={lineEls[i]} class:active={i === active} class:past={i < active} class:near={Math.abs(i - active) === 1} class:far={Math.abs(i - active) > 3}>
           <button onclick={() => seekTo(line.timeMs)} aria-current={i === active ? "true" : undefined}>
             {#if !line.text}
               <span class="breath" aria-label="Instrumental break"><i></i><i></i><i></i></span>
@@ -138,18 +138,19 @@
     padding: var(--sp-2) var(--sp-3);
     border-radius: var(--r-md);
     text-align: left;
-    font-family: var(--font-display);
-    font-size: calc(clamp(1.6rem, 2.4vw, 2.4rem) * var(--lyrics-scale, 1));
-    font-weight: 780;
+    font-family: var(--font-lyrics);
+    font-size: calc(clamp(1.75rem, 2.4cqw + 1rem, 2.5rem) * var(--lyrics-scale, 1));
+    font-weight: 750;
     line-height: 1.18;
     letter-spacing: -0.02em;
-    color: var(--text);
-    opacity: 0.22;
-    filter: blur(1.4px);
-    transform: scale(0.96);
+    color: inherit;
+    opacity: 0.3;
+    filter: blur(0.8px);
+    transform: scale(0.97);
     transform-origin: left center;
     transition:
       opacity var(--dur-med) var(--ease-out),
+      background var(--dur-fast),
       transform 700ms var(--ease-spring);
   }
 
@@ -158,13 +159,35 @@
     line-height: 1.12;
   }
 
+  /* Docked beside the stage: 22 px lines, the sung one bright, the rest receding with distance. */
+  .panel {
+    mask-image: linear-gradient(transparent, black 8%, black 82%, transparent);
+  }
+
+  .panel ol {
+    padding: 0 0 60vh;
+  }
+
+  .panel li button {
+    padding: var(--sp-2);
+    font-size: calc(1.375rem * var(--lyrics-scale, 1));
+    font-weight: 700;
+    line-height: 1.28;
+    letter-spacing: -0.01em;
+  }
+
   li.near button {
-    opacity: 0.38;
-    filter: blur(0.6px);
+    opacity: 0.5;
+    filter: blur(0.3px);
   }
 
   li.past button {
-    opacity: 0.16;
+    opacity: 0.22;
+  }
+
+  li.far button {
+    opacity: 0.18;
+    filter: blur(1.6px);
   }
 
   li.active button {
@@ -174,9 +197,13 @@
   }
 
   li button:hover {
-    opacity: 0.8;
+    opacity: 0.85;
     filter: none;
     background: var(--glass-hover);
+  }
+
+  :global([data-effects="minimal"]) li button {
+    filter: none;
   }
 
   /* Liquid fill: text lights up left-to-right as it's sung, with a soft glow. */
@@ -235,7 +262,7 @@
   }
 
   .note {
-    font-family: var(--font-display);
+    font-family: var(--font-lyrics);
     font-size: var(--fs-title);
     font-weight: 700;
     color: var(--text-muted);

@@ -1,4 +1,4 @@
-// Pulls a few vivid colours out of album artwork for the ambient background.
+// Pulls a few vivid colours out of artwork for the wallpaper, header washes and Play pills.
 export type Rgb = [number, number, number];
 
 const SAMPLE_SIZE = 32;
@@ -53,4 +53,22 @@ export async function paletteFrom(url: string, count = 3): Promise<Rgb[]> {
   if (!ctx) return [];
   ctx.drawImage(img, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
   return dominantColors(ctx.getImageData(0, 0, SAMPLE_SIZE, SAMPLE_SIZE).data, count);
+}
+
+const CACHE_LIMIT = 120;
+const cache = new Map<string, Promise<Rgb[]>>();
+
+/** `paletteFrom`, read once per URL (the wallpaper, a header wash and its Play pill share one decode).
+ *  Never rejects: artwork that can't be read (offline, a tainted canvas) gives [] and Carbon falls back to graphite. */
+export function cachedPalette(url: string): Promise<Rgb[]> {
+  const hit = cache.get(url);
+  if (hit) return hit;
+  const found = paletteFrom(url, 4).catch((e) => {
+    console.warn("[palette] artwork colours unavailable", e);
+    cache.delete(url); // try again next time
+    return [] as Rgb[];
+  });
+  cache.set(url, found);
+  if (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value!);
+  return found;
 }

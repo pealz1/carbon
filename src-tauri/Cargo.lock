@@ -553,7 +553,7 @@ dependencies = [
 
 [[package]]
 name = "carbon"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "axum",
  "cpal",
@@ -588,7 +588,7 @@ dependencies = [
  "tokio-tungstenite",
  "tower",
  "webview2-com",
- "windows-core",
+ "windows",
 ]
 
 [[package]]

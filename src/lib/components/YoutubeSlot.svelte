@@ -15,8 +15,7 @@
     min-width: 200px;
     min-height: 200px;
     aspect-ratio: 16 / 9;
-    border-radius: var(--r-lg);
-    background: rgb(0 0 0 / 0.5);
-    box-shadow: var(--shadow-art);
+    border-radius: var(--r-art);
+    background: #000;
   }
 </style>

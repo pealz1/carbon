@@ -3,59 +3,63 @@
   import Lyrics from "$lib/components/Lyrics.svelte";
   import YoutubeSlot from "$lib/components/YoutubeSlot.svelte";
   import Status from "$lib/components/Status.svelte";
+  import { hasPage } from "$lib/local/tracks";
   import { player } from "$lib/player.svelte";
-
-  let tilt = $state({ x: 0, y: 0 });
-
-  function onTilt(event: PointerEvent) {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    tilt = { x: ((event.clientY - rect.top) / rect.height - 0.5) * -10, y: ((event.clientX - rect.left) / rect.width - 0.5) * 12 };
-  }
+  import { pageHref } from "$lib/youtube/uri";
 </script>
 
-<div class="stage">
-  {#if player.track}
+{#if player.track}
+  {@const album = player.track.album}
+  <div class="now">
     <section class="art-side">
-      <div class="cover-wrap" role="presentation" onpointermove={onTilt} onpointerleave={() => (tilt = { x: 0, y: 0 })}>
-        {#if player.source === "youtube"}
-          <YoutubeSlot />
-        {:else if player.artwork}
-          <img class="cover" src={player.artwork} alt="" width="440" height="440" style="transform: rotateX({tilt.x}deg) rotateY({tilt.y}deg)" />
-        {/if}
-      </div>
+      {#if player.source === "youtube"}
+        <YoutubeSlot />
+      {:else if player.artwork}
+        <img class="cover" src={player.artwork} alt="" width="440" height="440" />
+      {/if}
       <div class="title-row">
         <h1>{player.track.name}</h1>
         <LikeButton uri={player.track.uri} label={player.track.name} size={22} />
       </div>
-      <p class="by">{player.track.artists.map((a) => a.name).join(", ")}</p>
-      {#if player.track.album}<p class="album">{player.track.album.name}</p>{/if}
+      <p class="by">
+        {#each player.track.artists as artist, i (artist.uri)}
+          {#if i > 0}{", "}{/if}{#if hasPage(artist)}<a href={pageHref("artist", artist)}>{artist.name}</a>{:else}{artist.name}{/if}
+        {/each}
+      </p>
+      {#if album}
+        <p class="album">{#if hasPage(album)}<a href={pageHref("album", album)}>{album.name}</a>{:else}{album.name}{/if}</p>
+      {/if}
     </section>
 
     <Lyrics />
-  {:else}
-    <Status empty="Play something to see it here, with lyrics." />
-  {/if}
-</div>
+  </div>
+{:else}
+  <Status empty="Play something to see it here, with lyrics." />
+{/if}
 
 <style>
-  .stage {
+  .now {
     display: grid;
-    grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.35fr);
+    grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.35fr);
     gap: var(--sp-7);
-    height: calc(100vh - var(--titlebar-h) - var(--dock-h) - var(--sp-6));
-    padding: var(--sp-5) var(--sp-4) 0;
+    height: 100%;
+    max-height: calc(100vh - var(--titlebar-h) - var(--player-h) - var(--sp-6));
+    padding: var(--sp-6) 0 0;
+  }
+
+  @container stage (max-width: 900px) {
+    .now {
+      grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1fr);
+      gap: var(--sp-5);
+    }
   }
 
   .art-side {
     align-self: center;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-  }
-
-  .cover-wrap {
-    perspective: 900px;
-    margin-bottom: var(--sp-4);
+    gap: var(--sp-1);
+    min-width: 0;
   }
 
   .cover {
@@ -63,11 +67,10 @@
     max-width: 440px;
     height: auto;
     aspect-ratio: 1;
-    border-radius: var(--r-lg);
+    margin-bottom: var(--sp-5);
+    border-radius: var(--r-art);
     object-fit: cover;
-    box-shadow: var(--shadow-art), 0 0 0 1px var(--glass-edge), 0 40px 120px -30px var(--accent-glow);
-    transition: transform var(--dur-slow) var(--ease-out);
-    will-change: transform;
+    box-shadow: var(--shadow-art);
   }
 
   .title-row {
@@ -81,13 +84,13 @@
   }
 
   h1 {
-    font-size: var(--fs-title);
+    font-size: 2rem;
     font-weight: 750;
-    line-height: 1.05;
+    line-height: 1.08;
   }
 
   .by {
-    margin: 0;
+    margin: var(--sp-1) 0 0;
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--text-muted);
@@ -97,5 +100,4 @@
     margin: 0;
     color: var(--text-faint);
   }
-
 </style>
