@@ -6,6 +6,7 @@
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import Lyrics from "./Lyrics.svelte";
+  import YoutubeSlot from "./YoutubeSlot.svelte";
   import Slider from "./Slider.svelte";
 
   // Immersive now playing: artwork-lit backdrop, big lyrics, controls that step aside when idle.
@@ -56,7 +57,7 @@
   {#if player.track}
     <div class="stage">
       <section class="art">
-        {#if player.artwork}<img src={player.artwork} alt="" width="560" height="560" />{/if}
+        {#if player.source === "youtube"}<YoutubeSlot />{:else if player.artwork}<img src={player.artwork} alt="" width="560" height="560" />{/if}
       </section>
       <Lyrics cinema />
     </div>

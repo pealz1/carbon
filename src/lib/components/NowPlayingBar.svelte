@@ -3,6 +3,7 @@
   import { DEFAULT_VOLUME } from "$lib/config";
   import { formatDuration } from "$lib/format";
   import { hasPage } from "$lib/local/tracks";
+  import { pageHref } from "$lib/youtube/uri";
   import { player } from "$lib/player.svelte";
   import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
@@ -34,13 +35,13 @@
       </a>
       <div class="meta">
         {#if hasPage(player.track.album)}
-          <a class="title" href="/album/{player.track.album?.id}">{player.track.name}</a>
+          <a class="title" href={pageHref("album", player.track.album!)}>{player.track.name}</a>
         {:else}
           <span class="title">{player.track.name}</span>
         {/if}
         <span class="artists">
           {#each player.track.artists as artist, i (artist.uri)}
-            {#if i > 0}{", "}{/if}{#if hasPage(artist)}<a href="/artist/{artist.id}">{artist.name}</a>{:else}{artist.name}{/if}
+            {#if i > 0}{", "}{/if}{#if hasPage(artist)}<a href={pageHref("artist", artist)}>{artist.name}</a>{:else}{artist.name}{/if}
           {/each}
         </span>
       </div>

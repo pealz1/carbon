@@ -225,10 +225,10 @@ class Player {
   }
 
   /** Plays a list in Carbon's own queue: local files, Carbon playlists, or both mixed; or YouTube Music songs. */
-  playQueue = async (tracks: Track[], index = 0): Promise<unknown> => {
+  playQueue = async (tracks: Track[], index = 0, contextUri?: string): Promise<unknown> => {
     const owner = ownerOf(tracks.map((t) => t.uri));
     if (!owner) return void (this.error = SEPARATE_SERVICES);
-    if (owner === "youtube") return this.#playYoutube(() => this.#youtube.play(tracks, index));
+    if (owner === "youtube") return this.#playYoutube(() => this.#youtube.play(tracks, index, contextUri ?? null));
     await this.#switchTo("carbon");
     return this.#mixed.play(tracks, index);
   };

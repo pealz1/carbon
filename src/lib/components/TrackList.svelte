@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatDuration } from "$lib/format";
   import { hasPage, isLocalUri } from "$lib/local/tracks";
+  import { isYoutubeUri, pageHref } from "$lib/youtube/uri";
   import { menu } from "$lib/menu.svelte";
   import { trackMenu } from "$lib/menus";
   import { player } from "$lib/player.svelte";
@@ -36,7 +37,9 @@
 
   function play(index: number) {
     const track = tracks[index];
-    if (contextUri) player.playContext(contextUri, track.uri);
+    // YouTube Music lists play from what is loaded here (long playlists load page by page).
+    if (isYoutubeUri(track.uri)) player.playQueue(tracks, index, contextUri);
+    else if (contextUri) player.playContext(contextUri, track.uri);
     else player.playTracks(tracks.map((t) => t.uri), index, tracks);
   }
 </script>
@@ -64,17 +67,18 @@
           </span>
           <span class="artists">
             {#each track.artists as artist, j (artist.uri)}
-              {#if j > 0}{", "}{/if}{#if hasPage(artist)}<a href="/artist/{artist.id}">{artist.name}</a>{:else}{artist.name}{/if}
+              {#if j > 0}{", "}{/if}{#if hasPage(artist)}<a href={pageHref("artist", artist)}>{artist.name}</a>{:else}{artist.name}{/if}
             {/each}
           </span>
         </div>
       </div>
       {#if showAlbum}
         <span class="album">
-          {#if hasPage(track.album)}<a href="/album/{track.album?.id}">{track.album?.name}</a>{:else}{track.album?.name ?? ""}{/if}
+          {#if hasPage(track.album)}<a href={pageHref("album", track.album!)}>{track.album?.name}</a>{:else}{track.album?.name ?? ""}{/if}
         </span>
       {/if}
-      <span class="carbon-btn"><AddToCarbon tracks={[track]} /></span>
+      <!-- Carbon playlists can hold Spotify songs, so YouTube Music songs stay out of them. -->
+      <span class="carbon-btn">{#if !isYoutubeUri(track.uri)}<AddToCarbon tracks={[track]} />{/if}</span>
       <!-- Liked Songs is Spotify-only; the empty cell keeps local rows on the grid. -->
       {#if isLocalUri(track.uri)}<span></span>{:else}<LikeButton uri={track.uri} label={track.name} />{/if}
       <span class="duration tabular">{formatDuration(track.durationMs)}</span>

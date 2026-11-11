@@ -18,6 +18,9 @@
   import SignIn from "$lib/components/SignIn.svelte";
   import TagsDialog from "$lib/components/TagsDialog.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
+  import YoutubeStage from "$lib/components/YoutubeStage.svelte";
+  import YtPlaylistDialog from "$lib/components/YtPlaylistDialog.svelte";
+  import { youtube } from "$lib/youtube/session.svelte";
   import Toasts from "$lib/components/Toasts.svelte";
   import { dialogs } from "$lib/dialogs.svelte";
   import { handleKey } from "$lib/keyboard";
@@ -35,6 +38,7 @@
     void organizer.load();
     void view.syncFullscreen();
     void sound.boot();
+    void youtube.boot();
   });
 
   // Spotify starts once the Carbon account gate (if this build has one) is passed.
@@ -100,6 +104,7 @@
     </div>
   </div>
   {#if view.cinema}<Cinema />{/if}
+  <YoutubeStage />
   <ContextMenu />
   {#if dialogs.playlist}
     {#key dialogs.playlist}<PlaylistDialog request={dialogs.playlist} />{/key}
@@ -111,6 +116,9 @@
     {#key dialogs.tags}<TagsDialog playlist={dialogs.tags} />{/key}
   {/if}
   {#if dialogs.shortcuts}<ShortcutsSheet />{/if}
+  {#if youtube.dialog}
+    {#key youtube.dialog}<YtPlaylistDialog request={youtube.dialog} />{/key}
+  {/if}
 {/if}
 
 <style>

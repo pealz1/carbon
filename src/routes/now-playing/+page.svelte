@@ -1,6 +1,7 @@
 <script lang="ts">
   import LikeButton from "$lib/components/LikeButton.svelte";
   import Lyrics from "$lib/components/Lyrics.svelte";
+  import YoutubeSlot from "$lib/components/YoutubeSlot.svelte";
   import Status from "$lib/components/Status.svelte";
   import { player } from "$lib/player.svelte";
 
@@ -16,7 +17,9 @@
   {#if player.track}
     <section class="art-side">
       <div class="cover-wrap" role="presentation" onpointermove={onTilt} onpointerleave={() => (tilt = { x: 0, y: 0 })}>
-        {#if player.artwork}
+        {#if player.source === "youtube"}
+          <YoutubeSlot />
+        {:else if player.artwork}
           <img class="cover" src={player.artwork} alt="" width="440" height="440" style="transform: rotateX({tilt.x}deg) rotateY({tilt.y}deg)" />
         {/if}
       </div>

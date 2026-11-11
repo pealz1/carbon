@@ -5,6 +5,8 @@
   import { account } from "$lib/account.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import RemotePanel from "$lib/components/RemotePanel.svelte";
+  import YoutubePanel from "$lib/components/YoutubePanel.svelte";
+  import { youtube } from "$lib/youtube/session.svelte";
   import Toggle from "$lib/components/Toggle.svelte";
   import { BUILT_IN_CLIENT_ID, CARBON } from "$lib/config";
   import { describeError } from "$lib/errors";
@@ -80,6 +82,7 @@
   async function removeEverything() {
     await session.signOut();
     await account.signOut();
+    await youtube.signOut();
     try {
       await removeSavedData();
       notice = "Signed out and removed everything Carbon saved on this PC.";
@@ -197,6 +200,8 @@
     </section>
 
     <RemotePanel />
+
+    <YoutubePanel />
 
     <section class="panel liquid" use:specular>
       <h2>Sound</h2>

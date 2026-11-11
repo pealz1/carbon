@@ -13,15 +13,34 @@
   import type { PlaylistSummary } from "$lib/spotify/types";
   import Icon, { type IconName } from "./Icon.svelte";
   import Logo from "./Logo.svelte";
+  import SourceSwitch, { sourceOfPath, type Source } from "./SourceSwitch.svelte";
+  import YoutubeSidebar from "./YoutubeSidebar.svelte";
   import { specular } from "$lib/liquid";
 
-  const NAV: { href: string; label: string; icon: IconName }[] = [
-    { href: "/", label: "Home", icon: "home" },
-    { href: "/search", label: "Search", icon: "search" },
-    { href: "/library", label: "Library", icon: "library" },
-    { href: "/local", label: "Local files", icon: "folder" },
-    { href: "/sound", label: "Sound", icon: "equalizer" },
-  ];
+  type NavItem = { href: string; label: string; icon: IconName };
+  const SOUND: NavItem = { href: "/sound", label: "Sound", icon: "equalizer" };
+  const NAV: Record<Source, NavItem[]> = {
+    spotify: [
+      { href: "/", label: "Home", icon: "home" },
+      { href: "/search", label: "Search", icon: "search" },
+      { href: "/library", label: "Library", icon: "library" },
+      SOUND,
+    ],
+    youtube: [
+      { href: "/youtube", label: "Home", icon: "home" },
+      { href: "/youtube/search", label: "Search", icon: "search" },
+      { href: "/youtube/library", label: "Library", icon: "library" },
+      SOUND,
+    ],
+    local: [{ href: "/local", label: "Local files", icon: "folder" }, SOUND],
+  };
+
+  // Shared pages (settings, sound, now playing) keep whichever source was showing.
+  let source = $state<Source>(sourceOfPath(page.url.pathname) ?? "spotify");
+  $effect(() => {
+    const next = sourceOfPath(page.url.pathname);
+    if (next) source = next;
+  });
 
   onMount(() => void carbonPlaylists.load());
 
@@ -31,7 +50,7 @@
   }
 
   const path = $derived(page.url.pathname);
-  const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  const isActive = (href: string) => (href === "/" || href === "/youtube" ? path === href : path.startsWith(href));
 
   const tree = $derived(buildTree(organizer.data, session.playlists));
   const pinned = $derived(new Set(organizer.data.pins));
@@ -144,8 +163,10 @@
     <span class="wordmark">carbon</span>
   </div>
 
+  <SourceSwitch {source} />
+
   <nav aria-label="Main">
-    {#each NAV as item (item.href)}
+    {#each NAV[source] as item (item.href)}
       <a href={item.href} class="nav-item" class:active={isActive(item.href)} aria-current={isActive(item.href) ? "page" : undefined}>
         <Icon name={item.icon} size={19} />
         {item.label}
@@ -153,8 +174,10 @@
     {/each}
   </nav>
 
+  {#if source === "youtube"}<YoutubeSidebar />{/if}
   <section
     class="playlists"
+    class:off={source === "youtube"}
     class:drop={dropTarget === ROOT}
     aria-label="Your playlists"
     ondragover={(e) => dragOver(e, null)}
@@ -285,6 +308,10 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
+  }
+
+  .playlists.off {
+    display: none;
   }
 
   .playlists.drop {
