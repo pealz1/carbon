@@ -26,9 +26,10 @@ describe("tonesFrom", () => {
     });
 
     it(`gives ${name} artwork a Play pill Ink reads on`, () => {
-      const { pill, wash } = tonesFrom(palette);
+      const { pill, wash, wash2 } = tonesFrom(palette);
       expect(contrast(INK, pill)).toBeGreaterThanOrEqual(7);
       expect(contrast(PAPER, wash)).toBeGreaterThanOrEqual(7);
+      expect(contrast(PAPER, wash2)).toBeGreaterThanOrEqual(7);
     });
   }
 

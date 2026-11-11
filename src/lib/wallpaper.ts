@@ -72,8 +72,9 @@ export function atLuminance(rgb: Rgb, target: number, minSaturation = MIN_SATURA
 export interface Tones {
   /** Four colour fields for the window's wallpaper (the chrome). */
   fields: Rgb[];
-  /** The radial wash behind a detail page's header. */
+  /** The radial wash behind a detail page's header, and a second colour that meets it. */
   wash: Rgb;
+  wash2: Rgb;
   /** The detail page's Play pill; Ink text sits on it. */
   pill: Rgb;
 }
@@ -85,6 +86,7 @@ export function tonesFrom(colors: Rgb[]): Tones {
   return {
     fields: FIELD_LUMINANCE.map((lum, i) => atLuminance(pick(i), lum)),
     wash: atLuminance(source[0], WASH_LUMINANCE, 0.5),
+    wash2: atLuminance(pick(1), WASH_LUMINANCE * 0.8, 0.5),
     pill: atLuminance(source[0], PILL_LUMINANCE, 0.5),
   };
 }
