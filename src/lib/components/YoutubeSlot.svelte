@@ -9,8 +9,11 @@
 <div class="slot" bind:this={el} aria-hidden="true"></div>
 
 <style>
+  /* YouTube requires embedded players to be at least 200 × 200 px. */
   .slot {
     width: 100%;
+    min-width: 200px;
+    min-height: 200px;
     aspect-ratio: 16 / 9;
     border-radius: var(--r-lg);
     background: rgb(0 0 0 / 0.5);
