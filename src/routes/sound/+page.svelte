@@ -33,11 +33,8 @@
   onMount(() => void Promise.all([sound.boot(), sound.loadDevices()]));
 </script>
 
-<header class="head">
-  <div>
-    <span class="eyebrow">Carbon engine</span>
-    <h1>Sound</h1>
-  </div>
+<header class="page-head">
+  <h1>Sound</h1>
   <p class="lede">Shapes local files played by Carbon's own engine. Spotify's audio is left as Spotify sends it.</p>
 </header>
 
@@ -45,7 +42,7 @@
 
 {#if s}
   <section class="eq plate" aria-label="Equalizer">
-    <div class="presets" role="radiogroup" aria-label="EQ preset">
+    <div class="presets segmented" role="radiogroup" aria-label="EQ preset">
       {#each sound.presets as p (p.id)}
         <button role="radio" aria-checked={s.preset === p.id} class:active={s.preset === p.id} onclick={() => sound.applyPreset(p.id)}>{p.name}</button>
       {/each}
@@ -156,20 +153,9 @@
 {/if}
 
 <style>
-  .head {
-    display: flex;
-    align-items: flex-end;
+  .page-head {
     justify-content: space-between;
-    flex-wrap: wrap;
     gap: var(--sp-4) var(--sp-6);
-    padding: var(--sp-6) var(--sp-2) var(--sp-5);
-  }
-
-  h1 {
-    margin-top: var(--sp-2);
-    font-size: var(--fs-hero);
-    font-weight: 750;
-    line-height: 1;
   }
 
   .lede {
@@ -193,36 +179,9 @@
     border-radius: var(--r-lg);
   }
 
-  .presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-1);
-  }
-
-  .presets button {
-    height: 32px;
+  .presets > button {
     padding: 0 var(--sp-3);
-    border-radius: var(--r-pill);
-    border: 1px solid var(--glass-edge);
-    color: var(--text-muted);
-    font-weight: 600;
     font-size: var(--fs-small);
-    transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
-  }
-
-  .presets button:hover {
-    color: var(--text);
-    background: var(--glass-hover);
-  }
-
-  .presets button:active {
-    transform: scale(0.96);
-  }
-
-  .presets button.active {
-    background: var(--text);
-    border-color: transparent;
-    color: var(--accent-ink);
   }
 
   .board {
@@ -279,7 +238,6 @@
     stroke-width: 2.5;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
-    filter: drop-shadow(0 0 8px var(--accent-glow));
   }
 
   .band {
@@ -331,7 +289,7 @@
     margin-left: -9px;
     border-radius: var(--r-pill);
     background: var(--text);
-    box-shadow: 0 0 0 4px var(--accent-glow), 0 4px 12px rgb(0 0 0 / 0.5);
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.6);
     transition: transform var(--dur-fast) var(--ease-spring);
   }
 
@@ -371,6 +329,7 @@
 
   h2 {
     font-size: var(--fs-section);
+    font-weight: 700;
   }
 
   .range {
@@ -399,18 +358,8 @@
     accent-color: var(--accent);
   }
 
-  select {
-    height: 38px;
-    padding: 0 var(--sp-3);
-    border-radius: var(--r-md);
-    border: 1px solid var(--glass-edge);
-    background: var(--glass-strong);
-    color: var(--text);
-    font: inherit;
-  }
-
   .experimental {
-    border-color: var(--warning);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--warning) 45%, transparent);
   }
 
   .flag {

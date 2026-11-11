@@ -84,7 +84,7 @@
   input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+    box-shadow: 0 0 0 1px var(--accent);
   }
 
   [aria-invalid="true"] {
@@ -100,28 +100,5 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--sp-2);
-  }
-
-  .pill {
-    height: 38px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    background: var(--glass-active);
-    border: 1px solid var(--glass-edge);
-    font-weight: 600;
-  }
-
-  .pill:hover:not(:disabled) {
-    background: var(--glass-edge-top);
-  }
-
-  .pill.accent {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: transparent;
-  }
-
-  .pill:disabled {
-    opacity: 0.5;
   }
 </style>

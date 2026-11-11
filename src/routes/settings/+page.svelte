@@ -27,12 +27,13 @@
   import { organizer } from "$lib/organizer.svelte";
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
+  import { playSound } from "$lib/sfx";
   import { updates } from "$lib/updates.svelte";
 
   const EFFECTS: { id: Effects; label: string; hint: string }[] = [
-    { id: "full", label: "Full", hint: "Liquid glass, motion, everything" },
-    { id: "balanced", label: "Balanced", hint: "Glass without the heavier effects" },
-    { id: "minimal", label: "Minimal", hint: "Flat and still, easiest on older PCs" },
+    { id: "full", label: "Full", hint: "Moving colour, film grain and glass" },
+    { id: "balanced", label: "Balanced", hint: "Still colour, grain and glass" },
+    { id: "minimal", label: "Minimal", hint: "Flat colour, no blur or motion; easiest on older PCs" },
   ];
 
   let info = $state<AppInfo | null>(null);
@@ -103,7 +104,7 @@
   }
 </script>
 
-<header class="head">
+<header class="page-head">
   <h1>Settings</h1>
   {#if notice || prefs.error}<p class="notice" role="status">{prefs.error ?? notice}</p>{/if}
 </header>
@@ -175,7 +176,7 @@
         {/each}
       </div>
       <label class="range">
-        <span class="eyebrow">Lyrics size · {Math.round(s.lyricsScale * 100)}%</span>
+        <span class="eyebrow">Lyrics size: {Math.round(s.lyricsScale * 100)}%</span>
         <input type="range" min="0.75" max="1.5" step="0.05" value={s.lyricsScale} onchange={(e) => prefs.update({ lyricsScale: Number(e.currentTarget.value) })} />
       </label>
       {#each FONT_ROLES as role (role.key)}
@@ -187,6 +188,28 @@
           onpick={(family) => prefs.update({ [role.key]: family } as Partial<Settings>)}
         />
       {/each}
+    </section>
+
+    <section class="panel plate">
+      <h2>Interface sounds</h2>
+      <Toggle
+        checked={s.uiSounds}
+        label="Play interface sounds"
+        description="Soft taps and chimes as you use Carbon. Always silent while Spotify is playing."
+        onchange={async (v) => (await prefs.update({ uiSounds: v })) && v && playSound("toggle-on")}
+      />
+      <label class="range" class:off={!s.uiSounds}>
+        <span class="eyebrow">Volume: {Math.round(s.uiSoundVolume * 100)}%</span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={s.uiSoundVolume}
+          disabled={!s.uiSounds}
+          onchange={async (e) => (await prefs.update({ uiSoundVolume: Number(e.currentTarget.value) })) && playSound("select")}
+        />
+      </label>
     </section>
 
     <section class="panel plate">
@@ -271,17 +294,8 @@
 {/if}
 
 <style>
-  .head {
-    display: flex;
+  .page-head {
     align-items: baseline;
-    gap: var(--sp-5);
-    padding: var(--sp-6) var(--sp-2) var(--sp-5);
-  }
-
-  h1 {
-    font-size: var(--fs-hero);
-    font-weight: 750;
-    line-height: 1;
   }
 
   .notice {
@@ -306,16 +320,18 @@
     flex-direction: column;
     gap: var(--sp-3);
     padding: var(--sp-5);
-    border-radius: var(--r-lg);
   }
 
   h2 {
+    margin-bottom: var(--sp-1);
     font-size: var(--fs-section);
+    font-weight: 700;
   }
 
   h3 {
-    margin-top: var(--sp-3);
-    font-size: 1rem;
+    margin-top: var(--sp-4);
+    font-size: var(--fs-lead);
+    font-weight: 700;
   }
 
   .muted,
@@ -350,7 +366,7 @@
   .name {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     font-weight: 700;
   }
 
@@ -361,85 +377,31 @@
     gap: var(--sp-2);
   }
 
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    align-self: flex-start;
-    height: 38px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    background: var(--glass-active);
-    border: 1px solid var(--glass-edge);
-    font-weight: 600;
-    transition: background var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
-  }
-
-  .pill:hover:not(:disabled) {
-    background: var(--glass-edge-top);
-  }
-
-  .pill:active:not(:disabled) {
-    transform: scale(0.97);
-  }
-
-  .pill:disabled {
-    opacity: 0.5;
-  }
-
-  .pill.accent {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: transparent;
-  }
-
-  .pill.danger:hover {
-    background: var(--danger);
-    color: var(--accent-ink);
-  }
-
-  .segmented {
-    display: flex;
-    gap: var(--sp-1);
-    padding: var(--sp-1);
-    border-radius: var(--r-pill);
-    background: var(--glass);
-    border: 1px solid var(--glass-edge);
-    align-self: flex-start;
-  }
-
-  .segmented button {
-    height: 32px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    color: var(--text-muted);
-    font-weight: 600;
-  }
-
-  .segmented button.active {
-    background: var(--text);
-    color: var(--accent-ink);
+  .eyebrow {
+    margin: var(--sp-2) 0 0;
   }
 
   .swatches {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--sp-2);
+    padding: 4px;
   }
 
   .swatch {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     border-radius: var(--r-pill);
     background: var(--swatch);
-    box-shadow: 0 0 0 2px transparent, 0 6px 16px -6px var(--swatch);
-    transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast);
-  }
-
-  .swatch:hover {
-    transform: scale(1.12);
+    transition:
+      transform var(--dur-med) var(--ease-spring),
+      box-shadow var(--dur-fast);
   }
 
   .swatch.active {
-    box-shadow: 0 0 0 2px var(--stage), 0 0 0 4px var(--swatch);
+    box-shadow:
+      0 0 0 2px var(--stage),
+      0 0 0 4px var(--swatch);
   }
 
   .range {
@@ -448,12 +410,12 @@
     gap: var(--sp-2);
   }
 
-  .range input {
-    accent-color: var(--accent);
+  .range.off {
+    opacity: 0.5;
   }
 
   .bar {
-    height: 6px;
+    height: 4px;
     border-radius: var(--r-pill);
     background: var(--glass-active);
     overflow: hidden;

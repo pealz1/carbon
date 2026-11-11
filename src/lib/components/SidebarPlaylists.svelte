@@ -78,7 +78,7 @@
 {#snippet playlistRow(playlist: PlaylistSummary, depth: number)}
   <a
     href="/playlist/{playlist.id}"
-    class="row"
+    class="row pressable"
     class:active={path === `/playlist/${playlist.id}`}
     style="--depth: {rail ? 0 : depth}"
     draggable="true"
@@ -160,7 +160,7 @@
   </div>
   {#if open}
     {#each carbonPlaylists.list as playlist (playlist.id)}
-      <a href="/carbon/{playlist.id}" class="row" class:active={path === `/carbon/${playlist.id}`} title={rail ? playlist.name : undefined}>
+      <a href="/carbon/{playlist.id}" class="row pressable" class:active={path === `/carbon/${playlist.id}`} title={rail ? playlist.name : undefined}>
         <span class="tile carbon"><Icon name="listAdd" size={13} /></span>
         <span class="name">{playlist.name}</span>
       </a>

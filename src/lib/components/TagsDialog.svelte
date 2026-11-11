@@ -148,7 +148,7 @@
   input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+    box-shadow: 0 0 0 1px var(--accent);
   }
 
   .error {
@@ -165,14 +165,5 @@
   .actions {
     display: flex;
     justify-content: flex-end;
-  }
-
-  .pill {
-    height: 38px;
-    padding: 0 var(--sp-5);
-    border-radius: var(--r-pill);
-    font-weight: 600;
-    background: var(--accent);
-    color: var(--accent-ink);
   }
 </style>

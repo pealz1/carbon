@@ -50,20 +50,31 @@
 </script>
 
 {#if album}
+  {@const a = album}
   <button class="back" onclick={() => nav({ album: null })}><Icon name="back" size={16} /> Local files</button>
-  <DetailHeader kind="Local album" title={album.name} image={album.image}>
-    {#snippet meta()}
-      <span class="strong">{album?.artist}</span>
-      {#if album?.year}· {album.year}{/if} · {album?.tracks.length} songs · {formatTotal(album?.tracks.reduce((s, t) => s + t.durationMs, 0) ?? 0)}
+  <DetailHeader
+    title={a.name}
+    image={a.image}
+    placeholder="album"
+    onplay={() => playAll(a.tracks)}
+    onshuffle={() => playAll(a.tracks, true)}
+    chips={[
+      { label: "Local album", icon: "folder" },
+      ...(a.year ? [{ label: String(a.year), icon: "calendar" as const }] : []),
+      { label: `${a.tracks.length} ${a.tracks.length === 1 ? "song" : "songs"}`, icon: "note" },
+      { label: formatTotal(a.tracks.reduce((s, t) => s + t.durationMs, 0)), icon: "clock" },
+    ]}
+  >
+    {#snippet byline()}
+      <button class="person" onclick={() => nav({ album: null, artist: a.artist })}><span class="avatar"><Icon name="artist" size={15} /></span>{a.artist}</button>
     {/snippet}
-    <button class="play" onclick={() => album && playAll(album.tracks)}><Icon name="play" size={20} /> Play</button>
-    <AddToCarbon tracks={album.tracks} label="Add to Carbon playlist" wide />
+    <AddToCarbon tracks={a.tracks} label="Add to Carbon playlist" wide />
   </DetailHeader>
   <TrackList tracks={album.tracks} numbered showArt={false} />
 {:else}
-  <header class="head">
+  <header class="page-head">
     <div class="title">
-      <span class="eyebrow">On this PC</span>
+      {#if artist}<button class="back" onclick={() => nav({ artist: null })}><Icon name="back" size={16} /> Local files</button>{/if}
       <h1>{artist ?? "Local files"}</h1>
       <p class="muted">
         {#if lib.scanning}
@@ -74,7 +85,7 @@
       </p>
     </div>
     <div class="actions">
-      <label class="search glass">
+      <label class="search">
         <Icon name="search" size={16} />
         <span class="sr-only">Search local files</span>
         <input type="search" placeholder="Search your files" value={query} oninput={(e) => nav({ q: e.currentTarget.value })} />
@@ -91,11 +102,11 @@
       <Icon name="folder" size={40} />
       <h2>Bring your own music</h2>
       <p class="muted">Add a folder of MP3, FLAC, AAC/ALAC, Ogg Vorbis or WAV files. Carbon plays them with its own engine, EQ and gapless playback.</p>
-      <button class="play" onclick={lib.addFolder}><Icon name="plus" size={18} /> Add a folder</button>
+      <button class="pill accent" onclick={lib.addFolder}><Icon name="plus" size={16} /> Add a folder</button>
     </section>
   {:else}
     <div class="bar">
-      <div class="tabs" role="tablist" aria-label="Local files sections">
+      <div class="segmented" role="tablist" aria-label="Local files sections">
         {#each TABS as t (t.id)}
           <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => nav({ tab: t.id, artist: null })}>{t.label}</button>
         {/each}
@@ -117,7 +128,7 @@
             {#if a.image}
               <img src={a.image} alt="" width="200" height="200" loading="lazy" decoding="async" />
             {:else}
-              <span class="blank"><Icon name="lyrics" size={28} /></span>
+              <span class="blank"><Icon name="note" size={28} /></span>
             {/if}
             <span class="name">{a.name}</span>
             <span class="sub">{a.artist}{a.year ? ` · ${a.year}` : ""}</span>
@@ -130,7 +141,7 @@
         {#each artists as a (a.name)}
           <li>
             <button onclick={() => nav({ artist: a.name })}>
-              {#if a.image}<img src={a.image} alt="" width="48" height="48" loading="lazy" />{:else}<span class="blank round"></span>{/if}
+              {#if a.image}<img src={a.image} alt="" width="48" height="48" loading="lazy" />{:else}<span class="blank round"><Icon name="artist" size={20} /></span>{/if}
               <span class="name">{a.name}</span>
               <span class="sub">{a.songs} {a.songs === 1 ? "song" : "songs"}</span>
             </button>
@@ -144,7 +155,7 @@
     {/if}
 
     <section class="folders">
-      <h2 class="eyebrow">Folders</h2>
+      <h2>Folders</h2>
       {#each lib.folders as folder (folder)}
         <div class="folder">
           <Icon name="folder" size={16} />
@@ -157,24 +168,19 @@
 {/if}
 
 <style>
-  .head {
-    display: flex;
-    align-items: flex-end;
+  .page-head {
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: var(--sp-4);
-    padding: var(--sp-6) var(--sp-2) var(--sp-4);
   }
 
-  h1 {
-    font-size: var(--fs-hero);
-    font-weight: 750;
-    line-height: 1;
-    margin-top: var(--sp-2);
+  .title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
   }
 
   .muted {
-    margin: var(--sp-2) 0 0;
+    margin: 0;
     color: var(--text-muted);
     font-size: var(--fs-small);
   }
@@ -184,14 +190,10 @@
     font-size: var(--fs-small);
   }
 
-  .strong {
-    color: var(--text);
-    font-weight: 650;
-  }
-
   .actions,
   .row-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--sp-2);
   }
@@ -200,76 +202,59 @@
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    height: 38px;
-    padding: 0 var(--sp-3);
+    height: 36px;
+    width: 240px;
+    padding: 0 var(--sp-4);
     border-radius: var(--r-pill);
+    background: rgb(255 255 255 / 0.06);
+    box-shadow: inset 0 0 0 1px var(--glass-edge);
     color: var(--text-muted);
   }
 
   .search:focus-within {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 
   .search input {
-    width: 200px;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
     border: 0;
+    outline: none;
     background: none;
     color: var(--text);
     font: inherit;
-    outline: none;
+    user-select: text;
   }
 
-  .pill,
+  .search input::placeholder {
+    color: var(--text-faint);
+  }
+
   .back {
-    height: 38px;
     display: inline-flex;
     align-items: center;
-    gap: var(--sp-2);
-    padding: 0 var(--sp-4);
+    gap: var(--sp-1);
+    height: 28px;
+    margin-left: calc(var(--sp-2) * -1);
+    padding: 0 var(--sp-3) 0 var(--sp-1);
     border-radius: var(--r-pill);
-    background: var(--glass-active);
-    border: 1px solid var(--glass-edge);
-    font-weight: 600;
-    transition: background var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
-  }
-
-  .pill:hover:not(:disabled),
-  .back:hover {
-    background: var(--glass-edge-top);
-  }
-
-  .pill:active:not(:disabled) {
-    transform: scale(0.97);
-  }
-
-  .pill:disabled {
-    opacity: 0.5;
-  }
-
-  .back {
-    margin-top: var(--sp-5);
-    background: none;
-    border-color: transparent;
     color: var(--text-muted);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    transition:
+      background var(--dur-fast),
+      color var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
   }
 
-  .play {
-    height: 44px;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    padding: 0 var(--sp-5);
-    border-radius: var(--r-pill);
-    background: var(--accent);
-    color: var(--accent-ink);
-    font-weight: 700;
-    box-shadow: 0 12px 28px -10px var(--accent-glow);
-    transition: transform var(--dur-fast) var(--ease-spring);
+  .back:hover {
+    background: var(--glass-hover);
+    color: var(--text);
   }
 
-  .play:hover {
-    transform: scale(1.04);
+  :global(main) > .back {
+    margin-top: var(--sp-4);
   }
 
   .empty {
@@ -277,16 +262,15 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--sp-3);
-    max-width: 560px;
-    margin-top: var(--sp-4);
-    padding: var(--sp-6) var(--sp-5);
-    border-radius: var(--r-lg);
-    color: var(--accent);
+    max-width: 620px;
+    padding: var(--sp-5);
+    color: var(--text-muted);
   }
 
   .empty h2 {
     color: var(--text);
-    font-size: var(--fs-title);
+    font-size: var(--fs-section);
+    font-weight: 700;
   }
 
   .bar {
@@ -297,42 +281,24 @@
     margin-bottom: var(--sp-4);
   }
 
-  .tabs {
-    display: flex;
-    gap: var(--sp-1);
-    padding: var(--sp-1);
-    border-radius: var(--r-pill);
-    background: var(--glass);
-    border: 1px solid var(--glass-edge);
-  }
-
-  .tabs button {
-    height: 34px;
-    padding: 0 var(--sp-4);
-    border-radius: var(--r-pill);
-    color: var(--text-muted);
-    font-weight: 600;
-  }
-
-  .tabs button.active {
-    background: var(--text);
-    color: var(--accent-ink);
-  }
-
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(clamp(160px, 14cqw, 232px), 1fr));
     gap: var(--sp-2);
+    margin: 0 calc(var(--sp-2) * -1);
   }
 
   .album {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
-    padding: var(--sp-2);
-    border-radius: var(--r-md);
+    gap: 2px;
+    padding: var(--sp-2) var(--sp-2) var(--sp-3);
+    border-radius: var(--r-lg);
     text-align: left;
-    transition: background var(--dur-med);
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
+    --press: var(--press-wide);
   }
 
   .album:hover {
@@ -342,28 +308,23 @@
   .album img,
   .album .blank {
     width: 100%;
-    aspect-ratio: 1;
     height: auto;
+    aspect-ratio: 1;
     margin-bottom: var(--sp-2);
-    border-radius: var(--r-md);
+    border-radius: var(--r-art);
     object-fit: cover;
-    box-shadow: 0 14px 34px -14px rgb(0 0 0 / 0.75);
-    transition: transform var(--dur-med) var(--ease-out);
-  }
-
-  .album:hover img {
-    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 30px -16px rgb(0 0 0 / 0.9);
   }
 
   .blank {
     display: grid;
     place-items: center;
-    background: var(--glass-active);
+    background: var(--graphite-800);
     color: var(--text-faint);
   }
 
   .name {
-    font-weight: 650;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -375,12 +336,12 @@
   }
 
   .artists {
-    list-style: none;
-    margin: 0;
-    padding: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: var(--sp-1);
+    margin: 0 calc(var(--sp-2) * -1);
+    padding: 0;
+    list-style: none;
   }
 
   .artists button {
@@ -393,6 +354,10 @@
     padding: var(--sp-2);
     border-radius: var(--r-md);
     text-align: left;
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
+    --press: var(--press-wide);
   }
 
   .artists button:hover {
@@ -409,20 +374,29 @@
   }
 
   .folders {
-    margin-top: var(--sp-6);
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
+    gap: 2px;
+    margin-top: var(--sp-6);
+  }
+
+  .folders h2 {
+    margin-bottom: var(--sp-2);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0;
   }
 
   .folder {
     display: flex;
     align-items: center;
-    gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-3);
+    gap: var(--sp-3);
+    height: 40px;
+    padding: 0 var(--sp-2) 0 var(--sp-3);
     border-radius: var(--r-md);
     color: var(--text-muted);
-    font-size: var(--fs-small);
+    transition: background var(--dur-fast);
   }
 
   .folder:hover {
@@ -432,19 +406,29 @@
   .path {
     flex: 1;
     min-width: 0;
+    color: var(--text);
+    font-size: var(--fs-small);
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
     user-select: text;
   }
 
   .folder button {
-    padding: var(--sp-1);
-    border-radius: var(--r-sm);
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-pill);
+    color: var(--text-muted);
+    transition:
+      background var(--dur-fast),
+      color var(--dur-fast),
+      transform var(--dur-med) var(--ease-spring);
   }
 
   .folder button:hover {
-    color: var(--text);
     background: var(--glass-active);
+    color: var(--text);
   }
 </style>

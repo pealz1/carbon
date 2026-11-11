@@ -29,7 +29,7 @@
           <nav aria-label={section.label}>
             {#each section.items as item (item.href)}
               {@const active = isActive(item.href, path)}
-              <a href={item.href} class="row nav" class:active aria-current={active ? "page" : undefined} title={view.rail ? item.label : undefined}>
+              <a href={item.href} class="row nav pressable" class:active aria-current={active ? "page" : undefined} title={view.rail ? item.label : undefined}>
                 <span class="icon"><Icon name={item.icon} size={18} filled={item.icon === "heart" && active} /></span>
                 <span class="name">{item.label}</span>
               </a>
@@ -42,7 +42,7 @@
   </div>
 
   {#if session.profile}
-    <a href="/settings" class="profile" class:active={path === "/settings"} aria-label="Settings for {session.profile.name}" title={view.rail ? "Settings" : undefined}>
+    <a href="/settings" class="profile pressable" class:active={path === "/settings"} aria-label="Settings for {session.profile.name}" title={view.rail ? "Settings" : undefined}>
       {#if session.profile.image}
         <img src={session.profile.image} alt="" width="26" height="26" class="avatar" />
       {:else}
