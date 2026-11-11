@@ -76,7 +76,7 @@ fn qr_svg(text: &str) -> Option<String> {
     let image = code
         .render::<svg::Color>()
         .min_dimensions(QR_SIZE, QR_SIZE)
-        .dark_color(svg::Color("#0d0b1a"))
+        .dark_color(svg::Color("#10100d"))
         .light_color(svg::Color("#f1f1f4"))
         .build();
     Some(image)

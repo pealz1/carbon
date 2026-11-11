@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 const FILE: &str = "settings.json";
-pub const ACCENTS: [&str; 6] = ["periwinkle", "ember", "mint", "rose", "gold", "ice"];
+pub const ACCENTS: [&str; 7] = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"];
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "lowercase")]
@@ -182,6 +182,13 @@ mod tests {
     }
 
     #[test]
+    fn keeps_accents_saved_before_the_yellow_default() {
+        let saved: Settings = serde_json::from_str(r#"{"accent":"periwinkle"}"#).unwrap();
+        assert_eq!(saved.accent, "periwinkle");
+        assert!(saved.validate().is_ok());
+    }
+
+    #[test]
     fn rejects_bad_values() {
         let bad_accent = Settings { accent: "neon".into(), ..Settings::default() };
         assert!(bad_accent.validate().is_err());
@@ -230,7 +237,7 @@ mod tests {
         let parsed: Settings = serde_json::from_str(r#"{"closeToTray":false,"effects":"minimal"}"#).unwrap();
         assert!(!parsed.close_to_tray);
         assert_eq!(parsed.effects, Effects::Minimal);
-        assert_eq!(parsed.accent, "periwinkle");
+        assert_eq!(parsed.accent, "yellow");
         assert!(!parsed.remote_enabled);
         assert_eq!(parsed.remote_port, 10767);
         assert_eq!(parsed.font_text, "");

@@ -6,34 +6,34 @@
   <title>Carbon: a free, open-source Spotify client for Windows</title>
   <meta name="description" content="Carbon is a free, open-source Spotify client for Windows 10 and 11, built in Rust. A liquid-glass interface, word-synced lyrics, media keys, Discord and Last.fm, and signed updates.">
   <link rel="canonical" href="https://getcarbon.cc/">
-  <meta name="theme-color" content="#08090c">
+  <meta name="theme-color" content="#090907">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
-  <link rel="stylesheet" href="/assets/base.css?v=2">
-  <link rel="stylesheet" href="/assets/devices.css?v=2">
-  <link rel="stylesheet" href="/assets/home.css?v=3">
+  <link rel="stylesheet" href="/assets/base.css?v=3">
+  <link rel="stylesheet" href="/assets/devices.css?v=3">
+  <link rel="stylesheet" href="/assets/home.css?v=4">
   <script src="/assets/nav-auth.js?v=2" defer></script>
   <script src="/assets/tilt.js?v=2" defer></script>
   <script src="/assets/home.js?v=2" defer></script>
   <script src="/assets/support.js?v=1" defer></script>
-  <script src="/assets/hex.js?v=2" defer></script>
+  <script src="/assets/hex.js?v=3" defer></script>
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Carbon">
   <meta property="og:title" content="Carbon: your music, in liquid glass">
   <meta property="og:description" content="A free, open-source Spotify client for Windows 10 and 11. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
   <meta property="og:url" content="https://getcarbon.cc/">
-  <meta property="og:image" content="https://getcarbon.cc/assets/og.png?v=2">
+  <meta property="og:image" content="https://getcarbon.cc/assets/og.png?v=3">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="The Carbon logo beside the Carbon app window on a laptop screen.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Carbon: your music, in liquid glass">
   <meta name="twitter:description" content="A free, open-source Spotify client for Windows 10 and 11. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
-  <meta name="twitter:image" content="https://getcarbon.cc/assets/og.png?v=2">
+  <meta name="twitter:image" content="https://getcarbon.cc/assets/og.png?v=3">
   <meta name="twitter:image:alt" content="The Carbon logo beside the Carbon app window on a laptop screen.">
 </head>
 <body class="home">
@@ -41,7 +41,7 @@
 
   <header class="site-header">
     <div class="wrap bar">
-      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt=""><span class="brand__word">carbon</span></a>
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg?v=3" width="30" height="30" alt=""><img class="brand__word" src="/assets/carbon-wordmark.svg?v=3" width="119" height="27" alt=""></a>
       <nav class="nav" aria-label="Primary">
         <a class="nav__link" href="#features"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg><span class="nav__label">Features</span></a>
         <a class="nav__link" href="#download"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg><span class="nav__label">Download</span></a>
@@ -204,7 +204,7 @@
           <article class="tile tile--private" data-tilt="7" data-hold-root>
             <div class="tile__glass" aria-hidden="true"><span class="tile__spec"></span></div>
             <div class="tile__art art-private" aria-hidden="true">
-              <svg viewBox="0 0 100 100"><path class="art-private__hex" d="M83 31 50 12 17 31v38l33 19 33-19"/><rect x="38" y="46" width="24" height="19" rx="4"/><path d="M43 46v-5a7 7 0 0 1 14 0v5"/></svg>
+              <svg viewBox="0 0 100 100"><path class="art-private__hex" d="M50 12 83 31v38L50 88 17 69V31Z"/><rect x="38" y="46" width="24" height="19" rx="4"/><path d="M43 46v-5a7 7 0 0 1 14 0v5"/></svg>
             </div>
             <div class="tile__body">
               <h3>Private by design</h3>
@@ -229,7 +229,7 @@
                 <kbd><svg viewBox="0 0 24 24"><path d="M6 6v12l9-6zM16 6h2v12h-2z"/></svg></kbd>
               </span>
               <span class="art-native__tray">
-                <span class="art-native__row"><img src="/assets/carbon-mark.svg" width="18" height="18" alt="">Carbon</span>
+                <span class="art-native__row"><img src="/assets/carbon-mark.svg?v=3" width="18" height="18" alt="">Carbon</span>
                 <span class="art-native__row">Launch at startup<i class="switch is-on"></i></span>
                 <span class="art-native__row">Keep playing when closed<i class="switch is-on"></i></span>
               </span>
@@ -288,7 +288,7 @@
 
     <section class="get" id="download" aria-labelledby="get-title">
       <div class="get__stage" data-hex-stage>
-        <img class="get__still" src="/assets/hex-still.webp?v=2" width="720" height="720" alt="" loading="lazy" decoding="async">
+        <img class="get__still" src="/assets/hex-still.webp?v=3" width="720" height="720" alt="" loading="lazy" decoding="async">
         <canvas class="get__canvas" data-hex aria-hidden="true"></canvas>
       </div>
       <div class="wrap get__body">
@@ -381,7 +381,7 @@
     <div class="wrap">
       <div class="foot">
         <div class="foot__brand">
-          <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg" width="30" height="30" alt="" loading="lazy"><span class="brand__word">carbon</span></a>
+          <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg?v=3" width="30" height="30" alt="" loading="lazy"><img class="brand__word" src="/assets/carbon-wordmark.svg?v=3" width="119" height="27" alt="" loading="lazy"></a>
           <p>A free, open-source Spotify client for Windows.</p>
         </div>
         <nav aria-labelledby="f-product">

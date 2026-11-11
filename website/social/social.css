@@ -1,17 +1,14 @@
 /* Styles for the social/icon render templates only (not deployed). */
 :root {
-  --c-base: #08090c;
-  --c-ink: #eef0f4;
-  --c-ink-2: #b2b8c4;
-  --c-ink-3: #8a91a0;
+  --c-base: #090907;
+  --c-ink: #efefe6;
+  --c-ink-2: #bfbeb6;
+  --c-ink-3: #9f9f96;
   --c-white: #fff;
   --c-black: #000;
-  --c-cyan: #7fe7ff;
-  --c-violet: #a99cff;
-  --c-pink: #ff8ad4;
-  --c-icon-top: #23242e;
-  --c-icon-bottom: #08090c;
-  --c-aura: #6e5bff;
+  --c-yellow: #fae91d;
+  --c-icon-top: #2a2a25;
+  --c-icon-bottom: #0b0b09;
   --c-line: color-mix(in srgb, var(--c-white) 14%, transparent);
   --font: "Archivo", sans-serif;
   --mono: "IBM Plex Mono", monospace;
@@ -25,12 +22,15 @@ body::after { content: ""; position: absolute; inset: 0; background: url("../pub
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--c-cyan) 30%, var(--c-violet) 60%, var(--c-pink) 85%, transparent);
+  background: linear-gradient(90deg, transparent, var(--c-yellow) 50%, transparent);
   opacity: 0.6;
 }
 
 .copy { position: absolute; z-index: 2; }
-.brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-stretch: 125%; letter-spacing: -0.045em; }
+/* Lockup: mark 1.12x the wordmark ascender, gap half the mark width (brand/BRAND.md). */
+.brand { display: flex; align-items: center; }
+.brand img { width: auto; }
+h1 em { font-style: normal; color: var(--c-yellow); }
 h1 { font-weight: 750; font-stretch: 125%; line-height: 0.95; letter-spacing: -0.045em; }
 .sub { color: var(--c-ink-2); font-weight: 450; line-height: 1.4; }
 .url { font-family: var(--mono); color: var(--c-ink-3); }
@@ -52,16 +52,17 @@ h1 { font-weight: 750; font-stretch: 125%; line-height: 0.95; letter-spacing: -0
   border-radius: 6px;
   overflow: hidden;
   background:
-    radial-gradient(70% 80% at 78% 8%, color-mix(in srgb, var(--c-violet) 34%, transparent), transparent 60%),
-    linear-gradient(160deg, #161926, #07080b);
+    radial-gradient(70% 80% at 78% 8%, color-mix(in srgb, var(--c-yellow) 12%, transparent), transparent 60%),
+    linear-gradient(160deg, #1b1a16, #080807);
 }
 .laptop img { width: 94%; height: auto; display: block; }
 
 /* 1200 x 630 Open Graph */
 .og { width: 1200px; height: 630px; }
 .og .copy { left: 72px; top: 76px; width: 640px; }
-.og .brand { font-size: 40px; }
-.og .brand img { width: 52px; height: 52px; }
+.og .brand { gap: 20px; }
+.og .brand .mark { height: 46px; width: 46px; }
+.og .brand .word { height: 41px; }
 .og h1 { margin-top: 60px; font-size: 68px; }
 .og .sub { margin-top: 30px; font-size: 26px; max-width: 26ch; }
 .og .url { margin-top: 22px; font-size: 20px; }
@@ -71,8 +72,9 @@ h1 { font-weight: 750; font-stretch: 125%; line-height: 0.95; letter-spacing: -0
 /* 1280 x 640 GitHub social preview: text inside the central safe area */
 .gh { width: 1280px; height: 640px; }
 .gh .copy { left: 140px; top: 96px; width: 560px; }
-.gh .brand { font-size: 38px; }
-.gh .brand img { width: 50px; height: 50px; }
+.gh .brand { gap: 19px; }
+.gh .brand .mark { height: 44px; width: 44px; }
+.gh .brand .word { height: 39px; }
 .gh h1 { margin-top: 52px; font-size: 62px; }
 .gh .sub { margin-top: 28px; font-size: 24px; max-width: 30ch; }
 .gh .url { margin-top: 20px; font-size: 19px; }
@@ -85,9 +87,7 @@ h1 { font-weight: 750; font-stretch: 125%; line-height: 0.95; letter-spacing: -0
   height: 180px;
   display: grid;
   place-items: center;
-  background:
-    radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--c-aura) 45%, transparent), transparent 70%),
-    linear-gradient(135deg, var(--c-icon-top), var(--c-icon-bottom));
+  background: linear-gradient(180deg, var(--c-icon-top), var(--c-icon-bottom));
 }
 .icon::after { display: none; }
-.icon img { width: 136px; height: 136px; }
+.icon img { width: 104px; height: 104px; }

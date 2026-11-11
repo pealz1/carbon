@@ -13,6 +13,7 @@
   import type { PlaylistSummary } from "$lib/spotify/types";
   import Icon, { type IconName } from "./Icon.svelte";
   import Logo from "./Logo.svelte";
+  import Wordmark from "./Wordmark.svelte";
   import { specular } from "$lib/liquid";
 
   const NAV: { href: string; label: string; icon: IconName }[] = [
@@ -140,8 +141,8 @@
 
 <aside class="sidebar liquid" use:specular>
   <div class="brand" data-tauri-drag-region>
-    <Logo size={26} />
-    <span class="wordmark">carbon</span>
+    <Logo size={24} />
+    <span class="wordmark"><Wordmark height={20} /><span class="sr-only">carbon</span></span>
   </div>
 
   <nav aria-label="Main">
@@ -225,15 +226,13 @@
     height: var(--titlebar-h);
     display: flex;
     align-items: center;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
     padding: var(--sp-2) var(--sp-3) 0;
   }
 
   .wordmark {
-    font-family: var(--font-display);
-    font-weight: 650;
-    font-size: 1.2rem;
-    letter-spacing: -0.04em;
+    display: flex;
+    color: var(--text);
     pointer-events: none;
   }
 

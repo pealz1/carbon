@@ -17,7 +17,7 @@
   right: 4%;
   top: 92%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--c-cyan) 22%, var(--c-violet) 50%, var(--c-pink) 78%, transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c-yellow) 70%, transparent) 50%, transparent);
   opacity: .55;
 }
 
@@ -71,9 +71,8 @@
   aspect-ratio: 16 / 10;
   border-radius: .45cqw;
   background:
-    radial-gradient(70% 80% at 78% 8%, color-mix(in srgb, var(--c-violet) 34%, transparent), transparent 60%),
-    radial-gradient(60% 70% at 8% 100%, color-mix(in srgb, var(--c-cyan) 16%, transparent), transparent 60%),
-    linear-gradient(160deg, #161926, #07080b);
+    radial-gradient(70% 80% at 78% 8%, color-mix(in srgb, var(--c-yellow) 12%, transparent), transparent 60%),
+    linear-gradient(160deg, #1b1a16, #080807);
 }
 
 .laptop__shot {
@@ -199,7 +198,7 @@
   text-align: center;
 }
 
-.phones__label span { color: var(--c-violet); }
+.phones__label span { color: var(--c-yellow); }
 
 /* Mock screen pieces (sized in em from the phone width) */
 
@@ -224,16 +223,16 @@
   border-radius: .4em;
 }
 
-.m-cover--a { background: conic-gradient(from 210deg at 32% 68%, var(--c-pink), var(--c-violet), #2b1f5c, var(--c-pink)); }
-.m-cover--b { background: radial-gradient(circle at 70% 30%, var(--c-cyan), #1f6f8b 45%, #0b1e2c); }
-.m-cover--c { background: linear-gradient(135deg, var(--c-violet), #4a3bc4); }
+.m-cover--a { background: var(--art-sunset); }
+.m-cover--b { background: radial-gradient(circle at 70% 30%, #b9d36a, #4d6b2c 45%, #10180b); }
+.m-cover--c { background: linear-gradient(135deg, #5d7fd6, #1d2b5e); }
 .m-cover--d { background: radial-gradient(circle, #1a1b20 0 30%, var(--c-paper) 31% 60%, #1a1b20 61%); }
 .m-cover--e { background: radial-gradient(circle at 30% 30%, var(--c-warn), #d2563c 50%, #2a0f12); }
 .m-cover--f { background: linear-gradient(160deg, var(--c-ok), #1e5a54 60%, #0b1614); }
 
 .m-home {
   padding-inline: 1.15em;
-  background: linear-gradient(180deg, #1d1a30, #0d0e13 42%);
+  background: linear-gradient(180deg, #1d1c17, #0d0d0b 42%);
 }
 
 .m-home .m-status { margin-inline: -1.15em; }
@@ -256,16 +255,17 @@
 .m-card {
   display: flex;
   align-items: center;
-  gap: .5em;
+  gap: .6em;
   overflow: hidden;
-  border-radius: .45em;
+  padding: .35em .8em .35em .35em;
+  border-radius: .6em;
   background: color-mix(in srgb, var(--c-white) 7%, transparent);
   font-size: .82em;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.m-card .m-cover { width: 3.1em; border-radius: 0; }
+.m-card .m-cover { width: 2.6em; border-radius: .3em; }
 
 .m-h { margin: 1.2em 0 .6em; font-size: 1.1em; font-weight: 700; }
 
@@ -289,7 +289,7 @@
   padding: .45em;
   border: 1px solid color-mix(in srgb, var(--c-white) 13%, transparent);
   border-radius: .8em;
-  background: color-mix(in srgb, #2a2a3a 88%, transparent);
+  background: color-mix(in srgb, #2a2a25 88%, transparent);
   font-size: .9em;
 }
 
@@ -315,7 +315,7 @@
 
 .m-now {
   padding-inline: 1.35em;
-  background: radial-gradient(130% 60% at 50% 18%, #5b3f92, #22183b 48%, #0c0b12 82%);
+  background: radial-gradient(130% 60% at 50% 18%, #7a3424, #2a1410 48%, #0c0a09 82%);
 }
 
 .m-now .m-status { margin-inline: -1.35em; }
@@ -334,13 +334,13 @@
   border-radius: .8em;
   background:
     radial-gradient(40% 40% at 64% 38%, color-mix(in srgb, var(--c-white) 90%, transparent), transparent 70%),
-    conic-gradient(from 200deg at 40% 62%, var(--c-pink), var(--c-violet), #241b52, var(--c-cyan), var(--c-pink));
+    var(--art-sunset);
   box-shadow: 0 1.4em 2.4em -1em var(--c-black);
 }
 
 .m-meta { display: flex; justify-content: space-between; align-items: center; margin: 1.2em 0 .8em; }
 .m-meta b { font-size: 1.35em; letter-spacing: -.01em; }
-.m-meta svg { width: 1.5em; height: 1.5em; fill: var(--c-pink); }
+.m-meta svg { width: 1.5em; height: 1.5em; fill: var(--c-yellow); }
 
 .m-bar { height: .28em; border-radius: 1em; background: color-mix(in srgb, var(--c-white) 20%, transparent); }
 .m-bar span { display: block; width: 32%; height: 100%; border-radius: inherit; background: var(--c-text); }
