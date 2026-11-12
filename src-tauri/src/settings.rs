@@ -50,6 +50,10 @@ pub struct Settings {
     /// Brand updates already applied to this file (see `migrate`). Missing in older files, so 0.
     #[serde(default)]
     pub brand_version: u8,
+    /// A Windows notification when the song changes while Carbon isn't focused.
+    pub track_notifications: bool,
+    /// Shortcuts that work from any app (Settings → Global shortcuts).
+    pub hotkeys: crate::hotkeys::Hotkeys,
 }
 
 /// 1: the yellow rebrand.
@@ -74,6 +78,8 @@ impl Default for Settings {
             ui_sounds: true,
             ui_sound_volume: 0.5,
             brand_version: BRAND_VERSION,
+            track_notifications: false,
+            hotkeys: crate::hotkeys::Hotkeys::default(),
         }
     }
 }
@@ -108,7 +114,7 @@ impl Settings {
         if let Some(bad) = self.fonts().into_iter().find(|f| !f.is_empty() && !crate::fonts::is_safe_name(f)) {
             return Err(format!("\u{201c}{bad}\u{201d} isn't a font name Carbon can use"));
         }
-        Ok(())
+        self.hotkeys.validate()
     }
 
     /// Periwinkle was everyone's saved default before the yellow rebrand, so it moves to yellow once.
@@ -156,6 +162,7 @@ pub fn load(app: &AppHandle) -> Settings {
     match fs::read_to_string(&file) {
         Ok(text) => serde_json::from_str::<Settings>(&text)
             .ok()
+            .map(|s| Settings { hotkeys: s.hotkeys.clone().sanitized(), ..s })
             .filter(|s| s.validate().is_ok())
             .map(Settings::migrate)
             .unwrap_or_else(|| {
@@ -195,6 +202,10 @@ pub fn settings_set(app: AppHandle, state: State<SettingsState>, settings: Setti
     }
     save(&app, &settings)?;
     *state.0.lock().map_err(|e| e.to_string())? = settings.clone();
+    // After saving: a shortcut another app holds is reported per binding, not as a failed save.
+    if settings.hotkeys != before.hotkeys {
+        crate::hotkeys::apply(&app, &settings.hotkeys);
+    }
     if let Some(discord) = app.try_state::<crate::discord::Discord>() {
         discord.send(crate::discord::Msg::Enabled(settings.discord_presence));
     }
@@ -279,6 +290,18 @@ mod tests {
         assert!(picked.check_new_fonts(&before, installed).is_ok());
         let missing = Settings { font_display: "Comic Neue".into(), ..before.clone() };
         assert!(missing.check_new_fonts(&before, installed).unwrap_err().contains("Comic Neue"));
+    }
+
+    #[test]
+    fn keeps_other_settings_when_a_saved_shortcut_is_unusable() {
+        let parsed: Settings = serde_json::from_str(r#"{"accent":"mint","hotkeys":{"enabled":true,"next":"Q"}}"#).unwrap();
+        assert!(parsed.validate().is_err());
+        let clean = Settings { hotkeys: parsed.hotkeys.clone().sanitized(), ..parsed };
+        assert!(clean.validate().is_ok());
+        assert_eq!(clean.accent, "mint");
+        assert!(clean.hotkeys.enabled);
+        assert_eq!(clean.hotkeys.next, "");
+        assert!(!Settings::default().track_notifications);
     }
 
     #[test]

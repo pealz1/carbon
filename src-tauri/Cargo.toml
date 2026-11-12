@@ -52,6 +52,7 @@ ebur128 = "0.1"
 lofty = "0.25"
 rtrb = "0.4"
 tauri-plugin-window-state = "2"
+tauri-plugin-global-shortcut = "2"
 
 [target.'cfg(windows)'.dependencies]
 # Installed font families via DirectWrite. Already in the tree (tauri, wry, cpal use 0.62); this only enables the module.

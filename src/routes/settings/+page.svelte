@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import { account } from "$lib/account.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
+  import DesktopPanel from "$lib/components/DesktopPanel.svelte";
   import FontPicker from "$lib/components/FontPicker.svelte";
   import RemotePanel from "$lib/components/RemotePanel.svelte";
   import ServicesPanel from "$lib/components/ServicesPanel.svelte";
@@ -245,6 +246,8 @@
         <p class="muted">Last.fm isn't set up in this build.</p>
       {/if}
     </section>
+
+    <DesktopPanel />
 
     <RemotePanel />
 

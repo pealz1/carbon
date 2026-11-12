@@ -2,6 +2,7 @@ mod carbon_playlists;
 mod discord;
 mod engine;
 mod fonts;
+mod hotkeys;
 mod lastfm;
 mod library;
 mod local_library;
@@ -63,6 +64,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("[remote] {e}");
     }
     app.manage(remote);
+    app.manage(hotkeys::HotkeyState::default());
+    hotkeys::apply(&handle, &prefs.hotkeys);
     app.manage(SettingsState(Mutex::new(prefs)));
     app.manage(LibraryState(Mutex::new(library::load(&handle))));
     app.manage(tray::build(&handle)?);
@@ -98,6 +101,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(hotkeys::handle).build())
         // Pop-outs come back where they were left; the main window keeps opening centred.
         .plugin(
             tauri_plugin_window_state::Builder::default()
@@ -181,6 +185,8 @@ pub fn run() {
             popouts::popout_close,
             popouts::popouts_open,
             popouts::popout_command,
+            hotkeys::hotkeys_status,
+            hotkeys::hotkeys_suspend,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Carbon");
