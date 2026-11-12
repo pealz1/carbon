@@ -5,6 +5,7 @@
   import { account } from "$lib/account.svelte";
   import CinemaSettings from "$lib/components/CinemaSettings.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
+  import DesktopPanel from "$lib/components/DesktopPanel.svelte";
   import FontPicker from "$lib/components/FontPicker.svelte";
   import ListenbrainzPanel from "$lib/components/ListenbrainzPanel.svelte";
   import LyricsSettings from "$lib/components/LyricsSettings.svelte";
@@ -103,6 +104,11 @@
     await youtube.signOut();
     try {
       await removeSavedData();
+      try {
+        localStorage.clear(); // per-song lyric choices, compact-player size and other interface memory
+      } catch (e) {
+        console.warn("[settings] couldn't clear local storage", e);
+      }
       notice = "Signed out and removed everything Carbon saved on this PC.";
     } catch (e) {
       notice = `Couldn't remove everything: ${describeError(e)}`;
@@ -254,6 +260,8 @@
     </section>
 
     <ListenbrainzPanel />
+
+    <DesktopPanel />
 
     <RemotePanel />
 

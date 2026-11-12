@@ -3,17 +3,21 @@ mod carbon_playlists;
 mod discord;
 mod engine;
 mod fonts;
+mod hotkeys;
 mod lastfm;
 mod library;
 mod listenbrainz;
 mod library_tools;
 mod local_library;
 mod media_controls;
+mod notifications;
 mod oauth;
 mod playback;
+mod popouts;
 mod remote;
 mod settings;
 mod system;
+mod taskbar;
 mod token_store;
 mod tray;
 mod youtube;
@@ -28,6 +32,7 @@ use playback::PlaybackInfo;
 use settings::SettingsState;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State, WindowEvent};
+use tauri_plugin_window_state::StateFlags;
 use tray::TrayState;
 
 const MINIMIZED_ARG: &str = "--minimized";
@@ -47,6 +52,8 @@ fn playback_update(
         info.validate()?;
     }
     media.update(info.as_ref());
+    app.state::<notifications::Notifier>().update(&app, info.as_ref());
+    taskbar::set_playing(&app, info.as_ref().is_some_and(|i| !i.paused));
     tray.update(&app, info.as_ref());
     remote.publish(info.as_ref());
     discord.send(discord::Msg::Playback(info.clone()));
@@ -68,6 +75,9 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("[remote] {e}");
     }
     app.manage(remote);
+    app.manage(notifications::Notifier::default());
+    app.manage(hotkeys::HotkeyState::default());
+    hotkeys::apply(&handle, &prefs.hotkeys);
     app.manage(SettingsState(Mutex::new(prefs)));
     app.manage(LibraryState(Mutex::new(library::load(&handle))));
     app.manage(BlocklistState(Mutex::new(blocklist::load(&handle))));
@@ -83,6 +93,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let media = MediaState::default();
     media.attach(&handle, &window);
     app.manage(media);
+    taskbar::attach(&handle, &window);
 
     // Launched at login with --minimized: stay in the tray until the user opens Carbon.
     if !std::env::args().any(|a| a == MINIMIZED_ARG) {
@@ -104,14 +115,24 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(hotkeys::handle).build())
+        // Pop-outs come back where they were left; the main window keeps opening centred.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_denylist(&["main"])
+                .with_state_flags(StateFlags::POSITION | StateFlags::SIZE)
+                .build(),
+        )
         .setup(setup)
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event
-                && settings::current(window.app_handle()).close_to_tray
-            {
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } if window.label() == "main" && settings::current(window.app_handle()).close_to_tray => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // Closing Carbon (close-to-tray off) closes the pop-outs too; they'd have no player to follow.
+            WindowEvent::Destroyed if window.label() == "main" => window.app_handle().exit(0),
+            WindowEvent::Destroyed if popouts::Popout::is_label(window.label()) => popouts::changed(window.app_handle(), Some(window.label())),
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             playback_update,
@@ -188,6 +209,12 @@ pub fn run() {
             youtube::ytm_playlist_add,
             youtube::ytm_playlist_remove,
             youtube::ytm_playlist_delete,
+            popouts::popout_open,
+            popouts::popout_close,
+            popouts::popouts_open,
+            popouts::popout_command,
+            hotkeys::hotkeys_status,
+            hotkeys::hotkeys_suspend,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Carbon");

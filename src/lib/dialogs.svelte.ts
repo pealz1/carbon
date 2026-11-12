@@ -15,9 +15,11 @@ class Dialogs {
   folder = $state<FolderDialog | null>(null);
   tags = $state<PlaylistSummary | null>(null);
   shortcuts = $state(false);
+  /** The command palette (Ctrl K). */
+  palette = $state(false);
 
   get anyOpen(): boolean {
-    return !!(this.playlist || this.folder || this.tags || this.shortcuts);
+    return !!(this.playlist || this.folder || this.tags || this.shortcuts || this.palette);
   }
 }
 

@@ -41,6 +41,7 @@
     up: "M6 15l6-6 6 6",
     sidebar: "M4 5.5h16v13H4zM9.5 5.5v13",
     layouts: "M4 5h7v8H4zM13 5h7v5h-7zM13 12h7v7h-7zM4 15h7v4H4z",
+    pip: "M4 5h16v14H4zM12 12h6v5h-6z",
     note: "M9 17.5V6.5l10-2v11M9 17.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0zM19 15.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z",
     calendar: "M5 6.5h14v13H5zM5 10.5h14M9 4v4M15 4v4",
     clock: "M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 8v4.5l3 2",

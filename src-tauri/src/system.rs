@@ -55,5 +55,23 @@ pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     app.state::<carbon_playlists::Store>().delete_data()?;
     library_tools::delete(&app)?;
     youtube::forget(&app)?;
+    forget_window_state(&app)?;
     settings::delete(&app)
+}
+
+/// Remembered window positions (window-state plugin) and cached notification artwork.
+fn forget_window_state(app: &AppHandle) -> Result<(), String> {
+    let config = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    let cache = app.path().app_cache_dir().map_err(|e| e.to_string())?;
+    remove_path(&config.join(tauri_plugin_window_state::DEFAULT_FILENAME))?;
+    remove_path(&cache.join("notifications"))
+}
+
+/// Deletes a file or folder; one that's already gone is fine.
+fn remove_path(path: &std::path::Path) -> Result<(), String> {
+    let result = if path.is_dir() { std::fs::remove_dir_all(path) } else { std::fs::remove_file(path) };
+    match result {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("couldn't delete {}: {e}", path.display())),
+        _ => Ok(()),
+    }
 }

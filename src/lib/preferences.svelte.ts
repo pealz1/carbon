@@ -1,6 +1,7 @@
 // Reactive copy of the Rust-owned settings, applied to the document as data attributes.
 import { describeError } from "$lib/errors";
 import { applyFonts } from "$lib/fonts";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getSettings, saveSettings, type Settings } from "$lib/native";
 import { smartShuffle } from "$lib/smart-shuffle";
 
@@ -12,6 +13,14 @@ class Preferences {
     this.value = await getSettings();
     this.#apply();
     return this.value;
+  }
+
+  /** Pop-out windows follow settings saved from the main window. */
+  follow(): Promise<UnlistenFn> {
+    return listen<Settings>("settings-changed", (event) => {
+      this.value = event.payload;
+      this.#apply();
+    });
   }
 
   async update(patch: Partial<Settings>): Promise<boolean> {

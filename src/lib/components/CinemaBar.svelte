@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
   import { artTones } from "$lib/art-tones.svelte";
   import { clockTime, endsAt, queueEndsAt } from "$lib/cinema";
   import { formatDuration } from "$lib/format";
@@ -10,6 +9,7 @@
   import { addToPlaylistItems, trackMenu } from "$lib/menus";
   import type { CinemaLayout } from "$lib/native";
   import { player } from "$lib/player.svelte";
+  import { popouts } from "$lib/popout/host.svelte";
   import { prefs } from "$lib/preferences.svelte";
   import { resource } from "$lib/resource.svelte";
   import { services } from "$lib/services.svelte";
@@ -37,7 +37,6 @@
     offset = $bindable(0),
     height = $bindable(0),
     onhold,
-    miniPlayer,
   }: {
     hidden: boolean;
     lines: LyricLine[];
@@ -45,8 +44,6 @@
     offset?: number;
     height?: number;
     onhold: (reason: string, on: boolean) => void;
-    /** The mini player's button, once Carbon has one (nothing is drawn until then). */
-    miniPlayer?: Snippet;
   } = $props();
 
   const TICK_MS = 250;
@@ -87,6 +84,12 @@
   function addToPlaylist(event: MouseEvent) {
     const track = player.track;
     if (track) menu.open(event, isYoutubeUri(track.uri) ? youtubePlaylistItems([track.id]) : addToPlaylistItems([track.uri]));
+  }
+
+  /** The mini player replaces cinema (YouTube Music's turns this window compact, so cinema must go first). */
+  async function toMiniPlayer() {
+    await view.exitCinema();
+    if (!popouts.miniShown) await popouts.toggleMini();
   }
 
   const trackItems = () => (player.track ? trackMenu(player.track) : []);
@@ -180,7 +183,7 @@
         <div class="layouts"><CinemaLayouts value={prefs.value?.cinemaLayout ?? "split"} onpick={(cinemaLayout: CinemaLayout) => prefs.update({ cinemaLayout })} /></div>
       </BarPopover>
       <PlaybackTools />
-      {@render miniPlayer?.()}
+      <button class="ctl" onclick={toMiniPlayer} aria-label="Mini player" title="Mini player"><Icon name="pip" size={18} /></button>
       <VolumeControl />
       <span class="rule" aria-hidden="true"></span>
       <button class="ctl" onclick={view.toggleFullscreen} aria-label={view.fullscreen ? "Leave full screen" : "Full screen"} title="Full screen (F11)">
