@@ -9,6 +9,7 @@
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import Logo from "./Logo.svelte";
+  import LoopZone from "./LoopZone.svelte";
   import PlaybackTools from "./PlaybackTools.svelte";
   import Slider from "./Slider.svelte";
 
@@ -62,7 +63,9 @@
   <div class="center">
     <div class="seek">
       <span class="time tabular">{formatDuration(position)}</span>
-      <Slider value={position} max={player.durationMs} step={1000} tone="accent" label="Seek" valuetext="{formatDuration(position)} of {formatDuration(player.durationMs)}" oncommit={player.seek} />
+      <LoopZone max={player.durationMs}>
+        <Slider value={position} max={player.durationMs} step={1000} tone="accent" label="Seek" valuetext="{formatDuration(position)} of {formatDuration(player.durationMs)}" oncommit={player.seek} />
+      </LoopZone>
       <span class="time tabular">−{formatDuration(remaining)}</span>
     </div>
     <div class="transport">
