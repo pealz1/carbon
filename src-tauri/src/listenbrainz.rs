@@ -161,11 +161,17 @@ impl Outbox {
         self.save();
     }
 
-    fn clear(&mut self) {
+    /// Drops every queued listen, on disk too. Runs after any send in flight has saved what was left.
+    fn forget(&mut self) {
         self.listens.clear();
         self.failures = 0;
         self.retry_at = None;
         self.solo = false;
+        if let Some(Err(e)) = self.file.as_ref().map(fs::remove_file)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            eprintln!("[listenbrainz] couldn't remove the queue: {e}");
+        }
     }
 
     fn due(&self, now: Instant) -> bool {
@@ -339,7 +345,7 @@ async fn run(mut rx: UnboundedReceiver<Msg>, mut enabled: bool, queue: Option<Pa
                 Some(Msg::Playback(info)) => scrobbler.update(info, now_ms(), unix_now()),
                 Some(Msg::Enabled(on)) => { enabled = on; vec![] }
                 Some(Msg::TokenChanged) => { account = load_account(); vec![] }
-                Some(Msg::Forget) => { account = None; outbox.clear(); vec![] }
+                Some(Msg::Forget) => { account = None; outbox.forget(); vec![] }
             },
             _ = ticker.tick() => scrobbler.tick(now_ms()),
         };
@@ -545,7 +551,11 @@ mod tests {
         let reloaded = Outbox::load(Some(file.clone()));
         assert_eq!(reloaded.listens, VecDeque::from([listen(42)]));
         fs::write(&file, "not json").unwrap();
-        assert!(Outbox::load(Some(file)).listens.is_empty(), "a corrupt queue starts empty");
+        assert!(Outbox::load(Some(file.clone())).listens.is_empty(), "a corrupt queue starts empty");
+        let mut saved = Outbox::load(Some(file.clone()));
+        saved.push(listen(43));
+        saved.forget();
+        assert!(saved.listens.is_empty() && !file.exists(), "forgetting removes the file");
         let _ = fs::remove_dir_all(dir);
     }
 }
