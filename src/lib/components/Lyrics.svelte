@@ -72,14 +72,12 @@
   const songScript = $derived(mainScript(scripts));
   const romanOn = $derived(songRoman ?? prefs.value?.lyricsRomanise ?? false);
   const place = $derived(prefs.value?.lyricsRomanPlace ?? "below");
-  const aidOptions = $derived({
-    romanise: romanOn,
-    furigana: romanOn && place === "below" && !!prefs.value?.lyricsFurigana,
-    chinese: prefs.value?.lyricsChinese ?? "original",
-  });
+  // Plain values, so saving an unrelated setting doesn't redo the work.
+  const furigana = $derived(romanOn && place === "below" && !!prefs.value?.lyricsFurigana);
+  const chinese = $derived(prefs.value?.lyricsChinese ?? "original");
 
   $effect(() => {
-    const [found, options] = [lyrics, aidOptions];
+    const [found, options] = [lyrics, { romanise: romanOn, furigana, chinese }];
     aided = null;
     if (!found || !needsAids(scripts, options)) return;
     let current = true;
