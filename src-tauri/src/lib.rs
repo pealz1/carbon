@@ -4,6 +4,7 @@ mod engine;
 mod fonts;
 mod lastfm;
 mod library;
+mod listenbrainz;
 mod local_library;
 mod media_controls;
 mod oauth;
@@ -18,6 +19,7 @@ mod youtube;
 use discord::Discord;
 use lastfm::Lastfm;
 use library::LibraryState;
+use listenbrainz::Listenbrainz;
 use media_controls::MediaState;
 use playback::PlaybackInfo;
 use settings::SettingsState;
@@ -45,6 +47,7 @@ fn playback_update(
     tray.update(&app, info.as_ref());
     remote.publish(info.as_ref());
     discord.send(discord::Msg::Playback(info.clone()));
+    app.state::<Listenbrainz>().send(listenbrainz::Msg::Playback(info.clone()));
     lastfm.send(lastfm::Msg::Playback(info));
     Ok(())
 }
@@ -54,6 +57,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let prefs = settings::load(&handle);
     app.manage(Discord::spawn(prefs.discord_presence));
     app.manage(Lastfm::spawn(prefs.lastfm_scrobbling));
+    app.manage(Listenbrainz::spawn(prefs.listenbrainz_scrobbling, listenbrainz::queue_path(&handle)));
     let remote = remote::Remote::new(&handle);
     if prefs.remote_enabled
         && let Err(e) = remote.apply(true, prefs.remote_port)
@@ -123,6 +127,9 @@ pub fn run() {
             lastfm::lastfm_status,
             lastfm::lastfm_connect,
             lastfm::lastfm_disconnect,
+            listenbrainz::listenbrainz_status,
+            listenbrainz::listenbrainz_connect,
+            listenbrainz::listenbrainz_disconnect,
             remote::remote_status,
             remote::remote_rotate,
             remote::remote_disconnect,

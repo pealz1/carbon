@@ -19,6 +19,8 @@ export interface Settings {
   closeToTray: boolean;
   discordPresence: boolean;
   lastfmScrobbling: boolean;
+  /** Independent of Last.fm; only sends once a token is saved. */
+  listenbrainzScrobbling: boolean;
   effects: Effects;
   accent: Accent;
   lyricsScale: number;
@@ -98,6 +100,11 @@ export interface LastfmStatus {
   username: string | null;
 }
 
+/** The token itself never leaves Rust. */
+export interface ListenbrainzStatus {
+  username: string | null;
+}
+
 export const getSettings = () => invoke<Settings>("settings_get");
 export const saveSettings = (settings: Settings) => invoke<Settings>("settings_set", { settings });
 /** Installed font families, A–Z, already limited to names that are safe in CSS. */
@@ -116,6 +123,11 @@ export const removeSavedData = () => invoke("remove_saved_data");
 export const lastfmStatus = () => invoke<LastfmStatus>("lastfm_status");
 export const lastfmConnect = () => invoke<string>("lastfm_connect");
 export const lastfmDisconnect = () => invoke("lastfm_disconnect");
+
+export const listenbrainzStatus = () => invoke<ListenbrainzStatus>("listenbrainz_status");
+/** Checks the token with ListenBrainz and saves it; resolves to the account name. */
+export const listenbrainzConnect = (token: string) => invoke<string>("listenbrainz_connect", { token });
+export const listenbrainzDisconnect = () => invoke("listenbrainz_disconnect");
 
 export const remoteStatus = () => invoke<RemoteStatus>("remote_status");
 export const remoteRotate = () => invoke<RemoteStatus>("remote_rotate");
