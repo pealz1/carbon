@@ -1,39 +1,62 @@
 <script lang="ts">
+  import { onNavigate } from "$app/navigation";
   import { fade } from "svelte/transition";
-  import { formatDuration } from "$lib/format";
+  import { joinNames } from "$lib/format";
+  import { IdleTimer } from "$lib/idle";
+  import { offsetFor } from "$lib/lyric-offsets";
+  import { lyricsFor, type Lyrics as LyricsResult } from "$lib/lyrics";
+  import { menu } from "$lib/menu.svelte";
   import { player } from "$lib/player.svelte";
+  import { prefs } from "$lib/preferences.svelte";
   import { view } from "$lib/view.svelte";
+  import { LYRICS_LEAD_MS } from "$lib/words";
   import Ambient from "./Ambient.svelte";
-  import Icon from "./Icon.svelte";
-  import LikeButton from "./LikeButton.svelte";
+  import CinemaBar from "./CinemaBar.svelte";
   import Lyrics from "./Lyrics.svelte";
+  import Toasts from "./Toasts.svelte";
   import YoutubeSlot from "./YoutubeSlot.svelte";
-  import Slider from "./Slider.svelte";
 
-  // Immersive now playing: colour from the artwork (never the artwork blurred), big lyrics,
-  // controls that step aside when idle.
+  // Immersive now playing: colour from the artwork (never the artwork blurred), four layouts and a
+  // floating bar that steps aside when idle. Every layout keeps the cover (or YouTube's video) and
+  // the song's name on screen, nothing is drawn over the art, and the bar's space is kept clear.
   const IDLE_MS = 3_000;
-  const TICK_MS = 250;
   let idle = $state(false);
-  let position = $state(0);
   let root = $state<HTMLElement>();
-  let timer = 0;
-
-  function wake() {
-    idle = false;
-    clearTimeout(timer);
-    timer = window.setTimeout(() => (idle = true), IDLE_MS);
-  }
+  let barHeight = $state(0);
+  let lyrics = $state<LyricsResult | null>(null);
+  let offset = $state(0);
+  const timer = new IdleTimer(IDLE_MS, (on) => (idle = on));
+  const hold = (reason: string, on: boolean) => timer.hold(reason, on);
 
   $effect(() => {
     root?.focus();
-    wake();
-    const tick = setInterval(() => (position = player.position()), TICK_MS);
-    return () => {
-      clearTimeout(timer);
-      clearInterval(tick);
-    };
+    timer.wake();
+    return () => timer.stop();
   });
+  $effect(() => hold("menu", menu.current !== null));
+  // A link in the bar or a menu's "Go to album" leaves cinema for that page.
+  onNavigate(() => void view.exitCinema());
+
+  // The bar's scrubber reads the same lyrics as the lyrics view (one shared lookup per song).
+  $effect(() => {
+    const track = player.track;
+    lyrics = null;
+    if (!track) return;
+    offset = offsetFor(track.id);
+    let live = true;
+    lyricsFor(track).then(
+      (found) => live && (lyrics = found),
+      (e) => console.warn("[cinema] lyrics", e),
+    );
+    return () => (live = false);
+  });
+
+  const chosen = $derived(prefs.value?.cinemaLayout ?? "split");
+  // Songs without words show the cover instead of an empty lyrics column.
+  const wordless = $derived(lyrics?.kind === "none" || lyrics?.kind === "instrumental");
+  const layout = $derived(wordless && (chosen === "split" || chosen === "lyrics") ? "cover" : chosen);
+  const lines = $derived(lyrics?.kind === "synced" ? lyrics.lines : []);
+  const youtube = $derived(player.source === "youtube");
 </script>
 
 <div
@@ -44,58 +67,56 @@
   aria-modal="true"
   aria-label="Cinema mode"
   tabindex="-1"
-  onpointermove={wake}
-  onpointerdown={wake}
-  onkeydown={wake}
+  style="--bar-h: {barHeight}px"
+  onpointermove={() => timer.wake()}
+  onpointerdown={() => timer.wake()}
+  onkeydown={() => timer.wake()}
   transition:fade={{ duration: 260 }}
 >
   <Ambient image={player.artwork} playing={!player.paused} />
+  <!-- First in the DOM so Tab reaches the controls before the lyric lines; it still sits at the bottom. -->
+  <CinemaBar hidden={idle} {lines} shiftMs={LYRICS_LEAD_MS + offset} bind:offset bind:height={barHeight} onhold={hold} />
+  <div class="notices"><Toasts /></div>
 
   {#if player.track}
-    <div class="stage">
-      <section class="art">
-        {#if player.source === "youtube"}<YoutubeSlot />{:else if player.artwork}<img src={player.artwork} alt="" width="560" height="560" />{/if}
-      </section>
-      <Lyrics variant="cinema" />
+    {@const track = player.track}
+    <div class="stage is-{layout}" class:youtube>
+      {#if layout === "split" || layout === "cover"}
+        <figure class="hero">
+          {#if youtube}<YoutubeSlot />{:else if player.artwork}<img src={player.artwork} alt="" width="640" height="640" />{/if}
+          <figcaption class="words">
+            <span class="name">{track.name}</span>
+            <span class="by">{joinNames(track.artists)}</span>
+          </figcaption>
+        </figure>
+      {:else}
+        <header class="caption">
+          {#if youtube}<div class="video"><YoutubeSlot /></div>{:else if player.artwork}<img src={player.artwork} alt="" width="72" height="72" />{/if}
+          <div class="words">
+            <span class="name">{track.name}</span>
+            <span class="by">{joinNames(track.artists)}{track.album?.name ? ` — ${track.album.name}` : ""}</span>
+          </div>
+        </header>
+      {/if}
+      {#if layout === "split" || layout === "lyrics"}<Lyrics variant="cinema" bind:offset />{/if}
     </div>
   {:else}
     <p class="empty">Play something to fill the screen.</p>
   {/if}
 
-  <footer class="controls glass">
-    {#if player.track}
-      <div class="meta">
-        <span class="title">{player.track.name}</span>
-        <span class="artists">{player.track.artists.map((a) => a.name).join(", ")}</span>
-      </div>
-      <LikeButton uri={player.track.uri} label={player.track.name} size={20} />
-    {/if}
-    <div class="transport">
-      <button onclick={player.previous} aria-label="Previous"><Icon name="prev" size={20} /></button>
-      <button class="play" onclick={player.togglePlay} aria-label={player.paused ? "Play" : "Pause"}>
-        <Icon name={player.paused ? "play" : "pause"} size={22} />
-      </button>
-      <button onclick={player.next} aria-label="Next"><Icon name="next" size={20} /></button>
-    </div>
-    <div class="seek">
-      <span class="time tabular">{formatDuration(position)}</span>
-      <Slider value={position} max={player.durationMs} step={1000} label="Seek" oncommit={player.seek} />
-      <span class="time tabular">{formatDuration(player.durationMs)}</span>
-    </div>
-    <button onclick={view.toggleFullscreen} aria-label={view.fullscreen ? "Leave full screen" : "Full screen"} title="Full screen (F11)">
-      <Icon name={view.fullscreen ? "collapse" : "expand"} size={18} />
-    </button>
-    <button onclick={view.exitCinema} aria-label="Leave cinema mode" title="Leave cinema mode (Esc)"><Icon name="close" size={18} /></button>
-  </footer>
 </div>
 
 <style>
   .cinema {
+    /* Kept clear for the bar whether or not it's showing, so nothing moves when it hides. */
+    --reserve: calc(var(--bar-h) + var(--sp-4) + var(--sp-5));
+    --hero-max: calc(100vh - var(--sp-7) - var(--reserve) - 76px);
     position: fixed;
     inset: 0;
     z-index: 40;
     overflow: hidden;
     background: var(--black);
+    color: var(--chrome-text);
     outline: none;
   }
 
@@ -106,16 +127,23 @@
   .stage {
     position: relative;
     height: 100%;
-    display: grid;
-    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.6fr);
-    gap: var(--sp-7);
-    align-items: center;
-    padding: var(--sp-7) var(--sp-7) calc(var(--sp-7) + var(--player-h));
+    padding: var(--sp-7) var(--sp-7) var(--reserve);
   }
 
-  .art img {
-    width: 100%;
-    max-width: 560px;
+  .stage :global(.lyrics) {
+    height: 100%;
+  }
+
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    min-width: 0;
+    margin: 0;
+  }
+
+  .hero img {
+    width: min(100%, 560px, var(--hero-max));
     height: auto;
     aspect-ratio: 1;
     border-radius: var(--r-art);
@@ -123,8 +151,113 @@
     box-shadow: var(--shadow-art);
   }
 
-  .stage :global(.lyrics) {
-    height: 100%;
+  .words {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .name,
+  .by {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .name {
+    font-family: var(--font-display);
+    font-size: var(--fs-section);
+    font-weight: 700;
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .by {
+    font-size: var(--fs-lead);
+    color: var(--chrome-text-muted);
+  }
+
+  /* Cover and lyrics side by side. */
+  .is-split {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.6fr);
+    gap: var(--sp-7);
+    align-items: center;
+  }
+
+  /* The cover alone, as large as the screen allows. */
+  .is-cover {
+    display: grid;
+    place-items: center;
+  }
+
+  .is-cover .hero {
+    align-items: center;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .is-cover .hero img {
+    width: min(720px, var(--hero-max));
+  }
+
+  .is-cover.youtube .hero {
+    width: min(960px, 100%);
+  }
+
+  .is-cover .name {
+    font-size: var(--fs-hero);
+  }
+
+  /* Lyrics alone, centred under a small caption. */
+  .is-lyrics {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    justify-items: center;
+    gap: var(--sp-5);
+    padding-top: var(--sp-6);
+  }
+
+  .is-lyrics :global(.lyrics) {
+    width: min(1100px, 100%);
+  }
+
+  .is-lyrics :global(.lyrics li button) {
+    text-align: center;
+    transform-origin: center;
+  }
+
+  .caption {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .caption img {
+    flex: none;
+    width: 72px;
+    height: 72px;
+    border-radius: var(--r-art-sm);
+    object-fit: cover;
+    box-shadow: var(--shadow-art);
+  }
+
+  /* YouTube's player can't shrink below 200 px high, so captions with video give it room. */
+  .caption .video {
+    flex: none;
+    width: 356px;
+  }
+
+  /* Just the wallpaper, and the song in a corner. */
+  .is-ambient {
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .is-ambient .name {
+    font-size: var(--fs-hero);
   }
 
   .empty {
@@ -135,100 +268,15 @@
     margin: 0;
     font-family: var(--font-display);
     font-size: var(--fs-title);
-    color: var(--text-muted);
+    color: var(--chrome-text-muted);
   }
 
-  .controls {
+  .notices {
     position: absolute;
-    left: 50%;
-    bottom: var(--sp-5);
-    display: flex;
-    align-items: center;
-    gap: var(--sp-4);
-    width: min(980px, calc(100% - 2 * var(--sp-5)));
-    padding: var(--sp-3) var(--sp-4);
-    border-radius: var(--r-pill);
-    transform: translateX(-50%);
-    transition:
-      opacity var(--dur-med) var(--ease-out),
-      transform var(--dur-med) var(--ease-out);
-  }
-
-  .idle .controls:not(:focus-within) {
-    opacity: 0;
-    transform: translate(-50%, 16px);
-    pointer-events: none;
-  }
-
-  .meta {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    max-width: 220px;
-  }
-
-  .title,
-  .artists {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .title {
-    font-weight: 650;
-  }
-
-  .artists {
-    font-size: var(--fs-small);
-    color: var(--text-muted);
-  }
-
-  .transport {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-  }
-
-  .controls button {
-    width: 38px;
-    height: 38px;
-    display: grid;
-    place-items: center;
-    flex: none;
-    border-radius: var(--r-pill);
-    color: var(--text-muted);
-    transition: color var(--dur-fast), background var(--dur-fast);
-  }
-
-  .controls button:hover {
-    color: var(--text);
-    background: var(--glass-hover);
-  }
-
-  .controls .play {
-    width: 46px;
-    height: 46px;
-    background: var(--text);
-    color: var(--accent-ink);
-  }
-
-  .controls .play:hover {
-    background: var(--text);
-    color: var(--accent-ink);
-  }
-
-  .seek {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-    min-width: 160px;
-  }
-
-  .time {
-    width: 40px;
-    font-size: var(--fs-micro);
-    color: var(--text-faint);
-    text-align: center;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--reserve) - var(--sp-4));
+    z-index: 3;
+    container-type: inline-size;
   }
 </style>

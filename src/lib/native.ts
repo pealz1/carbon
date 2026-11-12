@@ -6,6 +6,7 @@ import type { LibraryData } from "$lib/organizer";
 export type Effects = "full" | "balanced" | "minimal";
 export type RomanPlace = "below" | "instead";
 export type ChineseScript = "original" | "simplified" | "traditional";
+export type CinemaLayout = "split" | "lyrics" | "cover" | "ambient";
 export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
 
@@ -26,6 +27,9 @@ export interface Settings {
   effects: Effects;
   accent: Accent;
   lyricsScale: number;
+  /** Soft blur on lyric lines away from the sung one. */
+  lyricsBlur: boolean;
+  cinemaLayout: CinemaLayout;
   /** Romanised Japanese, Chinese and Korean lyrics by default; each song can override it. */
   lyricsRomanise: boolean;
   lyricsRomanPlace: RomanPlace;

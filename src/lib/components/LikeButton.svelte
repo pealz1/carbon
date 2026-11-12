@@ -15,9 +15,12 @@
   });
 
   const on = $derived(saved.has(uri) === true);
+  /** A small pop when a like lands; not on load, so liked songs don't all bounce at once. */
+  let burst = $state(false);
 
   function toggle(event: MouseEvent) {
     event.stopPropagation();
+    burst = !on;
     void saved.toggle(uri);
   }
 </script>
@@ -26,7 +29,9 @@
   <button
     class="like"
     class:on
+    class:burst={burst && on}
     onclick={toggle}
+    onanimationend={() => (burst = false)}
     aria-pressed={on}
     aria-label={on ? `Remove ${label} from Liked Songs` : `Like ${label}`}
     title={on ? "Remove from Liked Songs" : "Save to Liked Songs"}
@@ -60,5 +65,15 @@
 
   .like.on {
     color: var(--accent);
+  }
+
+  .burst :global(svg) {
+    animation: like-pop 420ms var(--ease-spring);
+  }
+
+  @keyframes like-pop {
+    40% {
+      transform: scale(1.35);
+    }
   }
 </style>

@@ -3,6 +3,7 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { onMount } from "svelte";
   import { account } from "$lib/account.svelte";
+  import CinemaSettings from "$lib/components/CinemaSettings.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import DesktopPanel from "$lib/components/DesktopPanel.svelte";
   import FontPicker from "$lib/components/FontPicker.svelte";
@@ -207,6 +208,7 @@
     </section>
 
     <LyricsSettings settings={s} />
+    <CinemaSettings />
 
     <section class="panel plate">
       <h2>Interface sounds</h2>

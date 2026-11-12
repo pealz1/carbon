@@ -21,12 +21,9 @@
   const outside = (event: Event) => !panel?.contains(event.target as Node) && !anchor.contains(event.target as Node);
 </script>
 
-<svelte:window
-  onpointerdown={(e) => outside(e) && onclose()}
-  onkeydown={(e) => e.key === "Escape" && (e.preventDefault(), onclose())}
-  onresize={onclose}
-  onblur={onclose}
-/>
+<!-- Esc is caught on the document, before the window's shortcuts, so in cinema it closes only this. -->
+<svelte:document onkeydown={(e) => e.key === "Escape" && (e.preventDefault(), onclose())} />
+<svelte:window onpointerdown={(e) => outside(e) && onclose()} onresize={onclose} onblur={onclose} />
 
 <div
   bind:this={panel}

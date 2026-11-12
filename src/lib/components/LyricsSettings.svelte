@@ -3,7 +3,8 @@
   import type { ChineseScript, RomanPlace, Settings } from "$lib/native";
   import { prefs } from "$lib/preferences.svelte";
 
-  // Settings → Lyrics: romanisation defaults. Each song can still be switched from the lyrics view.
+  // Settings → Lyrics: the soft blur on distant lines and romanisation defaults. Each song can still
+  // be switched from the lyrics view.
   let { settings: s }: { settings: Settings } = $props();
 
   const PLACES: { id: RomanPlace; label: string }[] = [
@@ -19,6 +20,12 @@
 
 <section class="panel plate">
   <h2>Lyrics</h2>
+  <Toggle
+    checked={s.lyricsBlur}
+    label="Soften distant lines"
+    description="Lines away from the one being sung blur slightly. Cinema's lyrics options change this too."
+    onchange={(v) => prefs.update({ lyricsBlur: v })}
+  />
   <Toggle
     checked={s.lyricsRomanise}
     label="Romanise lyrics"

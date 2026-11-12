@@ -17,8 +17,13 @@
   import Status from "./Status.svelte";
 
   // Synced lyrics shared by Now Playing, the docked lyrics panel, cinema mode and the lyrics pop-out
-  // (which passes its mirror of the main window's player as `source`).
-  let { variant = "page", source = player }: { variant?: "page" | "panel" | "cinema"; source?: Pick<NowSource, "track" | "position" | "seek" | "syncPosition"> } = $props();
+  // (which passes its mirror of the main window's player as `source`). Cinema binds `offset`,
+  // because its bar nudges the timing and previews lines on the scrubber.
+  let {
+    variant = "page",
+    source = player,
+    offset = $bindable(0),
+  }: { variant?: "page" | "panel" | "cinema"; source?: Pick<NowSource, "track" | "position" | "seek" | "syncPosition">; offset?: number } = $props();
 
   /** Where the sung line sits, as a fraction of the lyrics viewport height. */
   const FOCUS = 0.36;
@@ -26,7 +31,6 @@
   let lyrics = $state<Lyrics | null>(null);
   let lyricsError = $state<string | null>(null);
   let clock = $state(0);
-  let offset = $state(0);
   let lineEls = $state<HTMLElement[]>([]);
   let viewport = $state<HTMLElement>();
 
@@ -168,12 +172,12 @@
   {/if}
 
   {#if songScript}
-    <button class="romanise glass" class:raised={lyrics?.kind === "synced"} aria-pressed={romanOn} onclick={toggleRoman} title="{romanOn ? 'Hide' : 'Show'} {AID_NAMES[songScript]} for this song">
+    <button class="romanise glass" class:raised={lyrics?.kind === "synced" && variant !== "cinema"} aria-pressed={romanOn} onclick={toggleRoman} title="{romanOn ? 'Hide' : 'Show'} {AID_NAMES[songScript]} for this song">
       {AID_NAMES[songScript]}
     </button>
   {/if}
 
-  {#if lyrics?.kind === "synced"}
+  {#if lyrics?.kind === "synced" && variant !== "cinema"}
     <div class="sync glass" role="group" aria-label="Lyrics timing for this song">
       <button onclick={() => nudge(-OFFSET_STEP_MS)} disabled={offset <= -MAX_OFFSET_MS} aria-label="Show lyrics 0.25 seconds earlier" title="Earlier">−</button>
       <button class="value tabular" onclick={() => nudge(0)} disabled={offset === 0} title="Reset" aria-label="Lyrics offset {offsetLabel}. Reset">
@@ -275,7 +279,8 @@
     background: var(--glass-hover);
   }
 
-  :global([data-effects="minimal"]) li button {
+  :global([data-effects="minimal"]) li button,
+  :global([data-lyrics-blur="off"]) li button {
     filter: none;
   }
 

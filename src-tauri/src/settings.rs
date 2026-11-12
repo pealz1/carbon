@@ -16,6 +16,20 @@ pub enum Effects {
     Minimal,
 }
 
+/// How cinema mode lays out the screen (Settings → Cinema mode, or its bar).
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum CinemaLayout {
+    /// Cover beside the lyrics.
+    Split,
+    /// Lyrics alone, centred.
+    Lyrics,
+    /// The cover alone, large.
+    Cover,
+    /// Just the wallpaper and a small caption.
+    Ambient,
+}
+
 /// Where a lyric line's romanisation goes (Settings → Lyrics).
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "lowercase")]
@@ -53,6 +67,9 @@ pub struct Settings {
     pub effects: Effects,
     pub accent: String,
     pub lyrics_scale: f32,
+    /// Lines away from the sung one are softly blurred; off keeps every line sharp.
+    pub lyrics_blur: bool,
+    pub cinema_layout: CinemaLayout,
     /// Romanised Japanese, Chinese and Korean lyrics by default; each song can override it.
     pub lyrics_romanise: bool,
     pub lyrics_roman_place: RomanPlace,
@@ -97,6 +114,8 @@ impl Default for Settings {
             effects: Effects::Full,
             accent: ACCENTS[0].into(),
             lyrics_scale: 1.0,
+            lyrics_blur: true,
+            cinema_layout: CinemaLayout::Split,
             lyrics_romanise: false,
             lyrics_roman_place: RomanPlace::Below,
             lyrics_furigana: false,
@@ -368,5 +387,15 @@ mod tests {
         assert!(serde_json::from_str::<Settings>(r#"{"lyricsChinese":"klingon"}"#).is_err());
         assert_eq!(parsed.ui_sound_volume, 0.5);
         assert!(!parsed.smart_shuffle);
+        assert!(parsed.lyrics_blur);
+        assert_eq!(parsed.cinema_layout, CinemaLayout::Split);
+    }
+
+    #[test]
+    fn reads_cinema_layouts_and_refuses_unknown_ones() {
+        let lyrics: Settings = serde_json::from_str(r#"{"cinemaLayout":"lyrics","lyricsBlur":false}"#).unwrap();
+        assert_eq!(lyrics.cinema_layout, CinemaLayout::Lyrics);
+        assert!(!lyrics.lyrics_blur);
+        assert!(serde_json::from_str::<Settings>(r#"{"cinemaLayout":"theatre"}"#).is_err());
     }
 }

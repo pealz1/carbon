@@ -97,6 +97,17 @@ describe("lyricsFor", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("shares one lookup between views asking at once, and retries after a failure", async () => {
+    const fetchMock = lrclib({ status: 200, body: [record()] });
+    vi.stubGlobal("fetch", fetchMock);
+    await Promise.all([lyricsFor(track("t8")), lyricsFor(track("t8"))]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    vi.stubGlobal("fetch", lrclib({ status: 200, body: "nonsense" }, { status: 500 }));
+    await expect(lyricsFor(track("t9"))).rejects.toThrow(/500/);
+    vi.stubGlobal("fetch", lrclib({ status: 200, body: [record()] }));
+    expect((await lyricsFor(track("t9"))).kind).toBe("synced");
+  });
+
   it("survives a failed search and reports instrumentals, misses and errors", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.stubGlobal("fetch", lrclib({ status: 503 }, { status: 200, body: record({ instrumental: true }) }));
