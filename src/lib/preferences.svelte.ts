@@ -33,6 +33,7 @@ class Preferences {
     root.dataset.accent = this.value.accent;
     root.dataset.effects = this.value.effects;
     root.style.setProperty("--lyrics-scale", String(this.value.lyricsScale));
+    root.dataset.lyricsBlur = this.value.lyricsBlur === false ? "off" : "on";
     applyFonts(root, this.value);
   }
 }

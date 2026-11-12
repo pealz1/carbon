@@ -7,8 +7,9 @@
   import { lineProgress, LYRICS_LEAD_MS, wordProgress } from "$lib/words";
   import Status from "./Status.svelte";
 
-  // Synced lyrics shared by Now Playing, the docked lyrics panel and cinema mode.
-  let { variant = "page" }: { variant?: "page" | "panel" | "cinema" } = $props();
+  // Synced lyrics shared by Now Playing, the docked lyrics panel and cinema mode. Cinema binds
+  // `offset`, because its bar nudges the timing and previews lines on the scrubber.
+  let { variant = "page", offset = $bindable(0) }: { variant?: "page" | "panel" | "cinema"; offset?: number } = $props();
 
   /** Where the sung line sits, as a fraction of the lyrics viewport height. */
   const FOCUS = 0.36;
@@ -16,7 +17,6 @@
   let lyrics = $state<Lyrics | null>(null);
   let lyricsError = $state<string | null>(null);
   let clock = $state(0);
-  let offset = $state(0);
   let lineEls = $state<HTMLElement[]>([]);
   let viewport = $state<HTMLElement>();
 
@@ -104,7 +104,7 @@
     <p class="note">No lyrics found for this song.</p>
   {/if}
 
-  {#if lyrics?.kind === "synced"}
+  {#if lyrics?.kind === "synced" && variant !== "cinema"}
     <div class="sync glass" role="group" aria-label="Lyrics timing for this song">
       <button onclick={() => nudge(-OFFSET_STEP_MS)} disabled={offset <= -MAX_OFFSET_MS} aria-label="Show lyrics 0.25 seconds earlier" title="Earlier">−</button>
       <button class="value tabular" onclick={() => nudge(0)} disabled={offset === 0} title="Reset" aria-label="Lyrics offset {offsetLabel}. Reset">
@@ -202,7 +202,8 @@
     background: var(--glass-hover);
   }
 
-  :global([data-effects="minimal"]) li button {
+  :global([data-effects="minimal"]) li button,
+  :global([data-lyrics-blur="off"]) li button {
     filter: none;
   }
 

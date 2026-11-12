@@ -16,6 +16,20 @@ pub enum Effects {
     Minimal,
 }
 
+/// How cinema mode lays out the screen (Settings → Cinema mode, or its bar).
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum CinemaLayout {
+    /// Cover beside the lyrics.
+    Split,
+    /// Lyrics alone, centred.
+    Lyrics,
+    /// The cover alone, large.
+    Cover,
+    /// Just the wallpaper and a small caption.
+    Ambient,
+}
+
 /// The music services the listener connected (asked on first run, changeable in Settings).
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Services {
@@ -34,6 +48,9 @@ pub struct Settings {
     pub effects: Effects,
     pub accent: String,
     pub lyrics_scale: f32,
+    /// Lines away from the sung one are softly blurred; off keeps every line sharp.
+    pub lyrics_blur: bool,
+    pub cinema_layout: CinemaLayout,
     /// The listener's own Spotify app (Spotify caps each Client ID at 5 users). Empty = built-in.
     pub spotify_client_id: String,
     /// Phone remote / SDK server (Settings → Remote). Off unless the listener turns it on.
@@ -65,6 +82,8 @@ impl Default for Settings {
             effects: Effects::Full,
             accent: ACCENTS[0].into(),
             lyrics_scale: 1.0,
+            lyrics_blur: true,
+            cinema_layout: CinemaLayout::Split,
             spotify_client_id: String::new(),
             remote_enabled: false,
             remote_port: crate::remote::DEFAULT_PORT,
@@ -302,5 +321,15 @@ mod tests {
         assert_eq!(parsed.font_text, "");
         assert!(parsed.ui_sounds);
         assert_eq!(parsed.ui_sound_volume, 0.5);
+        assert!(parsed.lyrics_blur);
+        assert_eq!(parsed.cinema_layout, CinemaLayout::Split);
+    }
+
+    #[test]
+    fn reads_cinema_layouts_and_refuses_unknown_ones() {
+        let lyrics: Settings = serde_json::from_str(r#"{"cinemaLayout":"lyrics","lyricsBlur":false}"#).unwrap();
+        assert_eq!(lyrics.cinema_layout, CinemaLayout::Lyrics);
+        assert!(!lyrics.lyrics_blur);
+        assert!(serde_json::from_str::<Settings>(r#"{"cinemaLayout":"theatre"}"#).is_err());
     }
 }

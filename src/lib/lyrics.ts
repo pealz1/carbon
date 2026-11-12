@@ -31,7 +31,7 @@ const DURATION_TOLERANCE_S = 2;
 const MIN_MATCH = 0.5;
 const WORD_SYNC = /<\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?>/;
 
-const cache = new Map<string, Lyrics>();
+const cache = new Map<string, Promise<Lyrics>>();
 
 /** Lowercase words without accents, "(feat. …)", "- Remastered 2011" and punctuation. */
 export function normalize(text: string): string[] {
@@ -130,9 +130,17 @@ async function youtubeLyrics(track: Track): Promise<Lyrics> {
   return text ? { kind: "plain", text } : { kind: "none" };
 }
 
-export async function lyricsFor(track: Track): Promise<Lyrics> {
+/** One lookup per song, shared by every view asking for it (cinema's bar and its lyrics at once). */
+export function lyricsFor(track: Track): Promise<Lyrics> {
   const hit = cache.get(track.id);
   if (hit) return hit;
+  const pending = lookupLyrics(track);
+  cache.set(track.id, pending);
+  pending.catch(() => cache.delete(track.id)); // a failure is asked again next time
+  return pending;
+}
+
+async function lookupLyrics(track: Track): Promise<Lyrics> {
   const youtube = isYoutubeUri(track.uri);
   const record = await lookup(track).catch((e) => {
     if (!youtube) throw e;
@@ -141,6 +149,5 @@ export async function lyricsFor(track: Track): Promise<Lyrics> {
   });
   let lyrics = fromRecord(record);
   if (lyrics.kind === "none" && youtube) lyrics = await youtubeLyrics(track);
-  cache.set(track.id, lyrics);
   return lyrics;
 }

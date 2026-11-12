@@ -45,7 +45,7 @@ export async function addToPlaylist(playlist: Card, videoIds: string[]): Promise
 }
 
 /** "Add to playlist": a new YouTube Music playlist, then every one in your library. */
-function addToPlaylistItems(videoIds: string[]): MenuEntry[] {
+export function addToPlaylistItems(videoIds: string[]): MenuEntry[] {
   if (!youtube.signedIn) return [{ label: "Sign in to YouTube Music…", icon: "settings", action: () => goto("/settings") }];
   const targets = youtube.editable;
   return [

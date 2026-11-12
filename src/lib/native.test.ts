@@ -60,6 +60,8 @@ describe("preferences", () => {
     effects: "full",
     accent: "mint",
     lyricsScale: 1.2,
+    lyricsBlur: false,
+    cinemaLayout: "lyrics",
     spotifyClientId: "",
     fontText: "",
     fontDisplay: "",
@@ -74,6 +76,7 @@ describe("preferences", () => {
     await prefs.load();
     expect(document.documentElement.dataset.accent).toBe("mint");
     expect(document.documentElement.style.getPropertyValue("--lyrics-scale")).toBe("1.2");
+    expect(document.documentElement.dataset.lyricsBlur).toBe("off");
     expect(document.documentElement.style.getPropertyValue("--font-lyrics")).toBe('"Georgia", var(--font-display-default)');
     expect(await prefs.update({ effects: "minimal" })).toBe(true);
     expect(document.documentElement.dataset.effects).toBe("minimal");

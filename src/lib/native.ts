@@ -6,6 +6,8 @@ import type { LibraryData } from "$lib/organizer";
 export type Effects = "full" | "balanced" | "minimal";
 export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
+export const CINEMA_LAYOUTS = ["split", "lyrics", "cover", "ambient"] as const;
+export type CinemaLayout = (typeof CINEMA_LAYOUTS)[number];
 
 /** The music services the listener connected. */
 export interface Services {
@@ -22,6 +24,9 @@ export interface Settings {
   effects: Effects;
   accent: Accent;
   lyricsScale: number;
+  /** Soft blur on lyric lines away from the sung one. */
+  lyricsBlur: boolean;
+  cinemaLayout: CinemaLayout;
   spotifyClientId: string;
   remoteEnabled: boolean;
   remotePort: number;
