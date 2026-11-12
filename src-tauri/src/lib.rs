@@ -121,6 +121,8 @@ pub fn run() {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // Closing Carbon (close-to-tray off) closes the pop-outs too; they'd have no player to follow.
+            WindowEvent::Destroyed if window.label() == "main" => window.app_handle().exit(0),
             WindowEvent::Destroyed if popouts::Popout::is_label(window.label()) => popouts::changed(window.app_handle(), Some(window.label())),
             _ => {}
         })
