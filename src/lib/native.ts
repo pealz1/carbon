@@ -4,6 +4,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { LibraryData } from "$lib/organizer";
 
 export type Effects = "full" | "balanced" | "minimal";
+export type RomanPlace = "below" | "instead";
+export type ChineseScript = "original" | "simplified" | "traditional";
 export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
 
@@ -24,6 +26,12 @@ export interface Settings {
   effects: Effects;
   accent: Accent;
   lyricsScale: number;
+  /** Romanised Japanese, Chinese and Korean lyrics by default; each song can override it. */
+  lyricsRomanise: boolean;
+  lyricsRomanPlace: RomanPlace;
+  /** Readings over kanji while romanisation is on. */
+  lyricsFurigana: boolean;
+  lyricsChinese: ChineseScript;
   spotifyClientId: string;
   remoteEnabled: boolean;
   remotePort: number;
