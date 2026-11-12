@@ -17,7 +17,12 @@ const playlist = (id: string, ownerId = "me", collaborative = false): PlaylistSu
 });
 
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
-vi.mock("$lib/native", () => ({ libraryGet: vi.fn(), librarySet: vi.fn(async (l: unknown) => l) }));
+vi.mock("$lib/native", () => ({
+  libraryGet: vi.fn(),
+  librarySet: vi.fn(async (l: unknown) => l),
+  blocklistGet: vi.fn(async () => ({ items: [], skipExplicit: false })),
+  blocklistSet: vi.fn(async (l: unknown) => l),
+}));
 vi.mock("$lib/spotify/endpoints", () => ({
   isSaved: vi.fn(async (uris: string[]) => uris.map(() => false)),
   save: vi.fn(),
@@ -106,6 +111,8 @@ describe("trackMenu", () => {
       "Save to Liked Songs",
       "Go to album",
       "Go to artist",
+      "Block song",
+      "Block artist",
       "Copy Spotify link",
     ]);
     const targets = items(find(menu, "Add to playlist")!.items!).map((i) => i.label);
