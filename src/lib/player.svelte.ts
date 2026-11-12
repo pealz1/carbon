@@ -63,6 +63,8 @@ class Player {
   contextUri = $state<string | null>(null);
   /** False when Spotify isn't one of the connected services: its SDK then never loads. */
   spotifyEnabled = $state(true);
+  /** Spotify moved playback off Carbon's player (to another Connect device, or stopped it there). */
+  away = $state(false);
   /** Smart shuffle: a Spotify list's songs for Carbon to shuffle, or null to leave it to Spotify. Set at startup. */
   shuffleSource: ((contextUri: string) => Promise<Track[] | null>) | null = null;
   #positionMs = $state(0);
@@ -124,6 +126,11 @@ class Player {
   }
 
   isCurrent = (uri: string): boolean => this.track?.uri === uri;
+
+  /** Carbon's Spotify Connect device id, or null while the SDK isn't ready. */
+  get deviceId(): string | null {
+    return this.#device;
+  }
 
   async start(): Promise<void> {
     if (this.#sdk || this.#opening || !this.spotifyEnabled) return;
@@ -245,6 +252,7 @@ class Player {
   #apply(state: Spotify.PlaybackState | null): void {
     if (state) this.#sdkModes = { shuffle: state.shuffle, repeat: REPEAT_MODES[state.repeat_mode] ?? "off" };
     if (this.#youtube.active || this.#mixed.backend === "local" || (state && this.#mixed.active && !this.#mixed.spotifyState(state))) return;
+    this.away = !state;
     if (!state) {
       this.paused = true; // playback moved to another device
       this.#report();

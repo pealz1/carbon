@@ -11,6 +11,7 @@
   import Logo from "./Logo.svelte";
   import LoopZone from "./LoopZone.svelte";
   import PlaybackTools from "./PlaybackTools.svelte";
+  import PlayingElsewhere from "./PlayingElsewhere.svelte";
   import Slider from "./Slider.svelte";
 
   // The player bar: part of the chrome, no card. Track on the left, progress over transport in
@@ -49,6 +50,7 @@
           {/each}
           {#if album?.name}<span class="dash">–</span>{album.name}{/if}
         </span>
+        <PlayingElsewhere />
       </div>
       <LikeButton uri={player.track.uri} label={player.track.name} size={17} />
     {:else}
