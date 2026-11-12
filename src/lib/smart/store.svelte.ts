@@ -8,9 +8,18 @@ import { smartGet, smartSet } from "$lib/playlist-tools/files";
 import type { Row } from "$lib/playlist-tools/rows";
 import { createCarbonPlaylist, createSpotifyPlaylist } from "$lib/playlist-tools/tools.svelte";
 import { session } from "$lib/session.svelte";
+import * as sp from "$lib/spotify/endpoints";
 import { toasts } from "$lib/toast.svelte";
 import { collect, forgetLibrary, replaceSpotifyItems } from "./library";
 import { evaluate, isStale, parseSaved, usesSpotify, type SmartPlaylist } from "./rules";
+
+/** The sidebar list stops at 200 playlists, so anything not on it is checked with Spotify. */
+async function inLibrary(id: string | null): Promise<boolean> {
+  if (!id) return false;
+  if (session.playlists.some((p) => p.id === id)) return true;
+  const [saved] = await sp.isSaved([`spotify:playlist:${id}`]);
+  return saved === true;
+}
 
 class SmartPlaylists {
   list = $state<SmartPlaylist[]>([]);
@@ -73,7 +82,8 @@ class SmartPlaylists {
       const exclude = new Set(this.list.flatMap((p) => (p.output === "spotify" && p.targetId ? [p.targetId] : [])));
       const rows = evaluate(await collect(playlist.sources, exclude, step), playlist, Date.now());
       step("Updating the playlist…");
-      const targetId = await this.#write(playlist, rows);
+      const targetId = await this.#target(playlist);
+      await this.#fill(playlist, targetId, rows);
       await this.#save(this.list.map((p) => (p.id === id ? { ...p, targetId, refreshedMs: Date.now() } : p)));
       if (!quiet) toasts.show(`Refreshed ${playlist.name}: ${rows.length} ${rows.length === 1 ? "song" : "songs"}.`);
       return true;
@@ -87,22 +97,26 @@ class SmartPlaylists {
     }
   }
 
-  /** Writes the songs; creates the playlist when it's new or was deleted. Returns its id. */
-  async #write(playlist: SmartPlaylist, rows: Row[]): Promise<string> {
-    if (playlist.output === "spotify") {
-      // Only Spotify songs: local files can't go into Spotify playlists.
-      const uris = rows.flatMap((r) => (r.uri.startsWith("spotify:track:") ? [r.uri] : []));
-      const live = playlist.targetId && session.playlists.some((p) => p.id === playlist.targetId && p.ownerId === session.profile?.id);
-      const id = live ? playlist.targetId! : await createSpotifyPlaylist(playlist.name, []);
-      await replaceSpotifyItems(id, uris);
-      return id;
-    }
-    await carbonPlaylists.load();
-    const items = rows.flatMap((r) => (r.track ? [toItem(r.track)] : []));
-    const existing = playlist.targetId && carbonPlaylists.find(playlist.targetId) ? playlist.targetId : null;
-    const id = existing ?? (await createCarbonPlaylist(playlist.name, []));
-    if (!id || !(await carbonPlaylists.replace(id, items))) throw new Error(carbonPlaylists.error ?? "Couldn't update the Carbon playlist.");
+  /**
+   * The playlist it writes to, made when it's new or was deleted. A new id is saved before any
+   * songs go in, so a refresh that fails halfway doesn't leave a new empty playlist every time.
+   */
+  async #target(playlist: SmartPlaylist): Promise<string> {
+    if (playlist.output === "carbon") await carbonPlaylists.load();
+    const live =
+      playlist.output === "spotify" ? await inLibrary(playlist.targetId) : !!playlist.targetId && !!carbonPlaylists.find(playlist.targetId);
+    if (live) return playlist.targetId!;
+    const id = playlist.output === "spotify" ? await createSpotifyPlaylist(playlist.name, []) : await createCarbonPlaylist(playlist.name, []);
+    if (!id) throw new Error(playlist.output === "spotify" ? "Spotify didn't create the playlist." : (carbonPlaylists.error ?? "Couldn't create the Carbon playlist."));
+    await this.#save(this.list.map((p) => (p.id === playlist.id ? { ...p, targetId: id } : p)));
     return id;
+  }
+
+  async #fill(playlist: SmartPlaylist, id: string, rows: Row[]): Promise<void> {
+    // Only Spotify songs go to Spotify playlists: local files can't.
+    if (playlist.output === "spotify") return replaceSpotifyItems(id, rows.flatMap((r) => (r.uri.startsWith("spotify:track:") ? [r.uri] : [])));
+    const items = rows.flatMap((r) => (r.track ? [toItem(r.track)] : []));
+    if (!(await carbonPlaylists.replace(id, items))) throw new Error(carbonPlaylists.error ?? "Couldn't update the Carbon playlist.");
   }
 
   /**
