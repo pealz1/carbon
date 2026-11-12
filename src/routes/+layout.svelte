@@ -34,7 +34,7 @@
   import { sound } from "$lib/local/sound.svelte";
   import { organizer } from "$lib/organizer.svelte";
   import { player } from "$lib/player.svelte";
-  import { compact } from "$lib/popout/compact.svelte";
+  import { compact, keepYoutubeOnScreen } from "$lib/popout/compact.svelte";
   import { popouts } from "$lib/popout/host.svelte";
   import { isPopoutPath } from "$lib/popout/now";
   import { prefs } from "$lib/preferences.svelte";
@@ -64,7 +64,8 @@
     }));
     const stopPopouts = popouts.start();
     const stopSounds = installSoundFeedback(document);
-    return () => (stopPopouts(), stopSounds());
+    const onScreen = keepYoutubeOnScreen(async () => void (player.paused || (await player.togglePlay())));
+    return () => (stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
   });
 
   // Music services start once the Carbon account gate (if this build has one) is passed.

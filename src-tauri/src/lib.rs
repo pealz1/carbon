@@ -20,6 +20,7 @@ mod system;
 mod taskbar;
 mod token_store;
 mod tray;
+mod visibility;
 mod youtube;
 
 use blocklist::BlocklistState;
@@ -52,6 +53,7 @@ fn playback_update(
         info.validate()?;
     }
     media.update(info.as_ref());
+    app.state::<visibility::YoutubePlaying>().update(info.as_ref());
     app.state::<notifications::Notifier>().update(&app, info.as_ref());
     taskbar::set_playing(&app, info.as_ref().is_some_and(|i| !i.paused));
     tray.update(&app, info.as_ref());
@@ -76,6 +78,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
     app.manage(remote);
     app.manage(notifications::Notifier::default());
+    app.manage(visibility::YoutubePlaying::default());
     app.manage(hotkeys::HotkeyState::default());
     hotkeys::apply(&handle, &prefs.hotkeys);
     app.manage(SettingsState(Mutex::new(prefs)));
@@ -127,7 +130,16 @@ pub fn run() {
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. } if window.label() == "main" && settings::current(window.app_handle()).close_to_tray => {
                 api.prevent_close();
-                let _ = window.hide();
+                if window.state::<visibility::YoutubePlaying>().get() {
+                    visibility::hand_over(window, "close");
+                } else {
+                    let _ = window.hide();
+                }
+            }
+            WindowEvent::Resized(_)
+                if window.label() == "main" && window.state::<visibility::YoutubePlaying>().get() && window.is_minimized().unwrap_or(false) =>
+            {
+                visibility::hand_over(window, "minimize");
             }
             // Closing Carbon (close-to-tray off) closes the pop-outs too; they'd have no player to follow.
             WindowEvent::Destroyed if window.label() == "main" => window.app_handle().exit(0),
