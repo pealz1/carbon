@@ -2,13 +2,13 @@
   import { MAX_OFFSET_MS, OFFSET_STEP_MS, saveOffset } from "$lib/lyric-offsets";
   import { player } from "$lib/player.svelte";
   import { prefs } from "$lib/preferences.svelte";
+  import BarPopover from "./BarPopover.svelte";
   import Icon from "./Icon.svelte";
-  import Popover from "./Popover.svelte";
   import Toggle from "./Toggle.svelte";
 
   // Cinema's lyrics options: this song's timing, the text size and the soft blur on distant lines.
   // Size and blur are the same settings as in Settings, so they apply to every lyrics view.
-  let { offset = $bindable(0), synced, open = $bindable(false) }: { offset?: number; synced: boolean; open?: boolean } = $props();
+  let { offset = $bindable(0), synced }: { offset?: number; synced: boolean } = $props();
 
   const SIZE_STEP = 0.1;
   const MIN_SIZE = 0.75;
@@ -24,7 +24,7 @@
   const resize = (by: number) => prefs.update({ lyricsScale: Math.round(Math.min(MAX_SIZE, Math.max(MIN_SIZE, scale + by)) * 100) / 100 });
 </script>
 
-<Popover label="Lyrics options" bind:open>
+<BarPopover label="Lyrics options">
   {#snippet button()}<Icon name="lyrics" size={18} />{/snippet}
   <div class="options">
     <div class="row">
@@ -46,7 +46,7 @@
     <Toggle checked={blur} label="Soften distant lines" onchange={(on) => prefs.update({ lyricsBlur: on })} />
     {#if !synced}<p class="hint">Timing works on synced lyrics.</p>{/if}
   </div>
-</Popover>
+</BarPopover>
 
 <style>
   .options {

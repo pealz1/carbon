@@ -187,6 +187,18 @@ pub fn add(playlists: &mut [Playlist], id: &str, items: Vec<Item>) -> Result<(),
     Ok(())
 }
 
+/// Swaps in a whole new item list (sorting, removing duplicates, smart playlists, imports).
+pub fn replace(playlists: &mut [Playlist], id: &str, items: Vec<Item>) -> Result<(), String> {
+    items.iter().try_for_each(Item::validate)?;
+    if items.len() > MAX_ITEMS {
+        return Err(format!("A playlist holds up to {MAX_ITEMS} songs."));
+    }
+    let p = find(playlists, id)?;
+    p.items = items;
+    p.updated_ms = now_ms();
+    Ok(())
+}
+
 pub fn remove(playlists: &mut [Playlist], id: &str, index: usize) -> Result<(), String> {
     let p = find(playlists, id)?;
     if index >= p.items.len() {
@@ -241,6 +253,11 @@ pub fn carbon_playlist_delete(app: AppHandle, store: State<Store>, id: String) -
 #[tauri::command]
 pub fn carbon_playlist_add(app: AppHandle, store: State<Store>, id: String, items: Vec<Item>) -> Result<Vec<Playlist>, String> {
     store.update(&app, |all| add(all, &id, items))
+}
+
+#[tauri::command]
+pub fn carbon_playlist_replace(app: AppHandle, store: State<Store>, id: String, items: Vec<Item>) -> Result<Vec<Playlist>, String> {
+    store.update(&app, |all| replace(all, &id, items))
 }
 
 #[tauri::command]
@@ -327,5 +344,17 @@ mod tests {
         remove(&mut all, &id, 1).unwrap();
         assert_eq!(all[0].items.len(), 2);
         assert!(remove(&mut all, &id, 5).is_err());
+    }
+
+    #[test]
+    fn replaces_items_only_when_all_are_valid() {
+        let mut all = one();
+        let id = all[0].id.clone();
+        add(&mut all, &id, vec![Item::Local { id: LOCAL.into() }]).unwrap();
+        replace(&mut all, &id, vec![spotify("4uLU6hMCjMI75M1A2tKUQC"), Item::Local { id: LOCAL.into() }]).unwrap();
+        assert_eq!(all[0].items.len(), 2);
+        assert!(replace(&mut all, &id, vec![Item::Local { id: "bad".into() }]).is_err());
+        assert_eq!(all[0].items.len(), 2);
+        assert!(replace(&mut all, "missing", vec![]).is_err());
     }
 }

@@ -24,6 +24,9 @@ describe("native bridge", () => {
     await native.lastfmStatus();
     await native.lastfmConnect();
     await native.lastfmDisconnect();
+    await native.listenbrainzStatus();
+    await native.listenbrainzConnect("token-1");
+    await native.listenbrainzDisconnect();
     expect(invoke.mock.calls.map((c) => c[0])).toEqual([
       "settings_get",
       "library_get",
@@ -35,8 +38,12 @@ describe("native bridge", () => {
       "lastfm_status",
       "lastfm_connect",
       "lastfm_disconnect",
+      "listenbrainz_status",
+      "listenbrainz_connect",
+      "listenbrainz_disconnect",
     ]);
     expect(invoke.mock.calls[2][1]).toEqual({ library });
+    expect(invoke.mock.calls[11][1]).toEqual({ token: "token-1" });
   });
 
   it("passes media key events through", async () => {
@@ -57,6 +64,7 @@ describe("preferences", () => {
     closeToTray: true,
     discordPresence: true,
     lastfmScrobbling: true,
+    listenbrainzScrobbling: true,
     effects: "full",
     accent: "mint",
     lyricsScale: 1.2,

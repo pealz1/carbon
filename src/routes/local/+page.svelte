@@ -12,6 +12,7 @@
   import { localLibrary as lib } from "$lib/local/library.svelte";
   import { shuffledFrom } from "$lib/local/queue";
   import { player } from "$lib/player.svelte";
+  import { tools } from "$lib/playlist-tools/tools.svelte";
   import type { Track } from "$lib/spotify/types";
 
   const TABS = [
@@ -92,6 +93,7 @@
       </label>
       <button class="pill" onclick={lib.addFolder}><Icon name="folder" size={16} /> Add folder</button>
       <button class="pill" onclick={lib.rescan} disabled={lib.scanning || !lib.folders.length}>{lib.scanning ? "Scanning…" : "Rescan"}</button>
+      <button class="pill" onclick={tools.openImport}><Icon name="import" size={16} /> Import playlist</button>
     </div>
   </header>
 

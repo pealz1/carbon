@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { clampOffset, offsetFor, saveOffset } from "./lyric-offsets";
 import { acceptResync, positionFromState } from "./playback-clock";
-import { lineEnd, lineProgress, wordProgress } from "./words";
+import { lineEnd, lineProgress, sungFraction, wordProgress } from "./words";
 
 const lines = [
   { timeMs: 1000, text: "a" },
@@ -108,5 +108,28 @@ describe("acceptResync", () => {
     expect(acceptResync(10_000, 60_100, 300)).toBe(false);
     expect(acceptResync(60_400, 60_100, 300)).toBe(true);
     expect(acceptResync(10_000, 60_100, 1_500)).toBe(true);
+  });
+});
+
+describe("sungFraction", () => {
+  it("follows the line fill without word timing", () => {
+    expect(sungFraction(lines, 0, 3000)).toBe(0.5);
+  });
+
+  it("weights timed words by length so romanised text keeps pace with them", () => {
+    const timed = [
+      {
+        timeMs: 0,
+        text: "aaa b",
+        words: [
+          { text: "aaa ", startMs: 0, endMs: 1000 },
+          { text: "b", startMs: 1000, endMs: 2000 },
+        ],
+      },
+    ];
+    expect(sungFraction(timed, 0, 0)).toBe(0);
+    expect(sungFraction(timed, 0, 1000)).toBe(0.8);
+    expect(sungFraction(timed, 0, 1500)).toBe(0.9);
+    expect(sungFraction(timed, 0, 5000)).toBe(1);
   });
 });

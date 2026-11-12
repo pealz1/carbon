@@ -1,10 +1,8 @@
 <script lang="ts">
   import { prefs } from "$lib/preferences.svelte";
   import CinemaLayouts from "./CinemaLayouts.svelte";
-  import Toggle from "./Toggle.svelte";
 
-  // Settings → Cinema mode: the layout cinema opens in, and the soft blur on distant lyric lines.
-  // Cinema's own bar changes the same two settings.
+  // Settings → Cinema mode: the layout cinema opens in. Cinema's bar changes the same setting.
 </script>
 
 {#if prefs.value}
@@ -12,12 +10,6 @@
     <h2>Cinema mode</h2>
     <p class="eyebrow">Layout</p>
     <CinemaLayouts value={prefs.value.cinemaLayout} onpick={(cinemaLayout) => prefs.update({ cinemaLayout })} />
-    <Toggle
-      checked={prefs.value.lyricsBlur}
-      label="Soften distant lyric lines"
-      description="Lines away from the one being sung blur slightly, here and wherever lyrics show."
-      onchange={(lyricsBlur) => prefs.update({ lyricsBlur })}
-    />
   </section>
 {/if}
 

@@ -1,113 +1,53 @@
 <script lang="ts">
+  // A glass panel floating above a player-bar button (devices, sleep timer). Closes on Esc, a click
+  // elsewhere or leaving the window, and hands focus back to its button.
   import type { Snippet } from "svelte";
+  import { fly } from "svelte/transition";
 
-  // A small glass panel floating above its button. A click pins it open; `peek` also opens it while
-  // the pointer rests on it. Esc (which then doesn't leave cinema), a click elsewhere or the button
-  // again close it. It only fades and rises, so reduced motion and Minimal effects cut the motion.
-  let {
-    label,
-    open = $bindable(false),
-    peek = false,
-    align = "end",
-    trigger = "ctl",
-    button,
-    children,
-  }: {
-    label: string;
-    open?: boolean;
-    peek?: boolean;
-    align?: "start" | "end";
-    /** Class for the button, so it matches the controls around it. */
-    trigger?: string;
-    button: Snippet;
-    children: Snippet;
-  } = $props();
+  let { anchor, label, onclose, children }: { anchor: HTMLElement; label: string; onclose: () => void; children: Snippet } = $props();
 
-  /** Lets the pointer cross the gap between the button and the panel. */
-  const PEEK_GRACE_MS = 220;
-  let pinned = $state(false);
-  let hovering = $state(false);
-  let root = $state<HTMLElement>();
-  let toggle = $state<HTMLButtonElement>();
-  let grace = 0;
+  const GAP = 10;
+  const MARGIN = 8;
+  let panel = $state<HTMLElement>();
+  let place = $state({ right: MARGIN, bottom: 0 });
 
   $effect(() => {
-    open = pinned || (peek && hovering);
+    const rect = anchor.getBoundingClientRect();
+    place = { right: Math.max(MARGIN, innerWidth - rect.right - MARGIN), bottom: innerHeight - rect.top + GAP };
+    panel?.querySelector<HTMLElement>("button:not(:disabled), input")?.focus();
+    return () => anchor.focus();
   });
 
-  function enter() {
-    clearTimeout(grace);
-    hovering = true;
-  }
-
-  function leave() {
-    clearTimeout(grace);
-    grace = window.setTimeout(() => (hovering = false), PEEK_GRACE_MS);
-  }
-
-  function close(event: Event, refocus: boolean) {
-    pinned = false;
-    hovering = false;
-    if (!refocus) return;
-    event.preventDefault();
-    toggle?.focus();
-  }
-
-  const outside = (event: PointerEvent) => open && !root?.contains(event.target as Node) && close(event, false);
-  const escape = (event: KeyboardEvent) => open && event.key === "Escape" && close(event, true);
+  const outside = (event: Event) => !panel?.contains(event.target as Node) && !anchor.contains(event.target as Node);
 </script>
 
-<svelte:document onpointerdown={outside} onkeydown={escape} />
+<!-- Esc is caught on the document, before the window's shortcuts, so in cinema it closes only this. -->
+<svelte:document onkeydown={(e) => e.key === "Escape" && (e.preventDefault(), onclose())} />
+<svelte:window onpointerdown={(e) => outside(e) && onclose()} onresize={onclose} onblur={onclose} />
 
-<div class="popover" role="presentation" bind:this={root} onpointerenter={enter} onpointerleave={leave}>
-  <button bind:this={toggle} class={trigger} class:open aria-expanded={open} aria-haspopup="dialog" aria-label={label} title={peek ? undefined : label} onclick={() => (pinned = !pinned)}>
-    {@render button()}
-  </button>
-  {#if open}
-    <div class="panel glass {align}" role="dialog" aria-label={label}>
-      {@render children()}
-    </div>
-  {/if}
+<div
+  bind:this={panel}
+  class="popover glass"
+  role="dialog"
+  aria-label={label}
+  style="right: {place.right}px; bottom: {place.bottom}px"
+  transition:fly={{ y: 8, duration: 200 }}
+>
+  {@render children()}
 </div>
 
 <style>
   .popover {
-    position: relative;
+    position: fixed;
+    z-index: 40;
+    width: 320px;
+    max-height: min(480px, calc(100vh - 140px));
+    overflow-y: auto;
     display: flex;
-  }
-
-  .panel {
-    position: absolute;
-    /* --lift: how far above this button the bar's top edge is, so the panel clears the whole bar. */
-    bottom: calc(100% + var(--lift, 0px) + var(--sp-3));
-    z-index: 2;
-    min-width: 240px;
-    padding: var(--sp-3);
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
     border-radius: var(--r-lg);
-    transform-origin: bottom right;
-    animation: rise var(--dur-fast) var(--ease-out);
-  }
-
-  .end {
-    right: 0;
-  }
-
-  .start {
-    left: 0;
-    transform-origin: bottom left;
-  }
-
-  /* Bridges the gap above the button, so moving onto the panel doesn't close a peek. */
-  .panel::after {
-    content: "";
-    position: absolute;
-    inset: 100% 0 calc(-1 * (var(--lift, 0px) + var(--sp-3)));
-  }
-
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(6px) scale(0.98);
-    }
+    color: var(--text);
   }
 </style>

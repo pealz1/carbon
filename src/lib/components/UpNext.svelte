@@ -4,12 +4,12 @@
   import type { Track } from "$lib/spotify/types";
   import { view } from "$lib/view.svelte";
   import { isYoutubeUri } from "$lib/youtube/uri";
+  import BarPopover from "./BarPopover.svelte";
   import Icon from "./Icon.svelte";
-  import Popover from "./Popover.svelte";
 
   // Cinema's "Up next" chip: names the next song, and opens (on hover or click) onto the next few,
   // any of which plays on a click. The whole queue is one step away in the queue panel.
-  let { tracks, exact, open = $bindable(false) }: { tracks: Track[]; exact: boolean; open?: boolean } = $props();
+  let { tracks, exact }: { tracks: Track[]; exact: boolean } = $props();
 
   const PEEK = 3;
   const more = $derived(tracks.length - PEEK);
@@ -27,7 +27,7 @@
   }
 </script>
 
-<Popover label="Up next" peek trigger="chip" bind:open>
+<BarPopover label="Up next" peek trigger="chip">
   {#snippet button()}
     <Icon name="queue" size={16} />
     <span class="chip-text">
@@ -58,7 +58,7 @@
     <span class="rest">{more > 0 ? `${more} more${exact ? ` · ${formatTotal(rest)}` : ""}` : ""}</span>
     <button class="pill ghost" onclick={showQueue}>Full queue</button>
   </footer>
-</Popover>
+</BarPopover>
 
 <style>
   .chip-text {

@@ -18,12 +18,13 @@
   import { css } from "$lib/wallpaper";
   import { addToPlaylistItems as youtubePlaylistItems } from "$lib/youtube/menus";
   import { isYoutubeUri, pageHref } from "$lib/youtube/uri";
+  import BarPopover from "./BarPopover.svelte";
   import CinemaLayouts from "./CinemaLayouts.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import LyricScrubber from "./LyricScrubber.svelte";
   import LyricsControls from "./LyricsControls.svelte";
-  import Popover from "./Popover.svelte";
+  import PlaybackTools from "./PlaybackTools.svelte";
   import UpNext from "./UpNext.svelte";
   import VolumeControl from "./VolumeControl.svelte";
 
@@ -37,8 +38,6 @@
     height = $bindable(0),
     onhold,
     miniPlayer,
-    devices,
-    sleepTimer,
   }: {
     hidden: boolean;
     lines: LyricLine[];
@@ -46,27 +45,30 @@
     offset?: number;
     height?: number;
     onhold: (reason: string, on: boolean) => void;
-    /** Slots for controls other features add (mini player, playback devices, sleep timer). */
+    /** The mini player's button, once Carbon has one (nothing is drawn until then). */
     miniPlayer?: Snippet;
-    devices?: Snippet;
-    sleepTimer?: Snippet;
   } = $props();
 
   const TICK_MS = 250;
   const SOURCES = { spotify: "Spotify", youtube: "YouTube Music", local: "On this PC" } as const;
+  const OPEN_POPOVER = "[aria-expanded='true']";
   let bar = $state<HTMLElement>();
   let position = $state(player.position());
   let now = $state(Date.now());
   let queueMode = $state(false);
-  let upOpen = $state(false);
-  let lyricsOpen = $state(false);
-  let layoutOpen = $state(false);
 
   $effect(() => {
     const timer = setInterval(() => ((position = player.position()), (now = Date.now())), TICK_MS);
     return () => clearInterval(timer);
   });
-  $effect(() => onhold("popover", upOpen || lyricsOpen || layoutOpen));
+  // Any popover opened from the bar (its own, the sleep timer's, the devices') keeps it up.
+  $effect(() => {
+    const root = bar;
+    if (!root) return;
+    const observer = new MutationObserver(() => onhold("popover", root.querySelector(OPEN_POPOVER) !== null));
+    observer.observe(root, { attributes: true, attributeFilter: ["aria-expanded"], subtree: true });
+    return () => observer.disconnect();
+  });
 
   // Carbon and YouTube Music queues are known exactly; Spotify's is asked for once per song, as the queue panel does.
   const spotifyQueue = resource(() => {
@@ -89,7 +91,8 @@
 
   const trackItems = () => (player.track ? trackMenu(player.track) : []);
   const holdMenu = { onhold: (at: { x: number; y: number }, node: HTMLElement) => menu.openAt(at.x, at.y, trackItems(), node) };
-  const focusIn = (event: FocusEvent) => (event.target as Element).matches(":focus-visible") && onhold("focus", true);
+  // Keyboard focus holds the bar up; a click's focus doesn't, or one click would pin it for good.
+  const focusIn = (event: FocusEvent) => onhold("focus", (event.target as Element).matches(":focus-visible"));
   const focusOut = (event: FocusEvent) => !bar?.contains(event.relatedTarget as Node | null) && onhold("focus", false);
 </script>
 
@@ -170,15 +173,14 @@
     </div>
 
     <div class="tools">
-      {#if upNext.length}<UpNext tracks={upNext} exact={exactQueue} bind:open={upOpen} />{/if}
-      <LyricsControls bind:offset synced={lines.length > 0} bind:open={lyricsOpen} />
-      <Popover label="Layout" bind:open={layoutOpen}>
+      {#if upNext.length}<UpNext tracks={upNext} exact={exactQueue} />{/if}
+      <LyricsControls bind:offset synced={lines.length > 0} />
+      <BarPopover label="Layout">
         {#snippet button()}<Icon name="layouts" size={18} />{/snippet}
         <CinemaLayouts value={prefs.value?.cinemaLayout ?? "split"} onpick={(cinemaLayout: CinemaLayout) => prefs.update({ cinemaLayout })} />
-      </Popover>
+      </BarPopover>
+      <PlaybackTools />
       {@render miniPlayer?.()}
-      {@render devices?.()}
-      {@render sleepTimer?.()}
       <VolumeControl />
       <span class="rule" aria-hidden="true"></span>
       <button class="ctl" onclick={view.toggleFullscreen} aria-label={view.fullscreen ? "Leave full screen" : "Full screen"} title="Full screen (F11)">
@@ -190,31 +192,46 @@
 </footer>
 
 <style>
+  /* While showing, the bar has no transform, filter or containment: the player bar's popovers
+     (sleep timer, devices) are fixed to the window and would otherwise be placed against the bar. */
   .bar {
     --tint-a: transparent;
     --tint-b: transparent;
+    --seek-h: 24px;
     position: absolute;
-    left: 50%;
+    left: 0;
+    right: 0;
     bottom: var(--sp-4);
     z-index: 2;
+    isolation: isolate;
     width: min(1360px, calc(100% - 2 * var(--sp-5)));
-    --seek-h: 24px;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    margin: 0 auto;
     padding: var(--sp-2) var(--sp-6) var(--sp-3);
     border-radius: var(--r-pill);
-    background: var(--grain), linear-gradient(100deg, var(--tint-a), var(--tint-b)), var(--glass-strong);
-    container-type: inline-size;
-    transform: translateX(-50%);
     transition:
       opacity var(--dur-med) var(--ease-out),
       transform var(--dur-med) var(--ease-out);
   }
 
+  /* The glass, tinted by the artwork's tones. */
+  .bar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--grain), linear-gradient(100deg, var(--tint-a), var(--tint-b)), var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+    pointer-events: none;
+  }
+
   .bar.hidden {
     opacity: 0;
-    transform: translate(-50%, 24px);
+    transform: translateY(24px);
     pointer-events: none;
     transition-duration: var(--dur-slow);
   }
@@ -442,8 +459,9 @@
     font-weight: 800;
   }
 
-  /* Narrow windows: the chip keeps its icon, the song text goes. */
-  @container (max-width: 1100px) {
+  /* Narrow windows (cinema fills the window, so its width sets the bar's): the chip keeps its
+     icon, the song text goes. */
+  @media (max-width: 1240px) {
     .bar :global(.chip .chip-text) {
       display: none;
     }
@@ -453,7 +471,7 @@
     }
   }
 
-  @container (max-width: 900px) {
+  @media (max-width: 1040px) {
     .ends {
       display: none;
     }

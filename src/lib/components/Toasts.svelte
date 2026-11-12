@@ -32,6 +32,7 @@
   {#each toasts.items as toast (toast.id)}
     <p class="toast glass" class:error={toast.kind === "error"} transition:fly={{ y: 8, duration: 200 }}>
       {toast.text}
+      {#if toast.action}<button class="act" onclick={() => toasts.act(toast)}>{toast.action.label}</button>{/if}
       <button onclick={() => toasts.dismiss(toast.id)} aria-label="Dismiss"><Icon name="close" size={14} /></button>
     </p>
   {/each}

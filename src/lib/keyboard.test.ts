@@ -49,6 +49,7 @@ describe("matchShortcut", () => {
     expect(press("C", { ctrlKey: true, shiftKey: true })).toBe("cinema");
     expect(press("?", { shiftKey: true })).toBe("shortcuts");
     expect(press("Escape")).toBe("escape");
+    expect(press("l")).toBe("loop");
   });
 
   it("ignores everything else", () => {
@@ -59,6 +60,7 @@ describe("matchShortcut", () => {
     expect(press("x", { ctrlKey: true, shiftKey: true })).toBeNull();
     expect(press("F11", { ctrlKey: true })).toBeNull();
     expect(press("a")).toBeNull();
+    expect(press("L", { shiftKey: true })).toBeNull();
   });
 });
 

@@ -1,6 +1,7 @@
 // Context menu contents for tracks, albums, playlists, artists and folders.
 // Labels that depend on live state (liked, pinned) are getters, so an open menu stays truthful.
 import { goto } from "$app/navigation";
+import { blockArtistMenuItem, blockItems } from "$lib/blocklist.svelte";
 import { dialogs } from "$lib/dialogs.svelte";
 import { isLocalUri } from "$lib/local/tracks";
 import type { MenuEntry, MenuItem } from "$lib/menu.svelte";
@@ -8,6 +9,7 @@ import { flattenFolders, folderOf, movePlaylist, removeFolder, togglePin } from 
 import { organizer } from "$lib/organizer.svelte";
 import { addTracks, deletePlaylist, editablePlaylists, removeTracks } from "$lib/playlist-actions";
 import { player } from "$lib/player.svelte";
+import { exportItem, notOwnedItem, toolItems } from "$lib/playlist-tools/tools.svelte";
 import { saved } from "$lib/saved.svelte";
 import { session } from "$lib/session.svelte";
 import type { Card, PlaylistSummary, Track } from "$lib/spotify/types";
@@ -100,9 +102,10 @@ export function trackMenu(track: Track, options: TrackMenuOptions = {}): MenuEnt
         ]
       : []),
     "separator",
-    ...(track.album ? [{ label: "Go to album", icon: "album", action: () => goto(`/album/${track.album!.id}`) } satisfies MenuItem] : []),
+    ...(track.album?.id ? [{ label: "Go to album", icon: "album", action: () => goto(`/album/${track.album!.id}`) } satisfies MenuItem] : []),
     ...goToArtists(track.artists),
     "separator",
+    ...blockItems(track),
     copyItem(track.uri),
   ];
 }
@@ -119,12 +122,14 @@ export function albumMenu(album: Card, tracks: Track[] = []): MenuEntry[] {
     ...(tracks.length ? [{ label: "Add to playlist", icon: "plus", items: addToPlaylistItems(tracks.map((t) => t.uri)) } satisfies MenuItem] : []),
     likeItem(album.uri, "Save to library", "Remove from library"),
     "separator",
+    exportItem({ kind: "album", id: album.id, name: album.title }),
     copyItem(album.uri),
   ];
 }
 
 export function artistMenu(artist: Card): MenuEntry[] {
-  return [...playItems(artist.uri), "separator", { label: "Go to artist", icon: "artist", action: () => goto(`/artist/${artist.id}`) }, copyItem(artist.uri)];
+  const ref = { id: artist.id, name: artist.title, uri: artist.uri };
+  return [...playItems(artist.uri), "separator", { label: "Go to artist", icon: "artist", action: () => goto(`/artist/${artist.id}`) }, blockArtistMenuItem(ref), copyItem(artist.uri)];
 }
 
 function moveToFolderItems(playlistId: string): MenuEntry[] {
@@ -159,6 +164,8 @@ export function playlistMenu(playlist: PlaylistSummary, largeImage?: string | nu
     },
     { label: "Move to folder", icon: "folder", items: moveToFolderItems(playlist.id) },
     { label: "Tags…", icon: "tag", action: () => (dialogs.tags = playlist) },
+    // Spotify only shares the items of playlists you own with apps like Carbon.
+    owned ? { label: "Playlist tools", icon: "sort", items: toolItems({ kind: "playlist", id: playlist.id, name: playlist.name }) } : notOwnedItem,
     "separator",
     copyItem(playlist.uri),
     owned
@@ -201,6 +208,7 @@ export function cardMenu(card: Card): MenuEntry[] {
       { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([card.uri]) },
       likeItem(card.uri, "Save to Liked Songs", "Remove from Liked Songs"),
       "separator",
+      ...blockItems({ id: card.id, uri: card.uri, name: card.title, artists: [], album: null, durationMs: 0, explicit: false }),
       copyItem(card.uri),
     ];
   }

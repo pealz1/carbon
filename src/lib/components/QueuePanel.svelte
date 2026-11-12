@@ -1,6 +1,8 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
+  import { menu } from "$lib/menu.svelte";
   import { player } from "$lib/player.svelte";
+  import { saveQueueItems } from "$lib/playlist-tools/queue";
   import { resource } from "$lib/resource.svelte";
   import { services } from "$lib/services.svelte";
   import * as sp from "$lib/spotify/endpoints";
@@ -15,6 +17,7 @@
     void player.track?.uri;
     return services.active.spotify ? sp.queue() : Promise.resolve([]); // never asks Spotify when it isn't connected
   });
+  const queued = $derived([...(player.track ? [player.track] : []), ...(player.upNext ?? queue.data ?? [])]);
 </script>
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && onclose()} />
@@ -22,7 +25,12 @@
 <aside class="queue glass" transition:fly={{ x: 24, duration: 240 }} aria-label="Queue">
   <header>
     <h2>Up next</h2>
-    <button onclick={onclose} aria-label="Close queue" title="Close"><Icon name="close" size={16} /></button>
+    <span class="tools">
+      <button onclick={(e) => menu.open(e, saveQueueItems(queued, !player.upNext))} aria-label="Save queue as playlist" aria-haspopup="menu" title="Save as playlist">
+        <Icon name="listAdd" size={16} />
+      </button>
+      <button onclick={onclose} aria-label="Close queue" title="Close"><Icon name="close" size={16} /></button>
+    </span>
   </header>
   {#if player.track}
     <h3>Now playing</h3>
@@ -73,6 +81,11 @@
     font-weight: 600;
     color: var(--text-muted);
     letter-spacing: 0;
+  }
+
+  .tools {
+    display: flex;
+    gap: 2px;
   }
 
   header button {

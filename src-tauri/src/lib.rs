@@ -1,9 +1,12 @@
+mod blocklist;
 mod carbon_playlists;
 mod discord;
 mod engine;
 mod fonts;
 mod lastfm;
 mod library;
+mod listenbrainz;
+mod library_tools;
 mod local_library;
 mod media_controls;
 mod oauth;
@@ -15,9 +18,11 @@ mod token_store;
 mod tray;
 mod youtube;
 
+use blocklist::BlocklistState;
 use discord::Discord;
 use lastfm::Lastfm;
 use library::LibraryState;
+use listenbrainz::Listenbrainz;
 use media_controls::MediaState;
 use playback::PlaybackInfo;
 use settings::SettingsState;
@@ -45,6 +50,7 @@ fn playback_update(
     tray.update(&app, info.as_ref());
     remote.publish(info.as_ref());
     discord.send(discord::Msg::Playback(info.clone()));
+    app.state::<Listenbrainz>().send(listenbrainz::Msg::Playback(info.clone()));
     lastfm.send(lastfm::Msg::Playback(info));
     Ok(())
 }
@@ -54,6 +60,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let prefs = settings::load(&handle);
     app.manage(Discord::spawn(prefs.discord_presence));
     app.manage(Lastfm::spawn(prefs.lastfm_scrobbling));
+    app.manage(Listenbrainz::spawn(prefs.listenbrainz_scrobbling, listenbrainz::queue_path(&handle)));
     let remote = remote::Remote::new(&handle);
     if prefs.remote_enabled
         && let Err(e) = remote.apply(true, prefs.remote_port)
@@ -63,6 +70,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(remote);
     app.manage(SettingsState(Mutex::new(prefs)));
     app.manage(LibraryState(Mutex::new(library::load(&handle))));
+    app.manage(BlocklistState(Mutex::new(blocklist::load(&handle))));
     app.manage(tray::build(&handle)?);
     let sound = engine::sound::load(&handle);
     app.manage(local_library::LocalLibrary::load(&handle));
@@ -120,9 +128,14 @@ pub fn run() {
             fonts::fonts_installed,
             library::library_get,
             library::library_set,
+            blocklist::blocklist_get,
+            blocklist::blocklist_set,
             lastfm::lastfm_status,
             lastfm::lastfm_connect,
             lastfm::lastfm_disconnect,
+            listenbrainz::listenbrainz_status,
+            listenbrainz::listenbrainz_connect,
+            listenbrainz::listenbrainz_disconnect,
             remote::remote_status,
             remote::remote_rotate,
             remote::remote_disconnect,
@@ -153,6 +166,13 @@ pub fn run() {
             carbon_playlists::carbon_playlist_add,
             carbon_playlists::carbon_playlist_remove,
             carbon_playlists::carbon_playlist_move,
+            carbon_playlists::carbon_playlist_replace,
+            library_tools::tools_export,
+            library_tools::tools_import,
+            library_tools::tools_cache_get,
+            library_tools::tools_cache_set,
+            library_tools::smart_playlists_get,
+            library_tools::smart_playlists_set,
             youtube::ytm_signed_in,
             youtube::signin::ytm_sign_in,
             youtube::ytm_sign_out,

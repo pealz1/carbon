@@ -17,7 +17,12 @@ const playlist = (id: string, ownerId = "me", collaborative = false): PlaylistSu
 });
 
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
-vi.mock("$lib/native", () => ({ libraryGet: vi.fn(), librarySet: vi.fn(async (l: unknown) => l) }));
+vi.mock("$lib/native", () => ({
+  libraryGet: vi.fn(),
+  librarySet: vi.fn(async (l: unknown) => l),
+  blocklistGet: vi.fn(async () => ({ items: [], skipExplicit: false })),
+  blocklistSet: vi.fn(async (l: unknown) => l),
+}));
 vi.mock("$lib/spotify/endpoints", () => ({
   isSaved: vi.fn(async (uris: string[]) => uris.map(() => false)),
   save: vi.fn(),
@@ -106,6 +111,8 @@ describe("trackMenu", () => {
       "Save to Liked Songs",
       "Go to album",
       "Go to artist",
+      "Block song",
+      "Block artist",
       "Copy Spotify link",
     ]);
     const targets = items(find(menu, "Add to playlist")!.items!).map((i) => i.label);
@@ -160,9 +167,11 @@ describe("playlistMenu", () => {
       "Pin to top",
       "Move to folder",
       "Tags…",
+      "Playlist tools",
       "Copy Spotify link",
       "Delete…",
     ]);
+    expect(find(menu, "Playlist tools")!.items!.map((i) => (i === "separator" ? i : i.label))).toEqual(["Sort…", "Find duplicates…", "Export…"]);
     await find(menu, "Pin to top")!.action!();
     expect(organizer.data.pins).toContain("mine");
     expect(items(menu)[3].label).toBe("Unpin");
@@ -188,6 +197,7 @@ describe("playlistMenu", () => {
   it("only offers removal for playlists you follow, and saving for ones outside your library", () => {
     expect(find(playlistMenu(playlist("theirs", "friend")), "Remove from library")).toBeDefined();
     expect(find(playlistMenu(playlist("theirs", "friend")), "Edit details…")).toBeUndefined();
+    expect(find(playlistMenu(playlist("theirs", "friend")), "Sort and export: only playlists you own")!.disabled).toBe(true);
     const outside = playlistMenu(playlist("elsewhere", "friend"));
     expect(items(outside).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Save to library", "Copy Spotify link"]);
   });
@@ -208,6 +218,7 @@ describe("cardMenu", () => {
     expect(find(cardMenu(card("album", "al1")), "Save to library")).toBeDefined();
     expect(find(cardMenu(card("artist", "a1")), "Go to artist")).toBeDefined();
     expect(find(cardMenu(card("track", "t1")), "Add to playlist")).toBeDefined();
+    expect(find(cardMenu(card("track", "t1")), "Block song")).toBeDefined();
     expect(find(cardMenu(card("playlist", "mine")), "Edit details…")).toBeDefined();
     expect(find(cardMenu(card("playlist", "nowhere")), "Save to library")).toBeDefined();
   });
@@ -218,7 +229,7 @@ describe("album, artist and folder menus", () => {
     const { albumMenu, artistMenu } = await import("./menus");
     const album = { kind: "album" as const, id: "al1", uri: "spotify:album:al1", title: "OK", subtitle: "", image: null, playUri: "spotify:album:al1" };
     const menu = albumMenu(album, [track]);
-    expect(items(menu).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Add to queue", "Add to playlist", "Save to library", "Copy Spotify link"]);
+    expect(items(menu).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Add to queue", "Add to playlist", "Save to library", "Export…", "Copy Spotify link"]);
     find(menu, "Play")!.action!();
     expect(player.playContext).toHaveBeenCalledWith("spotify:album:al1");
     find(menu, "Shuffle play")!.action!();

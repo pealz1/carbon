@@ -2,10 +2,12 @@
   import { lineAt, sectionStarts } from "$lib/cinema";
   import { formatDuration } from "$lib/format";
   import type { LyricLine } from "$lib/lrc";
+  import LoopZone from "./LoopZone.svelte";
   import Slider from "./Slider.svelte";
 
   // The seek bar, aware of the lyrics: hovering or dragging shows the time and the line sung there,
-  // and small ticks mark where sections start. Without synced lyrics it shows the time alone.
+  // and small ticks mark where sections start. Without synced lyrics it shows the time alone. The
+  // A-B loop shows on it too, and its right-click menu sets the loop, as on the player bar.
   let {
     position,
     durationMs,
@@ -48,16 +50,18 @@
 </script>
 
 <div class="scrubber" role="presentation" bind:clientWidth={width} onpointermove={hover} onpointerleave={() => (hoverMs = null)}>
-  <Slider
-    value={position}
-    max={durationMs}
-    step={1000}
-    tone="accent"
-    label="Seek"
-    valuetext="{formatDuration(position)} of {formatDuration(durationMs)}"
-    oncommit={commit}
-    onpreview={(ms) => (dragMs = ms)}
-  />
+  <LoopZone max={durationMs}>
+    <Slider
+      value={position}
+      max={durationMs}
+      step={1000}
+      tone="accent"
+      label="Seek"
+      valuetext="{formatDuration(position)} of {formatDuration(durationMs)}"
+      oncommit={commit}
+      onpreview={(ms) => (dragMs = ms)}
+    />
+  </LoopZone>
   <div class="ticks" aria-hidden="true">
     {#each ticks as tick, i (i)}<i style="left: {(tick / durationMs) * 100}%"></i>{/each}
   </div>

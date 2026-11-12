@@ -2,6 +2,7 @@
 import { describeError } from "$lib/errors";
 import { applyFonts } from "$lib/fonts";
 import { getSettings, saveSettings, type Settings } from "$lib/native";
+import { smartShuffle } from "$lib/smart-shuffle";
 
 class Preferences {
   value = $state<Settings | null>(null);
@@ -35,6 +36,7 @@ class Preferences {
     root.style.setProperty("--lyrics-scale", String(this.value.lyricsScale));
     root.dataset.lyricsBlur = this.value.lyricsBlur === false ? "off" : "on";
     applyFonts(root, this.value);
+    smartShuffle.enabled = this.value.smartShuffle;
   }
 }
 

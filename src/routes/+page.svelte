@@ -3,6 +3,7 @@
   import Status from "$lib/components/Status.svelte";
   import TrackList from "$lib/components/TrackList.svelte";
   import { greeting } from "$lib/format";
+  import ReleasesShelf from "$lib/releases/ReleasesShelf.svelte";
   import { resource } from "$lib/resource.svelte";
   import { session } from "$lib/session.svelte";
   import * as sp from "$lib/spotify/endpoints";
@@ -66,6 +67,7 @@
   </section>
 {/if}
 
+<ReleasesShelf />
 <Shelf title="Artists in your orbit" cards={artists.data ?? []} />
 <Shelf title="Your playlists" cards={playlistCards} />
 
