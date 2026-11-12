@@ -377,6 +377,7 @@ class Player {
           volume: this.volume,
           // A Carbon queue (local files, Carbon playlists) is the real queue, not what Spotify holds.
           queue: (this.upNext ?? this.#upNext).slice(0, QUEUE_PREVIEW).map((t) => ({ title: t.name, artists: t.artists.map((a) => a.name) })),
+          source: this.source,
         }
       : null;
     reportPlayback(info).catch((e) => console.error("[player] native update failed", e));

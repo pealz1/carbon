@@ -47,6 +47,30 @@ export interface Settings {
   smartShuffle: boolean;
   /** Brand updates applied to these settings; Rust owns it, the interface only passes it back. */
   brandVersion: number;
+  /** A Windows notification when the song changes while Carbon isn't focused. */
+  trackNotifications: boolean;
+  hotkeys: Hotkeys;
+}
+
+/** Global shortcuts as accelerators ("Ctrl+Alt+Space"); "" is unbound. Mirrors hotkeys.rs. */
+export interface Hotkeys {
+  enabled: boolean;
+  playPause: string;
+  next: string;
+  previous: string;
+  miniPlayer: string;
+  abLoop: string;
+  sleepTimer: string;
+}
+
+export type HotkeyAction = Exclude<keyof Hotkeys, "enabled">;
+
+/** How a binding fared when Carbon last registered the shortcuts. */
+export interface HotkeyStatus {
+  action: HotkeyAction;
+  combo: string;
+  registered: boolean;
+  error: string | null;
 }
 
 export type RepeatMode = "off" | "context" | "track";
@@ -69,6 +93,8 @@ export interface PlaybackInfo {
   repeat?: RepeatMode;
   volume?: number;
   queue?: QueueItem[];
+  /** Where it plays from, for attribution in song notifications. */
+  source?: "spotify" | "youtube" | "local";
 }
 
 export type MediaCommand =
@@ -159,6 +185,10 @@ export const listenbrainzDisconnect = () => invoke("listenbrainz_disconnect");
 export const remoteStatus = () => invoke<RemoteStatus>("remote_status");
 export const remoteRotate = () => invoke<RemoteStatus>("remote_rotate");
 export const remoteDisconnect = (id: string) => invoke("remote_disconnect", { id });
+export const hotkeysStatus = () => invoke<HotkeyStatus[]>("hotkeys_status");
+/** Lets go of Carbon's global shortcuts while a new one is being recorded. */
+export const hotkeysSuspend = (suspended: boolean) => invoke("hotkeys_suspend", { suspended });
+
 export const onRemoteChanged = (handler: () => void): Promise<UnlistenFn> => listen("remote-changed", () => handler());
 
 /** Spotify Client IDs are 32 lowercase hex characters. Mirrors settings::is_client_id in Rust. */

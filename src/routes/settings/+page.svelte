@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import { account } from "$lib/account.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
+  import DesktopPanel from "$lib/components/DesktopPanel.svelte";
   import FontPicker from "$lib/components/FontPicker.svelte";
   import ListenbrainzPanel from "$lib/components/ListenbrainzPanel.svelte";
   import LyricsSettings from "$lib/components/LyricsSettings.svelte";
@@ -252,6 +253,8 @@
     </section>
 
     <ListenbrainzPanel />
+
+    <DesktopPanel />
 
     <RemotePanel />
 
