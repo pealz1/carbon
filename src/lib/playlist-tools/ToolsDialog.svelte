@@ -3,14 +3,22 @@
   import Modal from "$lib/components/Modal.svelte";
   import Status from "$lib/components/Status.svelte";
   import { describeError } from "$lib/errors";
+  import DupesPanel from "./DupesPanel.svelte";
   import ExportPanel from "./ExportPanel.svelte";
   import type { Row, Source } from "./rows";
-  import { readRows, tools, type ToolsTab } from "./tools.svelte";
+  import SortPanel from "./SortPanel.svelte";
+  import { editable, readRows, tools, type ToolsTab } from "./tools.svelte";
 
   // One dialog for a playlist's tools. Rows are read once (every page) and shared by the tabs.
   let { source, tab: initial }: { source: Source; tab: ToolsTab } = $props();
 
-  const TABS: { id: ToolsTab; label: string }[] = [{ id: "export", label: "Export" }];
+  const ALL_TABS: { id: ToolsTab; label: string }[] = [
+    { id: "sort", label: "Sort" },
+    { id: "duplicates", label: "Duplicates" },
+    { id: "export", label: "Export" },
+  ];
+  // Only playlists you can change get Sort and Duplicates.
+  const TABS = $derived(editable(source) ? ALL_TABS : ALL_TABS.filter((t) => t.id === "export"));
 
   // svelte-ignore state_referenced_locally
   let tab = $state<ToolsTab>(initial);
@@ -49,6 +57,10 @@
       <Status loading />
       <p>{progress ? `Reading songs… ${progress.done}${progress.total ? ` of ${progress.total}` : ""}` : "Reading songs…"}</p>
     </div>
+  {:else if tab === "sort" && editable(source)}
+    <SortPanel {source} {rows} onchanged={load} />
+  {:else if tab === "duplicates" && editable(source)}
+    <DupesPanel {source} {rows} onchanged={load} />
   {:else}
     <ExportPanel {source} {rows} />
   {/if}

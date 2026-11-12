@@ -164,7 +164,7 @@ describe("playlistMenu", () => {
       "Copy Spotify link",
       "Delete…",
     ]);
-    expect(find(menu, "Playlist tools")!.items!.map((i) => (i === "separator" ? i : i.label))).toEqual(["Export…"]);
+    expect(find(menu, "Playlist tools")!.items!.map((i) => (i === "separator" ? i : i.label))).toEqual(["Sort…", "Find duplicates…", "Export…"]);
     await find(menu, "Pin to top")!.action!();
     expect(organizer.data.pins).toContain("mine");
     expect(items(menu)[3].label).toBe("Unpin");
@@ -190,7 +190,7 @@ describe("playlistMenu", () => {
   it("only offers removal for playlists you follow, and saving for ones outside your library", () => {
     expect(find(playlistMenu(playlist("theirs", "friend")), "Remove from library")).toBeDefined();
     expect(find(playlistMenu(playlist("theirs", "friend")), "Edit details…")).toBeUndefined();
-    expect(find(playlistMenu(playlist("theirs", "friend")), "Export: only playlists you own")!.disabled).toBe(true);
+    expect(find(playlistMenu(playlist("theirs", "friend")), "Sort and export: only playlists you own")!.disabled).toBe(true);
     const outside = playlistMenu(playlist("elsewhere", "friend"));
     expect(items(outside).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Save to library", "Copy Spotify link"]);
   });

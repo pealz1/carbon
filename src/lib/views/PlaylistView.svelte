@@ -72,7 +72,7 @@
     {#if tracks.done && !tracks.items.length}<Status empty="This playlist is empty. Add songs from any menu with “Add to playlist”." />{/if}
     <LoadMore pager={tracks} />
   {:else}
-    <p class="notice plate">Spotify only shares track lists with apps like Carbon for playlists you own. Press Play and it'll still play in Carbon.</p>
+    <p class="notice plate">Spotify only shares track lists with apps like Carbon for playlists you own, so sorting, finding duplicates and export work on those only. Press Play and it'll still play in Carbon.</p>
   {/if}
 {/if}
 

@@ -35,6 +35,9 @@ export type Source =
   | { kind: "carbon"; id: string; name: string }
   | { kind: "youtube"; id: string; name: string };
 
+/** Sources Carbon can reorder and remove items from. */
+export type EditableSource = Extract<Source, { kind: "playlist" | "carbon" }>;
+
 export type Progress = (done: number, total: number | null) => void;
 
 export type RawItem = RawTrack & { external_ids?: { isrc?: string } | null; show?: { name: string } | null };

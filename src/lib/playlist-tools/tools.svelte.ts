@@ -9,10 +9,12 @@ import type { MenuItem } from "$lib/menu.svelte";
 import { session } from "$lib/session.svelte";
 import * as sp from "$lib/spotify/endpoints";
 import { toasts } from "$lib/toast.svelte";
-import { albumRows, carbonRows, likedRows, playlistRows, youtubeRows, type Progress, type Row, type Source } from "./rows";
+import { albumRows, carbonRows, likedRows, playlistRows, youtubeRows, type EditableSource, type Progress, type Row, type Source } from "./rows";
 
 export type ToolsTab = "sort" | "duplicates" | "export";
 export type ToolsRequest = { kind: "tools"; source: Source; tab: ToolsTab } | { kind: "import" };
+/** How to put a sorted playlist back: Spotify rows by identity, Carbon playlists by their old list. */
+export type Undo = { kind: "spotify"; keys: string[] } | { kind: "carbon"; items: PlaylistItem[]; updatedMs: number };
 
 const MAX_NAME = 100;
 
@@ -20,6 +22,8 @@ class PlaylistTools {
   dialog = $state<ToolsRequest | null>(null);
   /** Bumped after Carbon rewrites a Spotify playlist, so an open playlist page reloads. */
   version = $state(0);
+  /** The order before the last sort, per playlist, for this session. */
+  undo = $state<Record<string, Undo>>({});
 
   open = (source: Source, tab: ToolsTab = "export") => (this.dialog = { kind: "tools", source, tab });
   openImport = () => (this.dialog = { kind: "import" });
@@ -28,8 +32,10 @@ class PlaylistTools {
 
 export const tools = new PlaylistTools();
 
+export const sourceKey = (source: Source): string => `${source.kind}:${"id" in source ? source.id : ""}`;
+
 /** Spotify lets Carbon reorder and remove items only in playlists you own; Carbon playlists are all yours. */
-export const editable = (source: Source): boolean => source.kind === "playlist" || source.kind === "carbon";
+export const editable = (source: Source): source is EditableSource => source.kind === "playlist" || source.kind === "carbon";
 
 export async function readRows(source: Source, onProgress?: Progress): Promise<Row[]> {
   switch (source.kind) {
@@ -82,13 +88,18 @@ export async function attempt(action: () => Promise<unknown>, failure: string): 
 
 export const exportItem = (source: Source): MenuItem => ({ label: "Export…", icon: "export", action: () => tools.open(source, "export") });
 
-/** The tools a source offers. */
+/** Sort, duplicates and export for a playlist you can change; export only otherwise. */
 export function toolItems(source: Source): MenuItem[] {
-  return [exportItem(source)];
+  if (!editable(source)) return [exportItem(source)];
+  return [
+    { label: "Sort…", icon: "sort", action: () => tools.open(source, "sort") },
+    { label: "Find duplicates…", icon: "duplicate", action: () => tools.open(source, "duplicates") },
+    exportItem(source),
+  ];
 }
 
 /** Shown on playlists you don't own, so the missing tools aren't a mystery. */
-export const notOwnedItem: MenuItem = { label: "Export: only playlists you own", icon: "export", disabled: true };
+export const notOwnedItem: MenuItem = { label: "Sort and export: only playlists you own", icon: "sort", disabled: true };
 
 export async function openCarbon(id: string | null): Promise<void> {
   if (id) await goto(`/carbon/${id}`);
