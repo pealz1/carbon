@@ -215,6 +215,7 @@ describe("cardMenu", () => {
     expect(find(cardMenu(card("album", "al1")), "Save to library")).toBeDefined();
     expect(find(cardMenu(card("artist", "a1")), "Go to artist")).toBeDefined();
     expect(find(cardMenu(card("track", "t1")), "Add to playlist")).toBeDefined();
+    expect(find(cardMenu(card("track", "t1")), "Block song")).toBeDefined();
     expect(find(cardMenu(card("playlist", "mine")), "Edit details…")).toBeDefined();
     expect(find(cardMenu(card("playlist", "nowhere")), "Save to library")).toBeDefined();
   });

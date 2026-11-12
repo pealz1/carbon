@@ -121,6 +121,7 @@ export function ytCardMenu(card: Card): MenuEntry[] {
       { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([card.id]) },
       likeItem(card.uri),
       "separator",
+      ...blockItems(track),
       copyItem(card.uri),
     ];
   }

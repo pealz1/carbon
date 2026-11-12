@@ -204,6 +204,7 @@ export function cardMenu(card: Card): MenuEntry[] {
       { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([card.uri]) },
       likeItem(card.uri, "Save to Liked Songs", "Remove from Liked Songs"),
       "separator",
+      ...blockItems({ id: card.id, uri: card.uri, name: card.title, artists: [], album: null, durationMs: 0, explicit: false }),
       copyItem(card.uri),
     ];
   }
