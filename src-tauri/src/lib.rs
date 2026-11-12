@@ -14,6 +14,7 @@ mod popouts;
 mod remote;
 mod settings;
 mod system;
+mod taskbar;
 mod token_store;
 mod tray;
 mod youtube;
@@ -47,6 +48,7 @@ fn playback_update(
     }
     media.update(info.as_ref());
     app.state::<notifications::Notifier>().update(&app, info.as_ref());
+    taskbar::set_playing(&app, info.as_ref().is_some_and(|i| !i.paused));
     tray.update(&app, info.as_ref());
     remote.publish(info.as_ref());
     discord.send(discord::Msg::Playback(info.clone()));
@@ -83,6 +85,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let media = MediaState::default();
     media.attach(&handle, &window);
     app.manage(media);
+    taskbar::attach(&handle, &window);
 
     // Launched at login with --minimized: stay in the tray until the user opens Carbon.
     if !std::env::args().any(|a| a == MINIMIZED_ARG) {
