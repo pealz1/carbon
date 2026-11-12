@@ -4,11 +4,13 @@
   import { MAX_OFFSET_MS, OFFSET_STEP_MS, offsetFor, saveOffset } from "$lib/lyric-offsets";
   import { lyricsFor, type Lyrics } from "$lib/lyrics";
   import { player } from "$lib/player.svelte";
+  import type { NowSource } from "$lib/popout/now";
   import { lineProgress, LYRICS_LEAD_MS, wordProgress } from "$lib/words";
   import Status from "./Status.svelte";
 
-  // Synced lyrics shared by Now Playing, the docked lyrics panel and cinema mode.
-  let { variant = "page" }: { variant?: "page" | "panel" | "cinema" } = $props();
+  // Synced lyrics shared by Now Playing, the docked lyrics panel, cinema mode and the lyrics pop-out
+  // (which passes its mirror of the main window's player as `source`).
+  let { variant = "page", source = player }: { variant?: "page" | "panel" | "cinema"; source?: Pick<NowSource, "track" | "position" | "seek" | "syncPosition"> } = $props();
 
   /** Where the sung line sits, as a fraction of the lyrics viewport height. */
   const FOCUS = 0.36;
@@ -21,12 +23,12 @@
   let viewport = $state<HTMLElement>();
 
   $effect(() => {
-    const track = player.track;
+    const track = source.track;
     lyrics = null;
     lyricsError = null;
     if (!track) return;
     offset = offsetFor(track.id);
-    void player.syncPosition();
+    void source.syncPosition();
     let current = true;
     lyricsFor(track).then(
       (found) => current && (lyrics = found),
@@ -40,7 +42,7 @@
 
   // Drift correction: while lyrics are on screen, re-read the SDK's local position every second.
   $effect(() => {
-    const timer = setInterval(() => document.visibilityState === "visible" && void player.syncPosition(), RESYNC_MS);
+    const timer = setInterval(() => document.visibilityState === "visible" && void source.syncPosition(), RESYNC_MS);
     return () => clearInterval(timer);
   });
 
@@ -48,7 +50,7 @@
   $effect(() => {
     let frame = 0;
     const loop = () => {
-      clock = player.position();
+      clock = source.position();
       frame = requestAnimationFrame(loop);
     };
     frame = requestAnimationFrame(loop);
@@ -65,11 +67,11 @@
   });
 
   function nudge(by: number) {
-    if (!player.track) return;
-    offset = saveOffset(player.track.id, by === 0 ? 0 : offset + by);
+    if (!source.track) return;
+    offset = saveOffset(source.track.id, by === 0 ? 0 : offset + by);
   }
 
-  const seekTo = (timeMs: number) => player.seek(Math.max(0, timeMs - LYRICS_LEAD_MS - offset));
+  const seekTo = (timeMs: number) => source.seek(Math.max(0, timeMs - LYRICS_LEAD_MS - offset));
   const offsetLabel = $derived(`${offset > 0 ? "+" : offset < 0 ? "−" : "±"}${(Math.abs(offset) / 1000).toFixed(2)} s`);
 </script>
 

@@ -8,6 +8,7 @@ mod local_library;
 mod media_controls;
 mod oauth;
 mod playback;
+mod popouts;
 mod remote;
 mod settings;
 mod system;
@@ -23,6 +24,7 @@ use playback::PlaybackInfo;
 use settings::SettingsState;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State, WindowEvent};
+use tauri_plugin_window_state::StateFlags;
 use tray::TrayState;
 
 const MINIMIZED_ARG: &str = "--minimized";
@@ -96,14 +98,21 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        // Pop-outs come back where they were left; the main window keeps opening centred.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_denylist(&["main"])
+                .with_state_flags(StateFlags::POSITION | StateFlags::SIZE)
+                .build(),
+        )
         .setup(setup)
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event
-                && settings::current(window.app_handle()).close_to_tray
-            {
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } if window.label() == "main" && settings::current(window.app_handle()).close_to_tray => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            WindowEvent::Destroyed if popouts::Popout::is_label(window.label()) => popouts::changed(window.app_handle(), Some(window.label())),
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             playback_update,
@@ -168,6 +177,10 @@ pub fn run() {
             youtube::ytm_playlist_add,
             youtube::ytm_playlist_remove,
             youtube::ytm_playlist_delete,
+            popouts::popout_open,
+            popouts::popout_close,
+            popouts::popouts_open,
+            popouts::popout_command,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Carbon");

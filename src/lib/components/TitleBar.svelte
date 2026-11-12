@@ -3,6 +3,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { dialogs } from "$lib/dialogs.svelte";
   import { menu, type MenuEntry } from "$lib/menu.svelte";
+  import { popouts } from "$lib/popout/host.svelte";
   import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
   import Logo from "./Logo.svelte";
@@ -22,6 +23,8 @@
   const moreItems = (): MenuEntry[] => [
     { label: "Now playing", icon: "album", action: () => goto("/now-playing") },
     { label: "Cinema mode", icon: "screen", action: view.enterCinema },
+    { label: popouts.miniShown ? "Close mini player" : "Mini player", icon: "collapse", action: popouts.toggleMini },
+    { label: popouts.lyrics ? "Close lyrics window" : "Lyrics in a window", icon: "lyrics", action: popouts.toggleLyrics },
     { label: view.fullscreen ? "Leave full screen" : "Full screen", icon: view.fullscreen ? "collapse" : "expand", action: view.toggleFullscreen },
     "separator",
     { label: "Keyboard shortcuts", icon: "keyboard", action: () => (dialogs.shortcuts = true) },

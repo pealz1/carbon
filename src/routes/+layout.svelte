@@ -8,6 +8,7 @@
   import Ambient from "$lib/components/Ambient.svelte";
   import CarbonSignIn from "$lib/components/CarbonSignIn.svelte";
   import Cinema from "$lib/components/Cinema.svelte";
+  import CompactPlayer from "$lib/components/CompactPlayer.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
   import LyricsPanel from "$lib/components/LyricsPanel.svelte";
@@ -30,6 +31,9 @@
   import { sound } from "$lib/local/sound.svelte";
   import { organizer } from "$lib/organizer.svelte";
   import { player } from "$lib/player.svelte";
+  import { compact } from "$lib/popout/compact.svelte";
+  import { popouts } from "$lib/popout/host.svelte";
+  import { isPopoutPath } from "$lib/popout/now";
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
   import { installSoundFeedback, setSoundGate } from "$lib/sfx";
@@ -37,8 +41,11 @@
 
   let { children }: { children: Snippet } = $props();
   let main = $state<HTMLElement>();
+  // The mini player and lyrics windows only mirror this window's player; they start nothing.
+  const popout = isPopoutPath(page.url.pathname);
 
   onMount(() => {
+    if (popout) return;
     void account.boot();
     void organizer.load();
     void view.syncFullscreen();
@@ -49,13 +56,15 @@
       paused: player.paused,
       trackUri: player.track?.uri ?? null,
     }));
-    return installSoundFeedback(document);
+    const stopPopouts = popouts.start();
+    const stopSounds = installSoundFeedback(document);
+    return () => (stopPopouts(), stopSounds());
   });
 
   // Music services start once the Carbon account gate (if this build has one) is passed.
   let servicesStarted = false;
   $effect(() => {
-    if (!account.open || servicesStarted) return;
+    if (popout || !account.open || servicesStarted) return;
     servicesStarted = true;
     void services.boot();
   });
@@ -65,7 +74,7 @@
   $effect(() => void (redirect && goto(redirect, { replaceState: true })));
 
   // The loading screen in app.html stays until we know which screen to show and it has painted.
-  const booting = $derived((account.required && account.status === "unknown") || (account.open && services.screen === "booting"));
+  const booting = $derived(!popout && ((account.required && account.status === "unknown") || (account.open && services.screen === "booting")));
   $effect(() => {
     if (!booting) void tick().then(() => requestAnimationFrame(() => dismissBootScreen()));
   });
@@ -87,16 +96,18 @@
 <svelte:head><title>Carbon</title></svelte:head>
 <svelte:window onkeydown={(e) => services.screen === "app" && handleKey(e)} onresize={() => view.syncFullscreen()} />
 
-<Ambient image={player.track?.album?.image ?? null} playing={!player.paused} />
+{#if !popout}<Ambient image={player.track?.album?.image ?? null} playing={!player.paused} />{/if}
 
-{#if booting}
+{#if popout}
+  {@render children()}
+{:else if booting}
   <!-- app.html's loading screen covers this moment. -->
 {:else if !account.open}
   <CarbonSignIn />
 {:else if services.screen !== "app"}
   <ServiceGate />
 {:else}
-  <div class="app" class:rail={view.rail} class:lyrics={view.lyrics} inert={view.cinema}>
+  <div class="app" class:rail={view.rail} class:lyrics={view.lyrics} class:compact={compact.on} inert={view.cinema}>
     <TitleBar />
     <Sidebar />
     <div class="stage">
@@ -125,6 +136,7 @@
     <NowPlayingBar />
   </div>
   {#if view.cinema}<Cinema />{/if}
+  {#if compact.on}<CompactPlayer />{/if}
   <YoutubeStage />
   <ContextMenu />
   {#if dialogs.playlist}
@@ -163,6 +175,11 @@
 
   .app :global(.titlebar) {
     grid-area: title;
+  }
+
+  /* Compact mode keeps the shell (and the page) as it was, out of sight. */
+  .app.compact {
+    display: none;
   }
 
   .app.rail {
