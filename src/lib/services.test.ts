@@ -67,6 +67,7 @@ describe("what runs in the app", () => {
     expect(redirectFor("/library", youtubeOnly)).toBe("/youtube/library");
     expect(redirectFor("/album/4aawyAB9vmqN3uQ7FjRGTy", youtubeOnly)).toBe("/youtube");
     expect(redirectFor("/liked", youtubeOnly)).toBe("/youtube");
+    for (const page of ["/smart", "/releases", "/podcasts", "/show/38bS44xjbVVZ3No3ByF1dJ"]) expect(redirectFor(page, youtubeOnly)).toBe("/youtube");
     for (const stays of ["/youtube", "/youtube/search", "/settings", "/sound", "/local", "/now-playing"]) expect(redirectFor(stays, youtubeOnly)).toBeNull();
 
     const spotifyOnly = activeFor(SPOTIFY, true);

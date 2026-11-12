@@ -6,6 +6,7 @@ mod fonts;
 mod lastfm;
 mod library;
 mod listenbrainz;
+mod library_tools;
 mod local_library;
 mod media_controls;
 mod oauth;
@@ -165,6 +166,13 @@ pub fn run() {
             carbon_playlists::carbon_playlist_add,
             carbon_playlists::carbon_playlist_remove,
             carbon_playlists::carbon_playlist_move,
+            carbon_playlists::carbon_playlist_replace,
+            library_tools::tools_export,
+            library_tools::tools_import,
+            library_tools::tools_cache_get,
+            library_tools::tools_cache_set,
+            library_tools::smart_playlists_get,
+            library_tools::smart_playlists_set,
             youtube::ytm_signed_in,
             youtube::signin::ytm_sign_in,
             youtube::ytm_sign_out,

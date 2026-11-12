@@ -15,6 +15,7 @@ import { pickLargestImage, toTrack } from "$lib/spotify/mappers";
 import type { Track } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
 import { canJoinQueue, ownerOf, planSwitch, SEPARATE_SERVICES, type Owner } from "$lib/sources";
+import { episodeTrack } from "$lib/podcasts/api";
 import { YoutubePlayback } from "$lib/youtube/playback.svelte";
 import { isYoutubeUri } from "$lib/youtube/uri";
 
@@ -276,7 +277,8 @@ class Player {
     }
     this.#reauthed = false; // playing again, so a later sign-in problem gets its own retry
     const current = state.track_window.current_track;
-    this.track = toTrack(current);
+    // Podcast episodes show too: the show's art and name stand in for album and artist.
+    this.track = toTrack(current) ?? episodeTrack(current);
     this.artwork = pickLargestImage(current?.album.images);
     this.paused = state.paused;
     this.durationMs = state.duration;
@@ -421,6 +423,9 @@ class Player {
     await this.#mixed.play(shuffledFrom(tracks, Math.floor(Math.random() * tracks.length)), 0, tracks);
     return true;
   }
+  /** A podcast episode, from where you left off. */
+  playEpisode = (uri: string, positionMs = 0) =>
+    this.#spotify(() => this.#run((id) => sp.playOn(id, { uris: [uri], position_ms: Math.max(0, Math.round(positionMs)) })));
 
   /** Shuffle on, then play. `count` lets the first song be random too when shuffle has to wait. */
   shufflePlay = async (contextUri: string, count?: number): Promise<boolean> => {

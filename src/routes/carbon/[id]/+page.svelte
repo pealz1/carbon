@@ -10,7 +10,9 @@
   import { carbonPlaylists as store } from "$lib/local/playlists.svelte";
   import { shuffledFrom } from "$lib/local/queue";
   import { isLocalUri, LOCAL_PREFIX } from "$lib/local/tracks";
+  import { menu } from "$lib/menu.svelte";
   import { player } from "$lib/player.svelte";
+  import { toolItems } from "$lib/playlist-tools/tools.svelte";
   import type { Track } from "$lib/spotify/types";
 
   const playlist = $derived(store.find(page.params.id ?? ""));
@@ -39,6 +41,8 @@
   async function saveName() {
     if (playlist && (await store.rename(playlist.id, name))) renaming = false;
   }
+
+  const openTools = (e: MouseEvent) => playlist && menu.open(e, toolItems({ kind: "carbon", id: playlist.id, name: playlist.name }));
 
   async function remove() {
     if (playlist && (await store.remove(playlist.id))) void goto("/local");
@@ -71,6 +75,7 @@
     {:else}
       <button class="pill" onclick={() => ((name = playlist?.name ?? ""), (renaming = true))}>Rename</button>
     {/if}
+    <button class="pill circle" onclick={openTools} aria-label="Playlist tools" aria-haspopup="menu" title="Playlist tools"><Icon name="sort" size={18} /></button>
     {#if confirmDelete}
       <button class="pill danger" onclick={remove}>Delete for good</button>
       <button class="pill" onclick={() => (confirmDelete = false)}>Keep it</button>

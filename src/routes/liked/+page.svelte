@@ -4,6 +4,7 @@
   import Status from "$lib/components/Status.svelte";
   import TrackList from "$lib/components/TrackList.svelte";
   import { Pager } from "$lib/pager.svelte";
+  import { toolItems } from "$lib/playlist-tools/tools.svelte";
   import { saved } from "$lib/saved.svelte";
   import { session } from "$lib/session.svelte";
   import * as sp from "$lib/spotify/endpoints";
@@ -22,6 +23,7 @@
   placeholder="heart"
   playUri={contextUri}
   shuffleCount={liked.total ?? undefined}
+  menuItems={() => toolItems({ kind: "liked", name: "Liked Songs" })}
   chips={[{ label: "Collection", icon: "heart" }, ...(liked.total !== null ? [{ label: `${liked.total.toLocaleString()} songs`, icon: "note" as const }] : [])]}
 >
   {#snippet byline()}

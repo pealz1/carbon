@@ -269,7 +269,10 @@ export async function removeFromPlaylist(id: string, uris: string[]): Promise<vo
 export const addToQueue = (uri: string, deviceId: string) => send("POST", `/me/player/queue?${q({ uri, device_id: deviceId })}`);
 
 // Playback on Carbon's own SDK device.
-export const playOn = (deviceId: string, body: { context_uri?: string; uris?: string[]; offset?: { uri: string } | { position: number } }) =>
+export const playOn = (
+  deviceId: string,
+  body: { context_uri?: string; uris?: string[]; offset?: { uri: string } | { position: number }; position_ms?: number },
+) =>
   send("PUT", `/me/player/play?${q({ device_id: deviceId })}`, body);
 export const transferTo = (deviceId: string, play: boolean) => send("PUT", "/me/player", { device_ids: [deviceId], play });
 export const setShuffle = (on: boolean, deviceId: string) => send("PUT", `/me/player/shuffle?${q({ state: String(on), device_id: deviceId })}`);
