@@ -69,6 +69,7 @@ Only `transform`, `opacity` and `clip-path` animate (plus small colour changes o
 - **Press and hold** (`src/lib/hold.ts`): holding a row, card or playlist for 450 ms opens its menu. A fill sweeps across the element as it charges, and the release's click is swallowed. The same menu is always reachable by right-click, the menu key or the "…" button.
 - **Wallpaper**: fields drift over 46 to 64 s and cross-fade over 1.4 s when the song changes. Paused music dims the wash.
 - **Tooltips** appear after 400 ms of hover or keyboard focus.
+- **Lyrics breaks**: three dots fill one after another over an instrumental break and breathe while it plays (Full only). Minimal and reduced motion light whole dots without swelling.
 
 The **Effects** setting scales all of this: Full animates the wallpaper and shows grain; Balanced keeps the colour and grain but holds still; Minimal uses one flat tone, no blur, no grain and no motion. The wallpaper stops while the window is hidden, and `prefers-reduced-motion` turns animation off.
 
