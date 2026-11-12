@@ -30,7 +30,7 @@ export function fuzzyScore(query: string, text: string): number | null {
   const whole = fold(query).trim();
   if (t.startsWith(whole)) score += 15;
   else if (t.includes(whole)) score += 8;
-  return score - t.length * 0.01; // shorter names win ties
+  return score;
 }
 
 /** `items` that match, best first; ties keep their order. */

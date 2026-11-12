@@ -30,9 +30,10 @@ async function savedRect(): Promise<Rect | null> {
   return rect && fitsOnScreen(rect, await availableMonitors()) ? rect : null;
 }
 
+/** Outer position (what setPosition takes) and inner size (what setSize takes). */
 async function currentRect(): Promise<Rect> {
   const win = getCurrentWindow();
-  const [position, size] = await Promise.all([win.outerPosition(), win.outerSize()]);
+  const [position, size] = await Promise.all([win.outerPosition(), win.innerSize()]);
   return { x: position.x, y: position.y, width: size.width, height: size.height };
 }
 
