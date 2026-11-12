@@ -99,7 +99,7 @@
 <footer
   bind:this={bar}
   bind:offsetHeight={height}
-  class="bar glass"
+  class="bar"
   class:hidden
   style={tint}
   aria-label="Player"
