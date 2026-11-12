@@ -115,6 +115,7 @@
     </div>
   </div>
 
+  {#if !spotify}<p class="fine">Carbon playlists don't keep when a song was added or released, so those sorts aren't here.</p>{/if}
   <p class="summary">
     {#if !moves.length}
       Already in this order.

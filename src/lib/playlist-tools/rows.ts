@@ -40,7 +40,7 @@ export type EditableSource = Extract<Source, { kind: "playlist" | "carbon" }>;
 
 export type Progress = (done: number, total: number | null) => void;
 
-export type RawItem = RawTrack & { external_ids?: { isrc?: string } | null; show?: { name: string } | null };
+export type RawItem = RawTrack & { external_ids?: { isrc?: string } | null; show?: { name: string } | null; linked_from?: { uri?: string } | null };
 interface RawRow {
   added_at?: string | null;
   item?: RawItem | null;
@@ -56,7 +56,8 @@ export function rowFromRaw(raw: RawItem | null | undefined, addedAt: string | nu
   }
   const albumRaw = raw.album ?? album;
   return {
-    uri: raw.uri,
+    // A relinked song is stored under the URI it was added with; removing it needs that one.
+    uri: raw.linked_from?.uri ?? raw.uri,
     name: raw.name || UNAVAILABLE,
     artists: (raw.artists ?? []).map((a) => a.name).filter(Boolean),
     album: albumRaw?.name ?? raw.show?.name ?? "",

@@ -77,7 +77,9 @@ export function exportText(format: ExportFormat, name: string, rows: Row[]): str
 
 // ——— Import ———
 
-const clip = (value: unknown): string => (typeof value === "string" || typeof value === "number" ? String(value).trim().slice(0, MAX_FIELD) : "");
+// Tabs and line breaks (quoted CSV cells can hold them) would make Carbon's playlist store refuse the song.
+const clip = (value: unknown): string =>
+  typeof value === "string" || typeof value === "number" ? String(value).replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, MAX_FIELD) : "";
 
 function duration(value: unknown): number | null {
   const n = typeof value === "number" ? value : Number(clip(value));

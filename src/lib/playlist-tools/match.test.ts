@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LocalTrack } from "$lib/local/api";
 import type { Track } from "$lib/spotify/types";
 import type { ImportRow } from "./formats";
-import { best, matchLocal, normalise, normalisePath, queriesFor, spotifyTrackId } from "./match";
+import { best, matchLocal, matchSpotify, normalise, normalisePath, queriesFor, spotifyTrackId, type Match } from "./match";
 
 const ID = "0123456789abcdefABCDEF";
 const importRow = (over: Partial<ImportRow> = {}): ImportRow => ({ title: "Song", artist: "Band", album: "", durationMs: null, isrc: null, uri: null, path: null, ...over });
@@ -39,6 +39,21 @@ describe("matching to Spotify", () => {
     const row = importRow({ title: "Song (2011 Remaster)", artist: "Band", durationMs: 201_000 });
     expect(best(row, [track("Other", "Band"), track("Song", "Someone else"), track("Song", "Band", 400_000), track("Song", "Band")])?.durationMs).toBe(200_000);
     expect(best(row, [track("Other", "Band")])).toBeNull();
+  });
+});
+
+describe("matching many rows", () => {
+  it("keeps what was found when Spotify stops answering, and skips the rest", async () => {
+    const rows = ["a", "b", "c", "d", "e"].map((title) => importRow({ title }));
+    const lookUp = async (row: ImportRow): Promise<Match> => {
+      if (row.title === "c") throw new Error("rate limited");
+      return { row, uri: `spotify:track:${row.title}`, item: null, label: row.title, via: "search" };
+    };
+    const { matches, failure } = await matchSpotify(rows, () => {}, undefined, lookUp);
+    expect((failure as Error).message).toBe("rate limited");
+    // Two lookups run at once, so one already under way may still finish; nothing new starts.
+    expect(matches.slice(0, 3).map((m) => m.uri ?? (m.skipped ? "skipped" : null))).toEqual(["spotify:track:a", "spotify:track:b", "skipped"]);
+    expect(matches[4].skipped).toBe(true);
   });
 });
 

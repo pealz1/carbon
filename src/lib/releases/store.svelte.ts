@@ -80,8 +80,10 @@ class NewReleases {
   }
 
   async #save(): Promise<void> {
+    const followed = this.cache.artists && new Set(this.cache.artists.list.map((a) => a.id));
+    const byArtist = followed ? Object.fromEntries(Object.entries(this.cache.byArtist).filter(([id]) => followed.has(id))) : this.cache.byArtist;
     try {
-      await cacheSet("new-releases", JSON.stringify(this.cache), DISK_TTL_SECS);
+      await cacheSet("new-releases", JSON.stringify({ ...this.cache, byArtist }), DISK_TTL_SECS);
     } catch (e) {
       console.error("[releases] saving the cache failed", e);
     }

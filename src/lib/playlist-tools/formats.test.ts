@@ -82,6 +82,10 @@ describe("import", () => {
     ]);
   });
 
+  it("turns tabs and line breaks inside cells into spaces", () => {
+    expect(parseCsv('Title,Artist\r\n"Two\nlines\tand a tab",Someone\r\n')[0].title).toBe("Two lines and a tab");
+  });
+
   it("accepts a bare JSON list and rejects files without songs", () => {
     expect(parseJson('[{"name":"Song","artist":"Someone","duration_ms":5}]')[0]).toMatchObject({ title: "Song", artist: "Someone", durationMs: 5 });
     expect(() => parseJson('{"hello":1}')).toThrow();

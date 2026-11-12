@@ -17,6 +17,8 @@ export interface Match {
   /** What it matched, for the review list. */
   label: string;
   via: MatchVia | null;
+  /** Never looked up: Spotify stopped answering first. */
+  skipped?: boolean;
 }
 
 const CANDIDATES = 5;
@@ -92,20 +94,35 @@ export async function matchOne(row: ImportRow): Promise<Match> {
   return miss(row);
 }
 
-/** Matches every row (two at a time, so Spotify's rate limit holds). Stops early when `signal` aborts. */
-export async function matchSpotify(rows: ImportRow[], onProgress: (done: number) => void, signal?: AbortSignal): Promise<Match[]> {
-  const results: Match[] = new Array(rows.length);
+/**
+ * Matches every row, two at a time so Spotify's rate limit holds. Stops early when `signal`
+ * aborts, or at the first failure (kept in `failure`): rows not reached are marked skipped, so
+ * what was found so far still counts.
+ */
+export async function matchSpotify(
+  rows: ImportRow[],
+  onProgress: (done: number) => void,
+  signal?: AbortSignal,
+  lookUp: (row: ImportRow) => Promise<Match> = matchOne,
+): Promise<{ matches: Match[]; failure: unknown }> {
+  const results: Match[] = rows.map((row) => ({ ...miss(row), skipped: true }));
   let next = 0;
   let done = 0;
+  let failure: unknown = null;
   const work = async () => {
-    while (next < rows.length && !signal?.aborted) {
+    while (next < rows.length && !signal?.aborted && !failure) {
       const i = next++;
-      results[i] = YOUTUBE.test(rows[i].uri ?? "") ? miss(rows[i]) : await matchOne(rows[i]);
+      try {
+        results[i] = YOUTUBE.test(rows[i].uri ?? "") ? miss(rows[i]) : await lookUp(rows[i]);
+      } catch (e) {
+        failure ??= e;
+        return;
+      }
       onProgress(++done);
     }
   };
   await Promise.all(Array.from({ length: WORKERS }, work));
-  return results.filter(Boolean);
+  return { matches: results, failure };
 }
 
 /** "C:\\Music\\a.mp3", "C:/music/A.mp3" and "..\\a.mp3" next to the playlist all compare equal. */

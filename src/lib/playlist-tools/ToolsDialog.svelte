@@ -20,6 +20,13 @@
   // Only playlists you can change get Sort and Duplicates.
   const TABS = $derived(editable(source) ? ALL_TABS : ALL_TABS.filter((t) => t.id === "export"));
 
+  /** Why a source only has Export. */
+  const WHY: Partial<Record<Source["kind"], string>> = {
+    liked: "Spotify doesn't let apps like Carbon reorder Liked Songs, so sorting and duplicates aren't here.",
+    album: "Albums can't be changed, so there's only export.",
+    youtube: "Sorting and duplicates work on your Spotify and Carbon playlists; YouTube Music playlists can be exported.",
+  };
+
   // svelte-ignore state_referenced_locally
   let tab = $state<ToolsTab>(initial);
   let rows = $state<Row[] | null>(null);
@@ -50,6 +57,8 @@
     </div>
   {/if}
 
+  {#if WHY[source.kind]}<p class="why">{WHY[source.kind]}</p>{/if}
+
   {#if error}
     <Status {error} onretry={load} />
   {:else if !rows}
@@ -69,6 +78,12 @@
 <style>
   .tabs {
     margin-bottom: var(--sp-4);
+  }
+
+  .why {
+    margin: 0 0 var(--sp-4);
+    color: var(--text-faint);
+    font-size: var(--fs-small);
   }
 
   .reading p {

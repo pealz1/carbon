@@ -61,8 +61,13 @@
         matches = matchLocal(rows, localLibrary.raw, file?.folder ?? "");
       } else {
         controller = new AbortController();
-        matches = await matchSpotify(rows, (n) => (done = n), controller.signal);
+        const result = await matchSpotify(rows, (n) => (done = n), controller.signal);
         if (controller.signal.aborted) return void (step = "ready");
+        matches = result.matches;
+        if (result.failure) {
+          console.error("[import] matching stopped", result.failure);
+          error = `Spotify stopped answering after ${done} songs. ${describeError(result.failure)} You can create the playlist with what was found, or go back and try again.`;
+        }
       }
       chosen = matches.map((m) => Boolean(m.uri || m.item));
       step = "review";
@@ -145,7 +150,7 @@
             <span class="name">{describe(m.row)}</span>
             {#if m.label}<span class="sub">{m.label}</span>{/if}
           </span>
-          <span class="badge" class:none={!m.via}>{m.via ? via[m.via] : "Not found"}</span>
+          <span class="badge" class:none={!m.via}>{m.skipped ? "Skipped" : m.via ? via[m.via] : "Not found"}</span>
         </li>
       {/each}
     </ol>
