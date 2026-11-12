@@ -57,6 +57,8 @@ tauri-plugin-global-shortcut = "2"
 [target.'cfg(windows)'.dependencies]
 # Installed font families via DirectWrite. Already in the tree (tauri, wry, cpal use 0.62); this only enables the module.
 windows = { version = "0.62", features = ["Win32_Graphics_DirectWrite"] }
+# Track-change toasts with artwork (tauri-plugin-notification drops images on Windows).
+tauri-winrt-notification = "0.8"
 # Already in the tree via wry: lets YouTube sign-out clear cookies through WebView2 itself.
 webview2-com = "0.39"
 

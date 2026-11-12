@@ -79,6 +79,8 @@ export interface PlaybackInfo {
   repeat?: RepeatMode;
   volume?: number;
   queue?: QueueItem[];
+  /** Where it plays from, for attribution in song notifications. */
+  source?: "spotify" | "youtube" | "local";
 }
 
 export type MediaCommand =

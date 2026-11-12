@@ -7,6 +7,7 @@ mod lastfm;
 mod library;
 mod local_library;
 mod media_controls;
+mod notifications;
 mod oauth;
 mod playback;
 mod popouts;
@@ -45,6 +46,7 @@ fn playback_update(
         info.validate()?;
     }
     media.update(info.as_ref());
+    app.state::<notifications::Notifier>().update(&app, info.as_ref());
     tray.update(&app, info.as_ref());
     remote.publish(info.as_ref());
     discord.send(discord::Msg::Playback(info.clone()));
@@ -64,6 +66,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("[remote] {e}");
     }
     app.manage(remote);
+    app.manage(notifications::Notifier::default());
     app.manage(hotkeys::HotkeyState::default());
     hotkeys::apply(&handle, &prefs.hotkeys);
     app.manage(SettingsState(Mutex::new(prefs)));

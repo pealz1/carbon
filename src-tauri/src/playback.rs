@@ -14,6 +14,25 @@ pub enum RepeatMode {
     Track,
 }
 
+/// Where the song comes from, for attribution (song notifications).
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum Source {
+    Spotify,
+    Youtube,
+    Local,
+}
+
+impl Source {
+    pub fn label(self) -> &'static str {
+        match self {
+            Source::Spotify => "Spotify",
+            Source::Youtube => "YouTube Music",
+            Source::Local => "On this PC",
+        }
+    }
+}
+
 /// An upcoming track, as shown in a queue preview.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct QueueItem {
@@ -37,6 +56,7 @@ pub struct PlaybackInfo {
     pub repeat: Option<RepeatMode>,
     pub volume: Option<f64>,
     pub queue: Option<Vec<QueueItem>>,
+    pub source: Option<Source>,
 }
 
 impl PlaybackInfo {
@@ -86,6 +106,7 @@ pub fn sample(track_id: &str, duration_ms: u64, position_ms: u64, paused: bool) 
         repeat: None,
         volume: None,
         queue: None,
+        source: None,
     }
 }
 
