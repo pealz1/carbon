@@ -125,5 +125,12 @@ describe("player additions", () => {
     expect(player.shuffle).toBe(true);
     expect(player.upNext).toHaveLength(3);
     player.shuffleSource = null;
+
+    // Spotify's shuffle, still on from another device, would reorder Carbon's run: it goes off.
+    const playing = { ...sdkTrack, uri: body.uris[0] };
+    listeners.player_state_changed(state(0, { shuffle: true, track_window: { current_track: playing, next_tracks: [], previous_tracks: [] } }));
+    await vi.waitFor(() => expect(sp.setShuffle).toHaveBeenCalledWith(false, "dev"));
+    listeners.player_state_changed(state(500, { track_window: { current_track: playing, next_tracks: [], previous_tracks: [] } }));
+    expect(sp.setShuffle).toHaveBeenCalledTimes(1);
   });
 });

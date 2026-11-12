@@ -79,6 +79,7 @@ class Player {
   #reconnecting: Promise<string> | null = null;
   #reauthed = false;
   #sdkModes = { shuffle: false, repeat: "off" as RepeatMode };
+  #fixingModes: Promise<unknown> | null = null;
   #mixed = new MixedPlayback({
     volume: () => this.volume,
     repeat: () => this.repeat,
@@ -249,8 +250,23 @@ class Player {
     this.problem = explain(e);
   }
 
+  /**
+   * A Carbon queue owns order and repeat. Spotify's own shuffle or repeat, carried over from another
+   * device before Carbon had heard of it, would reorder or loop the queue's run, so it goes off.
+   */
+  #keepModesOff(state: Spotify.PlaybackState): void {
+    if (this.#fixingModes || !this.#mixed.active || this.#mixed.backend !== "spotify" || (!state.shuffle && !state.repeat_mode)) return;
+    this.#fixingModes = this.#onDevice(async (id) => {
+      if (state.shuffle) await sp.setShuffle(false, id);
+      if (state.repeat_mode) await sp.setRepeat("off", id);
+    })
+      .catch((e) => console.warn("[player] couldn't turn Spotify's shuffle or repeat off", e))
+      .finally(() => (this.#fixingModes = null));
+  }
+
   #apply(state: Spotify.PlaybackState | null): void {
     if (state) this.#sdkModes = { shuffle: state.shuffle, repeat: REPEAT_MODES[state.repeat_mode] ?? "off" };
+    if (state) this.#keepModesOff(state);
     if (this.#youtube.active || this.#mixed.backend === "local" || (state && this.#mixed.active && !this.#mixed.spotifyState(state))) return;
     this.away = !state;
     if (!state) {
