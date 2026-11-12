@@ -41,7 +41,7 @@ export function activeFor(services: Services | null | undefined, spotifySignedIn
   return { spotify, youtube, home: spotify ? "/" : youtube ? "/youtube" : "/local" };
 }
 
-const SPOTIFY_PAGES = /^\/(search|library|liked|album|artist|playlist)(\/|$)/;
+const SPOTIFY_PAGES = /^\/(search|library|liked|album|artist|playlist|smart|releases|podcasts|show)(\/|$)/;
 
 /** Where to send a page that belongs to a service that isn't running, or null to stay. */
 export function redirectFor(path: string, active: Active): string | null {

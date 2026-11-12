@@ -2,8 +2,14 @@
   import ImportDialog from "$lib/playlist-tools/ImportDialog.svelte";
   import ToolsDialog from "$lib/playlist-tools/ToolsDialog.svelte";
   import { tools } from "$lib/playlist-tools/tools.svelte";
+  import { services } from "$lib/services.svelte";
+  import { session } from "$lib/session.svelte";
+  import { smart } from "$lib/smart/store.svelte";
 
-  // The library tools' app-wide pieces: their dialogs, opened from menus anywhere.
+  // The library tools' app-wide pieces: their dialogs, opened from menus anywhere, and the daily
+  // smart-playlist refresh. Spotify counts as ready once the profile (and with it the playlist
+  // list) has loaded, so a refresh never mistakes a list still loading for a deleted playlist.
+  $effect(() => void smart.startup(services.active.spotify && !!session.profile));
 </script>
 
 {#if tools.dialog?.kind === "tools"}

@@ -89,11 +89,11 @@ export function rowFromLocal(file: LocalTrack): Row {
   return rowFromTrack(fromLocal(file), { path: file.path, releaseDate: file.year ? String(file.year) : null });
 }
 
-/** Follows Spotify's `next` links to the end. `fresh` skips the GET cache (sorting needs today's order). */
-async function allPages<T>(first: string, take: (page: Paging<T>) => Row[], onProgress?: Progress, fresh = false): Promise<Row[]> {
+/** Follows Spotify's `next` links to the end (or `max` rows). `fresh` skips the GET cache (sorting needs today's order). */
+async function allPages<T>(first: string, take: (page: Paging<T>) => Row[], onProgress?: Progress, fresh = false, max = Infinity): Promise<Row[]> {
   const rows: Row[] = [];
   let url: string | null = first;
-  while (url) {
+  while (url && rows.length < max) {
     const page: Paging<T> = fresh ? await getFresh<Paging<T>>(url) : await get<Paging<T>>(url);
     rows.push(...take(page));
     onProgress?.(rows.length, page.total ?? null);
@@ -107,7 +107,7 @@ const fromRows = (page: Paging<RawRow>) => page.items.map((r) => rowFromRaw(r?.i
 export const playlistRows = (id: string, onProgress?: Progress) =>
   allPages(`/playlists/${encodeURIComponent(id)}/items?limit=${PAGE_SIZE}`, fromRows, onProgress, true);
 
-export const likedRows = (onProgress?: Progress) => allPages(`/me/tracks?limit=${PAGE_SIZE}`, fromRows, onProgress);
+export const likedRows = (onProgress?: Progress, max?: number) => allPages(`/me/tracks?limit=${PAGE_SIZE}`, fromRows, onProgress, false, max);
 
 export async function albumRows(id: string, onProgress?: Progress): Promise<Row[]> {
   const album = await get<RawAlbum & { tracks: Paging<RawItem> }>(`/albums/${encodeURIComponent(id)}`);
