@@ -50,7 +50,7 @@
 <ul class="bindings" class:off={!hotkeys.enabled}>
   {#each HOTKEY_ACTIONS as { action, label } (action)}
     {@const keys = comboKeys(hotkeys[action])}
-    {@const problem = conflict?.action === action ? `Already used for ${conflict.with}.` : hotkeys.enabled ? failed.get(action) : null}
+    {@const problem = conflict?.action === action ? `Already used for ${conflict.with}. Press another, or Esc.` : hotkeys.enabled ? failed.get(action) : null}
     <li>
       <span class="label" id="hotkey-{action}">{label}</span>
       <button
@@ -72,7 +72,7 @@
           {/if}
         </span>
       </button>
-      {#if recording === action}
+      {#if recording === action && !problem}
         <p class="hint">Hold Ctrl, Alt or Win with a key. Esc cancels, Backspace clears.</p>
       {:else if problem}
         <p class="problem" id="hotkey-{action}-problem" role="status">{problem}</p>
