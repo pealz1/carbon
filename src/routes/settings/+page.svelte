@@ -103,6 +103,11 @@
     await youtube.signOut();
     try {
       await removeSavedData();
+      try {
+        localStorage.clear(); // per-song lyric choices, compact-player size and other interface memory
+      } catch (e) {
+        console.warn("[settings] couldn't clear local storage", e);
+      }
       notice = "Signed out and removed everything Carbon saved on this PC.";
     } catch (e) {
       notice = `Couldn't remove everything: ${describeError(e)}`;
