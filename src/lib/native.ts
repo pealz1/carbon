@@ -59,6 +59,8 @@ export interface Hotkeys {
   next: string;
   previous: string;
   miniPlayer: string;
+  abLoop: string;
+  sleepTimer: string;
 }
 
 export type HotkeyAction = Exclude<keyof Hotkeys, "enabled">;

@@ -1,5 +1,6 @@
-//! Global shortcuts: play/pause, next, previous and the mini player from any app. Off until the
-//! listener turns them on (Settings → Global shortcuts); each one can be changed or cleared.
+//! Global shortcuts: play/pause, next, previous, the mini player, the A-B loop and the sleep timer
+//! from any app. Off until the listener turns them on (Settings → Desktop); each can be changed or
+//! cleared. The loop and the sleep timer start unbound.
 use crate::media_controls::{emit, MediaCommand};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -17,6 +18,8 @@ pub struct Hotkeys {
     pub next: String,
     pub previous: String,
     pub mini_player: String,
+    pub ab_loop: String,
+    pub sleep_timer: String,
 }
 
 impl Default for Hotkeys {
@@ -27,6 +30,8 @@ impl Default for Hotkeys {
             next: "Ctrl+Alt+Right".into(),
             previous: "Ctrl+Alt+Left".into(),
             mini_player: "Ctrl+Alt+M".into(),
+            ab_loop: String::new(),
+            sleep_timer: String::new(),
         }
     }
 }
@@ -38,6 +43,8 @@ pub enum Action {
     Next,
     Previous,
     MiniPlayer,
+    AbLoop,
+    SleepTimer,
 }
 
 const LONE_KEYS: [Code; 12] = [
@@ -67,12 +74,14 @@ pub fn parse(combo: &str) -> Result<Shortcut, String> {
 }
 
 impl Hotkeys {
-    fn bindings(&self) -> [(Action, &str); 4] {
+    fn bindings(&self) -> [(Action, &str); 6] {
         [
             (Action::PlayPause, &self.play_pause),
             (Action::Next, &self.next),
             (Action::Previous, &self.previous),
             (Action::MiniPlayer, &self.mini_player),
+            (Action::AbLoop, &self.ab_loop),
+            (Action::SleepTimer, &self.sleep_timer),
         ]
     }
 
@@ -90,7 +99,8 @@ impl Hotkeys {
     /// binding in a saved file doesn't reset every other setting.
     pub fn sanitized(mut self) -> Self {
         let mut seen = HashSet::new();
-        for slot in [&mut self.play_pause, &mut self.next, &mut self.previous, &mut self.mini_player] {
+        let slots = [&mut self.play_pause, &mut self.next, &mut self.previous, &mut self.mini_player, &mut self.ab_loop, &mut self.sleep_timer];
+        for slot in slots {
             if !slot.is_empty() && !parse(slot).is_ok_and(|s| seen.insert(s.id())) {
                 slot.clear();
             }
@@ -164,8 +174,9 @@ pub fn handle(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
         Some(Action::PlayPause) => emit(app, MediaCommand::Toggle),
         Some(Action::Next) => emit(app, MediaCommand::Next),
         Some(Action::Previous) => emit(app, MediaCommand::Previous),
-        Some(Action::MiniPlayer) => {
-            if let Err(e) = app.emit_to("main", "mini-toggle", ()) {
+        // The rest live in the main window's interface.
+        Some(action) => {
+            if let Err(e) = app.emit_to("main", "global-hotkey", action) {
                 eprintln!("[hotkeys] {e}");
             }
         }
@@ -230,6 +241,16 @@ mod tests {
         assert_eq!(clean.next, "");
         assert_eq!(clean.previous, "");
         assert_eq!(clean.mini_player, "Ctrl+Alt+M");
+        assert_eq!(clean.ab_loop, "");
+    }
+
+    #[test]
+    fn leaves_the_loop_and_sleep_timer_unbound_until_chosen() {
+        let defaults = Hotkeys::default();
+        assert_eq!((defaults.ab_loop.as_str(), defaults.sleep_timer.as_str()), ("", ""));
+        let chosen = Hotkeys { ab_loop: "Ctrl+Alt+L".into(), sleep_timer: "Ctrl+Alt+S".into(), ..defaults };
+        assert!(chosen.validate().is_ok());
+        assert_eq!(serde_json::to_string(&Action::SleepTimer).unwrap(), r#""sleepTimer""#);
     }
 
     #[test]

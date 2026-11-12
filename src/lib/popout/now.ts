@@ -7,8 +7,8 @@ export const NOW_EVENT = "popout:now";
 export const HELLO_EVENT = "popout:hello";
 /** From Rust: which pop-outs are open. */
 export const OPEN_EVENT = "popouts-changed";
-/** From Rust: the mini player hotkey. */
-export const MINI_TOGGLE_EVENT = "mini-toggle";
+/** From Rust: a global shortcut the interface handles (mini player, A-B loop, sleep timer). */
+export const HOTKEY_EVENT = "global-hotkey";
 const ROUTE_PREFIX = "/popout/";
 
 export type Source = "spotify" | "local" | "youtube";

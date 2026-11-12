@@ -1,16 +1,30 @@
 // The main window's side of the pop-outs: publishes its player's state to them while they're open,
 // keeps track of which are open, and opens and closes them. The mini player for YouTube Music is
-// compact mode instead (see compact.svelte.ts), because the video can't leave this window.
+// compact mode instead (see compact.svelte.ts), because the video can't leave this window. Also
+// runs the global shortcuts that belong to the interface rather than the player.
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { describeError } from "$lib/errors";
+import { run } from "$lib/keyboard";
+import type { HotkeyAction } from "$lib/native";
 import { player } from "$lib/player.svelte";
+import { sleepTimer } from "$lib/sleep-timer.svelte";
 import { toasts } from "$lib/toast.svelte";
 import { compact } from "./compact.svelte";
-import { HELLO_EVENT, MINI_TOGGLE_EVENT, NOW_EVENT, OPEN_EVENT, snapshot, type PopoutKind } from "./now";
+import { HELLO_EVENT, HOTKEY_EVENT, NOW_EVENT, OPEN_EVENT, snapshot, type PopoutKind } from "./now";
 
 /** While lyrics are popped out, the position is re-read from the player this often. */
 const RESYNC_MS = 1_000;
+const SLEEP_HOTKEY_MINUTES = 30;
+
+function toggleSleep(): void {
+  if (sleepTimer.current) {
+    sleepTimer.cancel();
+    return toasts.show("Sleep timer off.");
+  }
+  sleepTimer.start(SLEEP_HOTKEY_MINUTES);
+  toasts.show(`The music pauses in ${SLEEP_HOTKEY_MINUTES} minutes.`);
+}
 
 type Open = Record<PopoutKind, boolean>;
 
@@ -37,6 +51,12 @@ class Popouts {
 
   #publish = (): void => void emit(NOW_EVENT, snapshot(player)).catch((e) => console.error("[popouts] publish", e));
 
+  #hotkey = (action: HotkeyAction): void => {
+    if (action === "miniPlayer") void this.toggleMini();
+    else if (action === "abLoop") void run("loop");
+    else if (action === "sleepTimer") toggleSleep();
+  };
+
   #set = (open: Open): void => {
     this.mini = open.mini;
     this.lyrics = open.lyrics;
@@ -47,7 +67,7 @@ class Popouts {
     const listening: Promise<UnlistenFn>[] = [
       listen<Open>(OPEN_EVENT, (event) => this.#set(event.payload)),
       listen(HELLO_EVENT, this.#publish),
-      listen(MINI_TOGGLE_EVENT, () => void this.toggleMini()),
+      listen<HotkeyAction>(HOTKEY_EVENT, (event) => this.#hotkey(event.payload)),
     ];
     invoke<Open>("popouts_open").then(this.#set, (e) => console.error("[popouts]", e));
     const stopEffects = $effect.root(() => {

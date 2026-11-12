@@ -7,14 +7,18 @@ export const HOTKEY_ACTIONS: { action: HotkeyAction; label: string }[] = [
   { action: "next", label: "Next song" },
   { action: "previous", label: "Previous song" },
   { action: "miniPlayer", label: "Mini player" },
+  { action: "abLoop", label: "Loop part of the song" },
+  { action: "sleepTimer", label: "Sleep timer (30 minutes, or off)" },
 ];
 
-/** The suggested bindings (hotkeys.rs has the same). Turning shortcuts on is up to the listener. */
+/** The suggested bindings (hotkeys.rs has the same); the loop and sleep timer start unbound. */
 export const DEFAULT_BINDINGS: Omit<Hotkeys, "enabled"> = {
   playPause: "Ctrl+Alt+Space",
   next: "Ctrl+Alt+Right",
   previous: "Ctrl+Alt+Left",
   miniPlayer: "Ctrl+Alt+M",
+  abLoop: "",
+  sleepTimer: "",
 };
 
 const MODIFIERS = ["Ctrl", "Alt", "Shift", "Super"];

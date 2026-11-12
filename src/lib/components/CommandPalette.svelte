@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { actionEntries } from "$lib/command-actions";
   import {
-    actionEntries,
     pageEntries,
     playlistEntries,
     recentEntry,
@@ -10,6 +10,7 @@
     type Entry,
   } from "$lib/command-entries";
   import { parseRecent, rank, remember, type RecentEntry } from "$lib/command-palette";
+  import { devices } from "$lib/devices.svelte";
   import { dialogs } from "$lib/dialogs.svelte";
   import { describeError } from "$lib/errors";
   import { redirectFor, services } from "$lib/services.svelte";
@@ -55,6 +56,11 @@
     if (!entry.playUri) return false;
     return isYoutubeUri(entry.playUri) ? services.active.youtube : !entry.playUri.startsWith("spotify:") || services.active.spotify;
   }
+
+  // Spotify Connect devices for "Play on …", fetched when the palette opens if none are known yet.
+  $effect(() => {
+    if (services.active.spotify && !devices.list.length && !devices.loading) void devices.refresh();
+  });
 
   $effect(() => {
     if (!dialog) return;

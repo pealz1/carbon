@@ -11,7 +11,7 @@
   let status = $state<HotkeyStatus[]>([]);
   let notice = $state<string | null>(null);
   const s = $derived(prefs.value);
-  const isDefault = $derived(!!s && (Object.keys(DEFAULT_BINDINGS) as (keyof typeof DEFAULT_BINDINGS)[]).every((k) => sameShortcut(s.hotkeys[k], DEFAULT_BINDINGS[k])));
+  const isDefault = $derived(!!s && (Object.keys(DEFAULT_BINDINGS) as (keyof typeof DEFAULT_BINDINGS)[]).every((k) => s.hotkeys[k] === DEFAULT_BINDINGS[k] || sameShortcut(s.hotkeys[k], DEFAULT_BINDINGS[k])));
 
   async function refresh() {
     try {
