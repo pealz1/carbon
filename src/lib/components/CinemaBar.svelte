@@ -177,7 +177,7 @@
       <LyricsControls bind:offset synced={lines.length > 0} />
       <BarPopover label="Layout">
         {#snippet button()}<Icon name="layouts" size={18} />{/snippet}
-        <CinemaLayouts value={prefs.value?.cinemaLayout ?? "split"} onpick={(cinemaLayout: CinemaLayout) => prefs.update({ cinemaLayout })} />
+        <div class="layouts"><CinemaLayouts value={prefs.value?.cinemaLayout ?? "split"} onpick={(cinemaLayout: CinemaLayout) => prefs.update({ cinemaLayout })} /></div>
       </BarPopover>
       <PlaybackTools />
       {@render miniPlayer?.()}
@@ -377,6 +377,11 @@
     justify-content: flex-end;
     gap: 2px;
     min-width: 0;
+  }
+
+  /* Popover panels size to their content; four 84 px layout tiles. */
+  .layouts {
+    width: 360px;
   }
 
   .rule {
