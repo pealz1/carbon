@@ -186,7 +186,7 @@
       <button class="ctl" onclick={toMiniPlayer} aria-label="Mini player" title="Mini player"><Icon name="pip" size={18} /></button>
       <VolumeControl />
       <span class="rule" aria-hidden="true"></span>
-      <button class="ctl" onclick={view.toggleFullscreen} aria-label={view.fullscreen ? "Leave full screen" : "Full screen"} title="Full screen (F11)">
+      <button class="ctl full" onclick={view.toggleFullscreen} aria-label={view.fullscreen ? "Leave full screen" : "Full screen"} title="Full screen (F11)">
         <Icon name={view.fullscreen ? "collapse" : "expand"} size={18} />
       </button>
       <button class="ctl" onclick={view.exitCinema} aria-label="Leave cinema mode" title="Leave cinema mode (Esc)"><Icon name="close" size={18} /></button>
@@ -467,14 +467,28 @@
     font-weight: 800;
   }
 
-  /* Narrow windows (cinema fills the window, so its width sets the bar's): the chip keeps its
-     icon, the song text goes. */
-  @media (max-width: 1240px) {
+  /* Narrower windows (cinema fills the window, so its width sets the bar's) shed the extras in
+     steps, so the room's controls never run into the transport: first the chip's song name... */
+  @media (max-width: 1440px) {
     .bar :global(.chip .chip-text) {
       display: none;
     }
+  }
 
-    .badge {
+  /* ...then the source badge, full screen (F11 still works) and the centring of the transport,
+     so the song's name gives up room instead. */
+  @media (max-width: 1240px) {
+    .bar {
+      padding-inline: var(--sp-4);
+    }
+
+    .row {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+    }
+
+    .badge,
+    .rule,
+    .full {
       display: none;
     }
   }
