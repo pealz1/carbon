@@ -9,6 +9,7 @@
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import Logo from "./Logo.svelte";
+  import PlaybackTools from "./PlaybackTools.svelte";
   import Slider from "./Slider.svelte";
 
   // The player bar: part of the chrome, no card. Track on the left, progress over transport in
@@ -88,6 +89,7 @@
   </div>
 
   <div class="extras">
+    <PlaybackTools />
     <a class="ctl" class:on={onNowPlaying} href={onNowPlaying ? "/" : "/now-playing"} aria-label="Now playing" title="Now playing">
       <Icon name="album" size={18} />
     </a>
