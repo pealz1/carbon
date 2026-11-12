@@ -47,6 +47,8 @@ pub struct Settings {
     pub ui_sounds: bool,
     /// 0 to 1; 0.5 peaks around -24 dBFS.
     pub ui_sound_volume: f32,
+    /// Carbon shuffles lists it can read itself, spacing out artists (Settings → Playback).
+    pub smart_shuffle: bool,
     /// Brand updates already applied to this file (see `migrate`). Missing in older files, so 0.
     #[serde(default)]
     pub brand_version: u8,
@@ -73,6 +75,7 @@ impl Default for Settings {
             font_lyrics: String::new(),
             ui_sounds: true,
             ui_sound_volume: 0.5,
+            smart_shuffle: false,
             brand_version: BRAND_VERSION,
         }
     }
@@ -302,5 +305,6 @@ mod tests {
         assert_eq!(parsed.font_text, "");
         assert!(parsed.ui_sounds);
         assert_eq!(parsed.ui_sound_volume, 0.5);
+        assert!(!parsed.smart_shuffle);
     }
 }

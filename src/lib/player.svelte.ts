@@ -10,6 +10,7 @@ import { isLocalUri } from "$lib/local/tracks";
 import { reportPlayback, type PlaybackInfo } from "$lib/native";
 import { acceptResync, positionFromState } from "$lib/playback-clock";
 import * as sp from "$lib/spotify/endpoints";
+import { shuffledFrom } from "$lib/smart-shuffle";
 import { pickLargestImage, toTrack } from "$lib/spotify/mappers";
 import type { Track } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
@@ -62,6 +63,10 @@ class Player {
   contextUri = $state<string | null>(null);
   /** False when Spotify isn't one of the connected services: its SDK then never loads. */
   spotifyEnabled = $state(true);
+  /** Spotify moved playback off Carbon's player (to another Connect device, or stopped it there). */
+  away = $state(false);
+  /** Smart shuffle: a Spotify list's songs for Carbon to shuffle, or null to leave it to Spotify. Set at startup. */
+  shuffleSource: ((contextUri: string) => Promise<Track[] | null>) | null = null;
   #positionMs = $state(0);
   #positionAt = $state(0);
   #seekAt = 0;
@@ -74,6 +79,7 @@ class Player {
   #reconnecting: Promise<string> | null = null;
   #reauthed = false;
   #sdkModes = { shuffle: false, repeat: "off" as RepeatMode };
+  #fixingModes: Promise<unknown> | null = null;
   #mixed = new MixedPlayback({
     volume: () => this.volume,
     repeat: () => this.repeat,
@@ -121,6 +127,11 @@ class Player {
   }
 
   isCurrent = (uri: string): boolean => this.track?.uri === uri;
+
+  /** Carbon's Spotify Connect device id, or null while the SDK isn't ready. */
+  get deviceId(): string | null {
+    return this.#device;
+  }
 
   async start(): Promise<void> {
     if (this.#sdk || this.#opening || !this.spotifyEnabled) return;
@@ -239,9 +250,25 @@ class Player {
     this.problem = explain(e);
   }
 
+  /**
+   * A Carbon queue owns order and repeat. Spotify's own shuffle or repeat, carried over from another
+   * device before Carbon had heard of it, would reorder or loop the queue's run, so it goes off.
+   */
+  #keepModesOff(state: Spotify.PlaybackState): void {
+    if (this.#fixingModes || !this.#mixed.active || this.#mixed.backend !== "spotify" || (!state.shuffle && !state.repeat_mode)) return;
+    this.#fixingModes = this.#onDevice(async (id) => {
+      if (state.shuffle) await sp.setShuffle(false, id);
+      if (state.repeat_mode) await sp.setRepeat("off", id);
+    })
+      .catch((e) => console.warn("[player] couldn't turn Spotify's shuffle or repeat off", e))
+      .finally(() => (this.#fixingModes = null));
+  }
+
   #apply(state: Spotify.PlaybackState | null): void {
     if (state) this.#sdkModes = { shuffle: state.shuffle, repeat: REPEAT_MODES[state.repeat_mode] ?? "off" };
+    if (state) this.#keepModesOff(state);
     if (this.#youtube.active || this.#mixed.backend === "local" || (state && this.#mixed.active && !this.#mixed.spotifyState(state))) return;
+    this.away = !state;
     if (!state) {
       this.paused = true; // playback moved to another device
       this.#report();
@@ -388,11 +415,19 @@ class Player {
       ? this.#playYoutube(() => this.#youtube.playContext(contextUri, offsetUri))
       : this.#spotify(() => this.#run((id) => sp.playOn(id, { context_uri: contextUri, ...(offsetUri && { offset: { uri: offsetUri } }) })));
 
+  /** Carbon's own shuffle of a Spotify list, as a Carbon queue: Spotify's shuffle and repeat go off for it. */
+  async #shuffleQueue(tracks: Track[]): Promise<boolean> {
+    await this.#switchTo("carbon");
+    await this.#mixed.play(shuffledFrom(tracks, Math.floor(Math.random() * tracks.length)), 0, tracks);
+    return true;
+  }
+
   /** Shuffle on, then play. `count` lets the first song be random too when shuffle has to wait. */
-  shufflePlay = (contextUri: string, count?: number) =>
-    isYoutubeUri(contextUri)
-      ? this.#playYoutube(() => this.#youtube.playContext(contextUri, undefined, true))
-      : this.#spotify(() =>
+  shufflePlay = async (contextUri: string, count?: number): Promise<boolean> => {
+    if (isYoutubeUri(contextUri)) return this.#playYoutube(() => this.#youtube.playContext(contextUri, undefined, true));
+    const tracks = await this.shuffleSource?.(contextUri);
+    if (tracks?.length) return this.#shuffleQueue(tracks);
+    return this.#spotify(() =>
       this.#run(async (id) => {
         // Spotify refuses shuffle (404) until Carbon is the active device; then it's set after play starts.
         const shuffled = await sp.setShuffle(true, id).then(
@@ -404,6 +439,7 @@ class Player {
         if (!shuffled) await sp.setShuffle(true, id);
       }),
     );
+  };
 
   /**
    * `tracks` lets lists that contain local files play them through Carbon's queue. A YouTube Music

@@ -112,4 +112,25 @@ describe("player additions", () => {
     expect(player.error).toBe("Spotify said no");
     expect(player.upNext?.map((t) => t.uri)).toEqual(["local:abc"]);
   });
+
+  it("plays Carbon's own shuffle of a list it could read, with shuffle shown on", async () => {
+    const tracks = ["a", "b", "c", "d"].map((id) => ({ id, uri: `spotify:track:${id}`, name: id, artists: [], album: null, durationMs: 1000, explicit: false }));
+    const source = vi.fn(async () => tracks);
+    player.shuffleSource = source;
+    expect(await player.shufflePlay("spotify:album:x", 4)).toBe(true);
+    expect(source).toHaveBeenCalledWith("spotify:album:x");
+    const body = vi.mocked(sp.playOn).mock.calls[0][1] as { uris: string[] };
+    expect([...body.uris].sort()).toEqual(tracks.map((t) => t.uri));
+    expect(sp.setShuffle).not.toHaveBeenCalled(); // Spotify's own shuffle stays out of it
+    expect(player.shuffle).toBe(true);
+    expect(player.upNext).toHaveLength(3);
+    player.shuffleSource = null;
+
+    // Spotify's shuffle, still on from another device, would reorder Carbon's run: it goes off.
+    const playing = { ...sdkTrack, uri: body.uris[0] };
+    listeners.player_state_changed(state(0, { shuffle: true, track_window: { current_track: playing, next_tracks: [], previous_tracks: [] } }));
+    await vi.waitFor(() => expect(sp.setShuffle).toHaveBeenCalledWith(false, "dev"));
+    listeners.player_state_changed(state(500, { track_window: { current_track: playing, next_tracks: [], previous_tracks: [] } }));
+    expect(sp.setShuffle).toHaveBeenCalledTimes(1);
+  });
 });

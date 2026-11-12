@@ -9,6 +9,9 @@
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import Logo from "./Logo.svelte";
+  import LoopZone from "./LoopZone.svelte";
+  import PlaybackTools from "./PlaybackTools.svelte";
+  import PlayingElsewhere from "./PlayingElsewhere.svelte";
   import Slider from "./Slider.svelte";
 
   // The player bar: part of the chrome, no card. Track on the left, progress over transport in
@@ -47,6 +50,7 @@
           {/each}
           {#if album?.name}<span class="dash">–</span>{album.name}{/if}
         </span>
+        <PlayingElsewhere />
       </div>
       <LikeButton uri={player.track.uri} label={player.track.name} size={17} />
     {:else}
@@ -61,7 +65,9 @@
   <div class="center">
     <div class="seek">
       <span class="time tabular">{formatDuration(position)}</span>
-      <Slider value={position} max={player.durationMs} step={1000} tone="accent" label="Seek" valuetext="{formatDuration(position)} of {formatDuration(player.durationMs)}" oncommit={player.seek} />
+      <LoopZone max={player.durationMs}>
+        <Slider value={position} max={player.durationMs} step={1000} tone="accent" label="Seek" valuetext="{formatDuration(position)} of {formatDuration(player.durationMs)}" oncommit={player.seek} />
+      </LoopZone>
       <span class="time tabular">−{formatDuration(remaining)}</span>
     </div>
     <div class="transport">
@@ -88,6 +94,7 @@
   </div>
 
   <div class="extras">
+    <PlaybackTools />
     <a class="ctl" class:on={onNowPlaying} href={onNowPlaying ? "/" : "/now-playing"} aria-label="Now playing" title="Now playing">
       <Icon name="album" size={18} />
     </a>

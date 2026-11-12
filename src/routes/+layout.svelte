@@ -4,6 +4,7 @@
   import { page } from "$app/state";
   import { onMount, tick, type Snippet } from "svelte";
   import { account } from "$lib/account.svelte";
+  import { blocklist } from "$lib/blocklist.svelte";
   import { dismissBootScreen } from "$lib/boot-screen";
   import Ambient from "$lib/components/Ambient.svelte";
   import CarbonSignIn from "$lib/components/CarbonSignIn.svelte";
@@ -33,6 +34,7 @@
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
   import { installSoundFeedback, setSoundGate } from "$lib/sfx";
+  import { useSmartShuffle } from "$lib/smart-shuffle-play";
   import { view } from "$lib/view.svelte";
 
   let { children }: { children: Snippet } = $props();
@@ -43,6 +45,8 @@
     void organizer.load();
     void view.syncFullscreen();
     void sound.boot();
+    useSmartShuffle();
+    void blocklist.load(); // and starts skipping blocked songs
     setSoundGate(() => ({
       enabled: prefs.value?.uiSounds ?? false,
       volume: prefs.value?.uiSoundVolume ?? 0,

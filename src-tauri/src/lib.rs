@@ -1,3 +1,4 @@
+mod blocklist;
 mod carbon_playlists;
 mod discord;
 mod engine;
@@ -15,6 +16,7 @@ mod token_store;
 mod tray;
 mod youtube;
 
+use blocklist::BlocklistState;
 use discord::Discord;
 use lastfm::Lastfm;
 use library::LibraryState;
@@ -63,6 +65,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(remote);
     app.manage(SettingsState(Mutex::new(prefs)));
     app.manage(LibraryState(Mutex::new(library::load(&handle))));
+    app.manage(BlocklistState(Mutex::new(blocklist::load(&handle))));
     app.manage(tray::build(&handle)?);
     let sound = engine::sound::load(&handle);
     app.manage(local_library::LocalLibrary::load(&handle));
@@ -120,6 +123,8 @@ pub fn run() {
             fonts::fonts_installed,
             library::library_get,
             library::library_set,
+            blocklist::blocklist_get,
+            blocklist::blocklist_set,
             lastfm::lastfm_status,
             lastfm::lastfm_connect,
             lastfm::lastfm_disconnect,

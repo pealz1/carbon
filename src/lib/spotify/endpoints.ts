@@ -119,6 +119,12 @@ export async function album(id: string): Promise<AlbumDetail> {
   };
 }
 
+/** Spotify's player leaves `explicit` out of its track objects; the catalogue has it. */
+export async function isExplicit(id: string): Promise<boolean> {
+  const raw = await get<RawTrack>(`/tracks/${encodeURIComponent(id)}`, 24 * 60 * 60_000);
+  return raw.explicit === true;
+}
+
 export interface ArtistDetail {
   id: string;
   uri: string;

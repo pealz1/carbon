@@ -69,10 +69,10 @@ describe("stepping and repeat", () => {
 
 describe("shuffle", () => {
   it("keeps the current track first and every track exactly once", () => {
-    const items = ["a", "b", "c", "d", "e"];
+    const items = ["a", "b", "c", "d", "e"].map(track);
     const out = shuffledFrom(items, 2, () => 0);
-    expect(out[0]).toBe("c");
-    expect([...out].sort()).toEqual(items);
+    expect(out[0]).toBe(items[2]);
+    expect(out.map((t) => t.uri).sort()).toEqual(["a", "b", "c", "d", "e"]);
   });
 });
 

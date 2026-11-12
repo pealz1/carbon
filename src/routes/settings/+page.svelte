@@ -5,6 +5,7 @@
   import { account } from "$lib/account.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import FontPicker from "$lib/components/FontPicker.svelte";
+  import PlaybackPanel from "$lib/components/PlaybackPanel.svelte";
   import RemotePanel from "$lib/components/RemotePanel.svelte";
   import ServicesPanel from "$lib/components/ServicesPanel.svelte";
   import YoutubePanel from "$lib/components/YoutubePanel.svelte";
@@ -251,6 +252,8 @@
     <ServicesPanel />
 
     {#if services.active.youtube}<YoutubePanel />{/if}
+
+    <PlaybackPanel />
 
     <section class="panel plate">
       <h2>Sound</h2>

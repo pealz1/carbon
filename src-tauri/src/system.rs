@@ -1,5 +1,5 @@
 //! App info, uninstalling and removing saved data.
-use crate::{carbon_playlists, discord, engine, lastfm, library, local_library, settings, token_store, youtube};
+use crate::{blocklist, carbon_playlists, discord, engine, lastfm, library, local_library, settings, token_store, youtube};
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
@@ -39,7 +39,7 @@ pub fn uninstall(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Signs out of Spotify, Carbon and Last.fm and deletes settings, folders, the local library
+/// Signs out of Spotify, Carbon and Last.fm and deletes settings, folders, blocked songs, the local library
 /// index and Carbon playlists. Credential Manager entries survive an uninstall, so this is the
 /// "leave nothing behind" option. Music files themselves are never touched.
 #[tauri::command]
@@ -48,6 +48,7 @@ pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     token_store::carbon_token_clear()?;
     lastfm::clear_session()?;
     library::delete(&app)?;
+    blocklist::delete(&app)?;
     engine::delete_data(&app)?;
     app.state::<local_library::LocalLibrary>().delete_data()?;
     app.state::<carbon_playlists::Store>().delete_data()?;

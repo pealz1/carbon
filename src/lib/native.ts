@@ -33,6 +33,8 @@ export interface Settings {
   uiSounds: boolean;
   /** 0 to 1. */
   uiSoundVolume: number;
+  /** Carbon shuffles lists it can read itself, spacing out artists. */
+  smartShuffle: boolean;
   /** Brand updates applied to these settings; Rust owns it, the interface only passes it back. */
   brandVersion: number;
 }
@@ -93,6 +95,20 @@ export interface RemoteStatus {
   error: string | null;
 }
 
+/** A blocked song or artist. `uri` is empty only for an artist without a page (matched by name). */
+export interface Blocked {
+  kind: "song" | "artist";
+  uri: string;
+  name: string;
+  /** Who a blocked song is by. */
+  by: string;
+}
+
+export interface BlocklistData {
+  items: Blocked[];
+  skipExplicit: boolean;
+}
+
 export interface LastfmStatus {
   configured: boolean;
   username: string | null;
@@ -108,6 +124,9 @@ export const onMediaCommand = (handler: (command: MediaCommand) => void): Promis
 
 export const libraryGet = () => invoke<LibraryData>("library_get");
 export const librarySet = (library: LibraryData) => invoke<LibraryData>("library_set", { library });
+
+export const blocklistGet = () => invoke<BlocklistData>("blocklist_get");
+export const blocklistSet = (blocklist: BlocklistData) => invoke<BlocklistData>("blocklist_set", { blocklist });
 
 export const appInfo = () => invoke<AppInfo>("app_info");
 export const uninstall = () => invoke("uninstall");
