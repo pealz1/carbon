@@ -4,6 +4,7 @@
   import { page } from "$app/state";
   import { onMount, tick, type Snippet } from "svelte";
   import { account } from "$lib/account.svelte";
+  import { blocklist } from "$lib/blocklist.svelte";
   import { dismissBootScreen } from "$lib/boot-screen";
   import Ambient from "$lib/components/Ambient.svelte";
   import CarbonSignIn from "$lib/components/CarbonSignIn.svelte";
@@ -12,6 +13,7 @@
   import CompactPlayer from "$lib/components/CompactPlayer.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
+  import LibraryTools from "$lib/components/LibraryTools.svelte";
   import LyricsPanel from "$lib/components/LyricsPanel.svelte";
   import NowPlayingBar from "$lib/components/NowPlayingBar.svelte";
   import PlaylistDialog from "$lib/components/PlaylistDialog.svelte";
@@ -38,6 +40,7 @@
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
   import { installSoundFeedback, setSoundGate } from "$lib/sfx";
+  import { useSmartShuffle } from "$lib/smart-shuffle-play";
   import { view } from "$lib/view.svelte";
 
   let { children }: { children: Snippet } = $props();
@@ -51,6 +54,8 @@
     void organizer.load();
     void view.syncFullscreen();
     void sound.boot();
+    useSmartShuffle();
+    void blocklist.load(); // and starts skipping blocked songs
     setSoundGate(() => ({
       enabled: prefs.value?.uiSounds ?? false,
       volume: prefs.value?.uiSoundVolume ?? 0,
@@ -151,6 +156,7 @@
   {/if}
   {#if dialogs.shortcuts}<ShortcutsSheet />{/if}
   {#if dialogs.palette}<CommandPalette />{/if}
+  <LibraryTools />
   {#if youtube.dialog}
     {#key youtube.dialog}<YtPlaylistDialog request={youtube.dialog} />{/key}
   {/if}

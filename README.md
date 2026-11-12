@@ -25,12 +25,12 @@
 Carbon is a native Rust app that plays your music itself, looks like it belongs on a modern desktop, and stays out of your way.
 
 - **Liquid glass interface.** Frosted, refracting panels over light pulled from whatever's playing.
-- **Liquid lyrics.** Time-synced lyrics that fill word by word as they're sung. Click any line to jump there.
+- **Liquid lyrics.** Time-synced lyrics that fill word by word as they're sung, with dots that fill over instrumental breaks. Click any line to jump there. Japanese, Chinese and Korean lyrics can show rōmaji, furigana, pinyin or Revised Romanisation.
 - **YouTube Music too.** Browse, search and play YouTube Music in the same app, kept separate from Spotify. Use either service, or both.
 - **Plays music itself.** Spotify's official Web Playback SDK, right inside Carbon. No Spotify app needed.
 - **Feels native.** Media keys, the Windows media overlay, a tray icon with controls, launch at startup, keep playing when closed.
 - **Discord status.** Shows what you're listening to, with album art and a live progress bar.
-- **Last.fm scrobbling.** Built in, following Last.fm's scrobbling rules.
+- **Last.fm and ListenBrainz scrobbling.** Built in, following Last.fm's scrobbling rules. Use either, both or neither; listens made offline are sent later.
 - **Private by design.** No ads, no analytics, no tracking. Your Spotify sign-in lives in Windows Credential Manager.
 - **Your playlists, your way.** Create and edit playlists, change covers, like songs, and organize with folders, tags and pins.
 - **Your own files too.** A built-in audio engine plays local music gapless, with a 10-band EQ, loudness levelling and crossfade. Carbon playlists mix local files with Spotify songs.

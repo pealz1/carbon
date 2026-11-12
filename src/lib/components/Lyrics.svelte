@@ -1,11 +1,19 @@
 <script lang="ts">
+  import { prefersReducedMotion } from "svelte/motion";
   import { describeError } from "$lib/errors";
+  import { dotFills, withInterludes } from "$lib/interludes";
   import { activeLineIndex } from "$lib/lrc";
   import { MAX_OFFSET_MS, OFFSET_STEP_MS, offsetFor, saveOffset } from "$lib/lyric-offsets";
   import { lyricsFor, type Lyrics } from "$lib/lyrics";
   import { player } from "$lib/player.svelte";
   import type { NowSource } from "$lib/popout/now";
-  import { lineProgress, LYRICS_LEAD_MS, wordProgress } from "$lib/words";
+  import { prefs } from "$lib/preferences.svelte";
+  import { needsAids, prepare, textsOf, type Aided, type RubyPart } from "$lib/romanise";
+  import { detectScripts, mainScript } from "$lib/romanise/script";
+  import { romanChoice, saveRomanChoice } from "$lib/romanise/song-choice";
+  import { toasts } from "$lib/toast.svelte";
+  import { lineProgress, LYRICS_LEAD_MS, sungFraction, wordProgress } from "$lib/words";
+  import Interlude from "./Interlude.svelte";
   import Status from "./Status.svelte";
 
   // Synced lyrics shared by Now Playing, the docked lyrics panel, cinema mode and the lyrics pop-out
@@ -28,6 +36,7 @@
     lyricsError = null;
     if (!track) return;
     offset = offsetFor(track.id);
+    songRoman = romanChoice(track.id);
     void source.syncPosition();
     let current = true;
     lyricsFor(track).then(
@@ -57,8 +66,43 @@
     return () => cancelAnimationFrame(frame);
   });
 
+  // Romanisation: the original shows at once; romanised and converted text follows when it's ready.
+  const AID_NAMES = { ja: "Rōmaji", zh: "Pinyin", ko: "Romaja" } as const;
+  let songRoman = $state<boolean | undefined>();
+  let aided = $state.raw<Aided | null>(null);
+  const scripts = $derived(lyrics ? detectScripts(textsOf(lyrics)) : []);
+  const songScript = $derived(mainScript(scripts));
+  const romanOn = $derived(songRoman ?? prefs.value?.lyricsRomanise ?? false);
+  const place = $derived(prefs.value?.lyricsRomanPlace ?? "below");
+  // Plain values, so saving an unrelated setting doesn't redo the work.
+  const furigana = $derived(romanOn && place === "below" && !!prefs.value?.lyricsFurigana);
+  const chinese = $derived(prefs.value?.lyricsChinese ?? "original");
+
+  $effect(() => {
+    const [found, options] = [lyrics, { romanise: romanOn, furigana, chinese }];
+    aided = null;
+    if (!found || !needsAids(scripts, options)) return;
+    let current = true;
+    prepare(found, options).then(
+      (result) => current && (aided = result),
+      (e) => {
+        console.error("[lyrics] romanisation failed", e);
+        if (current) toasts.error("Couldn't romanise these lyrics.");
+      },
+    );
+    return () => (current = false);
+  });
+
+  const shown = $derived(aided?.lyrics ?? lyrics);
+  const aids = $derived(aided?.aids);
+
+  function toggleRoman() {
+    if (source.track) songRoman = saveRomanChoice(source.track.id, !romanOn, prefs.value?.lyricsRomanise ?? false);
+  }
+
   const position = $derived(clock + LYRICS_LEAD_MS + offset);
-  const lines = $derived(lyrics?.kind === "synced" ? lyrics.lines : []);
+  const lines = $derived(shown?.kind === "synced" ? withInterludes(shown.lines) : []);
+  const still = $derived(prefersReducedMotion.current || prefs.value?.effects === "minimal");
   const active = $derived(activeLineIndex(lines, position));
   const shift = $derived.by(() => {
     const el = lineEls[Math.max(0, active)];
@@ -83,10 +127,16 @@
   {:else if lyrics.kind === "synced"}
     <ol style="transform: translate3d(0, {shift}px, 0)">
       {#each lines as line, i (i)}
+        {@const aid = aids?.get(line.text)}
+        {@const fill = i === active ? sungFraction(lines, i, position) : null}
         <li bind:this={lineEls[i]} class:active={i === active} class:past={i < active} class:near={Math.abs(i - active) === 1} class:far={Math.abs(i - active) > 3}>
           <button onclick={() => seekTo(line.timeMs)} aria-current={i === active ? "true" : undefined}>
-            {#if !line.text}
+            {#if line.interludeEndMs !== undefined}
+              <Interlude fills={dotFills(line.timeMs, line.interludeEndMs, position, still)} live={i === active} {still} />
+            {:else if !line.text}
               <span class="breath" aria-label="Instrumental break"><i></i><i></i><i></i></span>
+            {:else if aid && (place === "instead" || aid.ruby)}
+              {@render aidText(place === "instead" ? [{ text: aid.roman }] : (aid.ruby ?? []), fill)}
             {:else if i === active && line.words}
               {#each line.words as word, w (w)}<span class="fill" style="--p: {wordProgress(word, position)}">{word.text}</span>{/each}
             {:else if i === active}
@@ -94,16 +144,33 @@
             {:else}
               {line.text}
             {/if}
+            {#if aid && place === "below"}<span class="roman">{@render aidText([{ text: aid.roman }], fill)}</span>{/if}
           </button>
         </li>
       {/each}
     </ol>
+  {:else if lyrics.kind === "plain" && aids?.size}
+    <div class="plain">
+      {#each textsOf(shown ?? lyrics) as text, k (k)}
+        {@const aid = aids.get(text)}
+        <p>
+          {#if aid && (place === "instead" || aid.ruby)}{@render aidText(place === "instead" ? [{ text: aid.roman }] : (aid.ruby ?? []), null)}{:else}{text}{/if}
+          {#if aid && place === "below"}<span class="roman">{aid.roman}</span>{/if}
+        </p>
+      {/each}
+    </div>
   {:else if lyrics.kind === "plain"}
-    <p class="plain">{lyrics.text}</p>
+    <p class="plain">{shown?.kind === "plain" ? shown.text : lyrics.text}</p>
   {:else if lyrics.kind === "instrumental"}
     <p class="note">Instrumental. Just listen.</p>
   {:else}
     <p class="note">No lyrics found for this song.</p>
+  {/if}
+
+  {#if songScript}
+    <button class="romanise glass" class:raised={lyrics?.kind === "synced"} aria-pressed={romanOn} onclick={toggleRoman} title="{romanOn ? 'Hide' : 'Show'} {AID_NAMES[songScript]} for this song">
+      {AID_NAMES[songScript]}
+    </button>
   {/if}
 
   {#if lyrics?.kind === "synced"}
@@ -116,6 +183,10 @@
     </div>
   {/if}
 </section>
+
+{#snippet aidText(parts: RubyPart[], fill: number | null)}
+  <span class:fill={fill !== null} style:--p={fill}>{#each parts as part, k (k)}{#if part.reading}<ruby>{part.text}<rt>{part.reading}</rt></ruby>{:else}{part.text}{/if}{/each}</span>
+{/snippet}
 
 <style>
   .lyrics {
@@ -309,5 +380,59 @@
   .sync .value {
     font-size: var(--fs-micro);
     font-weight: 600;
+  }
+  /* Romanisation: a smaller line under the original that fills with it, readings over kanji, and the
+     per-song switch above the timing control. */
+  .roman {
+    display: block;
+    margin-top: 0.18em;
+    font-size: 0.56em;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0;
+  }
+
+  rt {
+    font-size: 0.42em;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .plain p {
+    min-height: 1lh;
+    margin: 0;
+  }
+
+  .plain .roman {
+    margin-top: 0;
+    font-size: 0.8em;
+    color: var(--text-faint);
+  }
+
+  .romanise {
+    position: absolute;
+    right: var(--sp-2);
+    bottom: var(--sp-5);
+    height: 32px;
+    padding: 0 var(--sp-3);
+    border-radius: var(--r-pill);
+    color: var(--text-muted);
+    font-size: var(--fs-micro);
+    font-weight: 700;
+    opacity: 0.4;
+    transition: opacity var(--dur-fast);
+  }
+
+  .romanise.raised {
+    bottom: calc(var(--sp-5) + 40px);
+  }
+
+  .romanise[aria-pressed="true"] {
+    color: var(--accent);
+  }
+
+  .lyrics:hover .romanise,
+  .romanise:focus-visible {
+    opacity: 1;
   }
 </style>

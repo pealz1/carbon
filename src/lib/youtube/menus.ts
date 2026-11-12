@@ -2,9 +2,11 @@
 // YouTube Music songs only go to YouTube Music playlists and queues (see sources.ts), never to
 // Spotify or Carbon playlists.
 import { goto } from "$app/navigation";
+import { blockArtistMenuItem, blockItems } from "$lib/blocklist.svelte";
 import { describeError } from "$lib/errors";
 import type { MenuEntry, MenuItem } from "$lib/menu.svelte";
 import { player } from "$lib/player.svelte";
+import { exportItem } from "$lib/playlist-tools/tools.svelte";
 import { saved } from "$lib/saved.svelte";
 import type { Card, Track } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
@@ -105,6 +107,7 @@ export function ytTrackMenu(track: YtTrack, options: YtTrackMenuOptions = {}): M
     ...(track.album?.id ? [{ label: "Go to album", icon: "album", action: () => goto(pageHref("album", track.album!)) } satisfies MenuItem] : []),
     ...goToArtists(track.artists),
     "separator",
+    ...blockItems(track),
     copyItem(track.uri),
   ];
 }
@@ -119,6 +122,7 @@ export function ytCardMenu(card: Card): MenuEntry[] {
       { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([card.id]) },
       likeItem(card.uri),
       "separator",
+      ...blockItems(track),
       copyItem(card.uri),
     ];
   }
@@ -134,6 +138,8 @@ export function ytCardMenu(card: Card): MenuEntry[] {
           { label: "Delete…", icon: "trash", danger: true, action: () => (youtube.dialog = { mode: "delete", playlist: card }) } satisfies MenuItem,
         ]
       : []),
+    ...(card.kind === "artist" ? [blockArtistMenuItem({ id: card.id, name: card.title, uri: card.uri })] : []),
+    ...(card.kind === "playlist" ? [exportItem({ kind: "youtube", id: card.id, name: card.title })] : []),
     copyItem(card.uri),
   ];
 }

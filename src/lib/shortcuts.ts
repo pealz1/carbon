@@ -9,6 +9,7 @@ export type ShortcutAction =
   | "palette"
   | "fullscreen"
   | "cinema"
+  | "loop"
   | "shortcuts"
   | "escape";
 
@@ -31,6 +32,7 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ["Ctrl", "K"], label: "Search, go anywhere or run a command" },
   { keys: ["F11"], label: "Full screen" },
   { keys: ["Ctrl", "Shift", "C"], label: "Cinema mode" },
+  { keys: ["L"], label: "Loop part of a song: start, end, stop" },
   { keys: ["Esc"], label: "Leave cinema mode" },
   { keys: ["?"], label: "Show these shortcuts" },
 ];
@@ -55,6 +57,7 @@ export function matchShortcut(event: KeyLike): ShortcutAction | null {
   }
   if (key === " " && !event.shiftKey) return "toggle-play";
   if (key === "?") return "shortcuts";
+  if (key === "l" && !event.shiftKey) return "loop";
   if (key === "Escape") return "escape";
   return null;
 }

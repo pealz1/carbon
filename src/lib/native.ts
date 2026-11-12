@@ -4,6 +4,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { LibraryData } from "$lib/organizer";
 
 export type Effects = "full" | "balanced" | "minimal";
+export type RomanPlace = "below" | "instead";
+export type ChineseScript = "original" | "simplified" | "traditional";
 export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
 
@@ -19,9 +21,17 @@ export interface Settings {
   closeToTray: boolean;
   discordPresence: boolean;
   lastfmScrobbling: boolean;
+  /** Independent of Last.fm; only sends once a token is saved. */
+  listenbrainzScrobbling: boolean;
   effects: Effects;
   accent: Accent;
   lyricsScale: number;
+  /** Romanised Japanese, Chinese and Korean lyrics by default; each song can override it. */
+  lyricsRomanise: boolean;
+  lyricsRomanPlace: RomanPlace;
+  /** Readings over kanji while romanisation is on. */
+  lyricsFurigana: boolean;
+  lyricsChinese: ChineseScript;
   spotifyClientId: string;
   remoteEnabled: boolean;
   remotePort: number;
@@ -33,6 +43,8 @@ export interface Settings {
   uiSounds: boolean;
   /** 0 to 1. */
   uiSoundVolume: number;
+  /** Carbon shuffles lists it can read itself, spacing out artists. */
+  smartShuffle: boolean;
   /** Brand updates applied to these settings; Rust owns it, the interface only passes it back. */
   brandVersion: number;
   /** A Windows notification when the song changes while Carbon isn't focused. */
@@ -117,8 +129,27 @@ export interface RemoteStatus {
   error: string | null;
 }
 
+/** A blocked song or artist. `uri` is empty only for an artist without a page (matched by name). */
+export interface Blocked {
+  kind: "song" | "artist";
+  uri: string;
+  name: string;
+  /** Who a blocked song is by. */
+  by: string;
+}
+
+export interface BlocklistData {
+  items: Blocked[];
+  skipExplicit: boolean;
+}
+
 export interface LastfmStatus {
   configured: boolean;
+  username: string | null;
+}
+
+/** The token itself never leaves Rust. */
+export interface ListenbrainzStatus {
   username: string | null;
 }
 
@@ -133,6 +164,9 @@ export const onMediaCommand = (handler: (command: MediaCommand) => void): Promis
 export const libraryGet = () => invoke<LibraryData>("library_get");
 export const librarySet = (library: LibraryData) => invoke<LibraryData>("library_set", { library });
 
+export const blocklistGet = () => invoke<BlocklistData>("blocklist_get");
+export const blocklistSet = (blocklist: BlocklistData) => invoke<BlocklistData>("blocklist_set", { blocklist });
+
 export const appInfo = () => invoke<AppInfo>("app_info");
 export const uninstall = () => invoke("uninstall");
 export const removeSavedData = () => invoke("remove_saved_data");
@@ -140,6 +174,11 @@ export const removeSavedData = () => invoke("remove_saved_data");
 export const lastfmStatus = () => invoke<LastfmStatus>("lastfm_status");
 export const lastfmConnect = () => invoke<string>("lastfm_connect");
 export const lastfmDisconnect = () => invoke("lastfm_disconnect");
+
+export const listenbrainzStatus = () => invoke<ListenbrainzStatus>("listenbrainz_status");
+/** Checks the token with ListenBrainz and saves it; resolves to the account name. */
+export const listenbrainzConnect = (token: string) => invoke<string>("listenbrainz_connect", { token });
+export const listenbrainzDisconnect = () => invoke("listenbrainz_disconnect");
 
 export const remoteStatus = () => invoke<RemoteStatus>("remote_status");
 export const remoteRotate = () => invoke<RemoteStatus>("remote_rotate");

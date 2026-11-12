@@ -6,6 +6,9 @@
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import DesktopPanel from "$lib/components/DesktopPanel.svelte";
   import FontPicker from "$lib/components/FontPicker.svelte";
+  import ListenbrainzPanel from "$lib/components/ListenbrainzPanel.svelte";
+  import LyricsSettings from "$lib/components/LyricsSettings.svelte";
+  import PlaybackPanel from "$lib/components/PlaybackPanel.svelte";
   import RemotePanel from "$lib/components/RemotePanel.svelte";
   import ServicesPanel from "$lib/components/ServicesPanel.svelte";
   import YoutubePanel from "$lib/components/YoutubePanel.svelte";
@@ -198,6 +201,8 @@
       {/each}
     </section>
 
+    <LyricsSettings settings={s} />
+
     <section class="panel plate">
       <h2>Interface sounds</h2>
       <Toggle
@@ -247,6 +252,8 @@
       {/if}
     </section>
 
+    <ListenbrainzPanel />
+
     <DesktopPanel />
 
     <RemotePanel />
@@ -254,6 +261,8 @@
     <ServicesPanel />
 
     {#if services.active.youtube}<YoutubePanel />{/if}
+
+    <PlaybackPanel />
 
     <section class="panel plate">
       <h2>Sound</h2>
@@ -291,7 +300,7 @@
         <button class="link" onclick={() => openUrl("https://getcarbon.cc/privacy")}>Privacy</button>
       </div>
       {#if confirmRemove}
-        <p class="warn">This signs you out of Spotify and Last.fm, resets every setting and forgets your local library and Carbon playlists. Your music files stay where they are.</p>
+        <p class="warn">This signs you out of Spotify, Last.fm and ListenBrainz, resets every setting and forgets your local library and Carbon playlists. Your music files stay where they are.</p>
         <div class="actions">
           <button class="pill danger" onclick={removeEverything}>Yes, remove it all</button>
           <button class="pill" onclick={() => (confirmRemove = false)}>Cancel</button>

@@ -1,7 +1,7 @@
 // Reactive copy of Carbon playlists (stored by the Rust core).
 import { describeError } from "$lib/errors";
 import type { Track } from "$lib/spotify/types";
-import { playlists as api, type CarbonPlaylist } from "./api";
+import { playlists as api, type CarbonPlaylist, type PlaylistItem } from "./api";
 import { toItem } from "./tracks";
 
 class CarbonPlaylists {
@@ -27,6 +27,8 @@ class CarbonPlaylists {
   add = (id: string, tracks: Track[]) => this.#apply(api.add(id, tracks.map(toItem)));
   removeItem = (id: string, index: number) => this.#apply(api.removeItem(id, index));
   move = (id: string, from: number, to: number) => this.#apply(api.move(id, from, to));
+  /** Swaps in a whole new list (sorting, removing duplicates, smart playlists, imports). */
+  replace = (id: string, items: PlaylistItem[]) => this.#apply(api.replace(id, items));
 
   async #apply(request: Promise<CarbonPlaylist[]>): Promise<boolean> {
     try {

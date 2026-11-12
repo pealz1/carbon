@@ -3,6 +3,7 @@ import { describeError } from "$lib/errors";
 import { applyFonts } from "$lib/fonts";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getSettings, saveSettings, type Settings } from "$lib/native";
+import { smartShuffle } from "$lib/smart-shuffle";
 
 class Preferences {
   value = $state<Settings | null>(null);
@@ -43,6 +44,7 @@ class Preferences {
     root.dataset.effects = this.value.effects;
     root.style.setProperty("--lyrics-scale", String(this.value.lyricsScale));
     applyFonts(root, this.value);
+    smartShuffle.enabled = this.value.smartShuffle;
   }
 }
 

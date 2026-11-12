@@ -22,3 +22,11 @@ export const wordProgress = (word: LyricWord, positionMs: number): number => pro
 /** 0..1 fill of a whole line, from its timestamp to the next line's. */
 export const lineProgress = (lines: LyricLine[], index: number, positionMs: number): number =>
   progress(lines[index].timeMs, lineEnd(lines, index), positionMs);
+
+/** 0..1 of a line sung so far, for text that follows it (its romanisation): the words' fills weighted by length when timed. */
+export function sungFraction(lines: LyricLine[], index: number, positionMs: number): number {
+  const words = lines[index].words;
+  if (!words?.length) return lineProgress(lines, index, positionMs);
+  const total = words.reduce((sum, w) => sum + w.text.length, 0) || 1;
+  return words.reduce((sum, w) => sum + w.text.length * wordProgress(w, positionMs), 0) / total;
+}

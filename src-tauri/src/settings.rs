@@ -16,6 +16,23 @@ pub enum Effects {
     Minimal,
 }
 
+/// Where a lyric line's romanisation goes (Settings → Lyrics).
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum RomanPlace {
+    Below,
+    Instead,
+}
+
+/// Which Chinese characters lyrics are shown in.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum ChineseScript {
+    Original,
+    Simplified,
+    Traditional,
+}
+
 /// The music services the listener connected (asked on first run, changeable in Settings).
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Services {
@@ -31,9 +48,17 @@ pub struct Settings {
     pub close_to_tray: bool,
     pub discord_presence: bool,
     pub lastfm_scrobbling: bool,
+    /// Sends listens to ListenBrainz once a token is saved; independent of Last.fm.
+    pub listenbrainz_scrobbling: bool,
     pub effects: Effects,
     pub accent: String,
     pub lyrics_scale: f32,
+    /// Romanised Japanese, Chinese and Korean lyrics by default; each song can override it.
+    pub lyrics_romanise: bool,
+    pub lyrics_roman_place: RomanPlace,
+    /// Readings over kanji while romanisation is on.
+    pub lyrics_furigana: bool,
+    pub lyrics_chinese: ChineseScript,
     /// The listener's own Spotify app (Spotify caps each Client ID at 5 users). Empty = built-in.
     pub spotify_client_id: String,
     /// Phone remote / SDK server (Settings → Remote). Off unless the listener turns it on.
@@ -47,6 +72,8 @@ pub struct Settings {
     pub ui_sounds: bool,
     /// 0 to 1; 0.5 peaks around -24 dBFS.
     pub ui_sound_volume: f32,
+    /// Carbon shuffles lists it can read itself, spacing out artists (Settings → Playback).
+    pub smart_shuffle: bool,
     /// Brand updates already applied to this file (see `migrate`). Missing in older files, so 0.
     #[serde(default)]
     pub brand_version: u8,
@@ -66,9 +93,14 @@ impl Default for Settings {
             close_to_tray: true,
             discord_presence: true,
             lastfm_scrobbling: true,
+            listenbrainz_scrobbling: true,
             effects: Effects::Full,
             accent: ACCENTS[0].into(),
             lyrics_scale: 1.0,
+            lyrics_romanise: false,
+            lyrics_roman_place: RomanPlace::Below,
+            lyrics_furigana: false,
+            lyrics_chinese: ChineseScript::Original,
             spotify_client_id: String::new(),
             remote_enabled: false,
             remote_port: crate::remote::DEFAULT_PORT,
@@ -77,6 +109,7 @@ impl Default for Settings {
             font_lyrics: String::new(),
             ui_sounds: true,
             ui_sound_volume: 0.5,
+            smart_shuffle: false,
             brand_version: BRAND_VERSION,
             track_notifications: false,
             hotkeys: crate::hotkeys::Hotkeys::default(),
@@ -212,6 +245,9 @@ pub fn settings_set(app: AppHandle, state: State<SettingsState>, settings: Setti
     if let Some(lastfm) = app.try_state::<crate::lastfm::Lastfm>() {
         lastfm.send(crate::lastfm::Msg::Enabled(settings.lastfm_scrobbling));
     }
+    if let Some(listenbrainz) = app.try_state::<crate::listenbrainz::Listenbrainz>() {
+        listenbrainz.send(crate::listenbrainz::Msg::Enabled(settings.listenbrainz_scrobbling));
+    }
     let _ = app.emit("settings-changed", &settings);
     Ok(settings)
 }
@@ -324,6 +360,13 @@ mod tests {
         assert_eq!(chosen.services, Some(Services { spotify: false, youtube: true }));
         assert_eq!(parsed.font_text, "");
         assert!(parsed.ui_sounds);
+        assert!(parsed.listenbrainz_scrobbling);
+        assert!(!parsed.lyrics_romanise);
+        assert_eq!((parsed.lyrics_roman_place, parsed.lyrics_chinese), (RomanPlace::Below, ChineseScript::Original));
+        let lyrics: Settings = serde_json::from_str(r#"{"lyricsRomanise":true,"lyricsRomanPlace":"instead","lyricsChinese":"traditional"}"#).unwrap();
+        assert_eq!((lyrics.lyrics_romanise, lyrics.lyrics_roman_place, lyrics.lyrics_chinese), (true, RomanPlace::Instead, ChineseScript::Traditional));
+        assert!(serde_json::from_str::<Settings>(r#"{"lyricsChinese":"klingon"}"#).is_err());
         assert_eq!(parsed.ui_sound_volume, 0.5);
+        assert!(!parsed.smart_shuffle);
     }
 }

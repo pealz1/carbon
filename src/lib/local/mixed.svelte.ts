@@ -58,11 +58,12 @@ export class MixedPlayback {
     return this.queue ? this.queue.slice(this.index + 1) : null;
   }
 
-  async play(tracks: Track[], index: number): Promise<void> {
+  /** `unshuffled`: `tracks` is already a shuffle of this list, which turning shuffle off restores. */
+  async play(tracks: Track[], index: number, unshuffled: Track[] | null = null): Promise<void> {
     this.queue = tracks.slice();
-    this.#unshuffled = null;
+    this.#unshuffled = unshuffled;
     this.#ended = false;
-    this.#host.setModes(false, this.#host.repeat());
+    this.#host.setModes(unshuffled !== null, this.#host.repeat());
     await this.#goTo(index);
   }
 

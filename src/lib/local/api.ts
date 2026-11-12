@@ -98,6 +98,7 @@ export const playlists = {
   add: (id: string, items: PlaylistItem[]) => invoke<CarbonPlaylist[]>("carbon_playlist_add", { id, items }),
   removeItem: (id: string, index: number) => invoke<CarbonPlaylist[]>("carbon_playlist_remove", { id, index }),
   move: (id: string, from: number, to: number) => invoke<CarbonPlaylist[]>("carbon_playlist_move", { id, from, to }),
+  replace: (id: string, items: PlaylistItem[]) => invoke<CarbonPlaylist[]>("carbon_playlist_replace", { id, items }),
 };
 
 export const sound = {
