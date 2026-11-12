@@ -26,6 +26,8 @@ export const SPOTIFY = {
     "ugc-image-upload",
     "user-follow-read",
     "user-follow-modify",
+    // Where you left off in podcast episodes.
+    "user-read-playback-position",
   ].join(" "),
 } as const;
 

@@ -101,7 +101,7 @@ export function trackMenu(track: Track, options: TrackMenuOptions = {}): MenuEnt
         ]
       : []),
     "separator",
-    ...(track.album ? [{ label: "Go to album", icon: "album", action: () => goto(`/album/${track.album!.id}`) } satisfies MenuItem] : []),
+    ...(track.album?.id ? [{ label: "Go to album", icon: "album", action: () => goto(`/album/${track.album!.id}`) } satisfies MenuItem] : []),
     ...goToArtists(track.artists),
     "separator",
     copyItem(track.uri),

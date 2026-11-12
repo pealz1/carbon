@@ -12,7 +12,7 @@ import type { PlaylistSummary, Profile } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
 
 const MAX_SIDEBAR_PLAYLISTS = 200;
-const OLD_SCOPES = "Playlist editing needs a few more Spotify permissions.";
+const OLD_SCOPES = "Newer features (playlist editing, podcast resume points) need a few more Spotify permissions.";
 
 type Status = "booting" | "needs-client-id" | "signed-out" | "signing-in" | "signed-in";
 

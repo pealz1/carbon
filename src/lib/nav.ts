@@ -21,6 +21,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/", label: "Home", icon: "home" },
       { href: "/library", label: "Library", icon: "library" },
       { href: "/liked", label: "Liked Songs", icon: "heart" },
+      { href: "/podcasts", label: "Podcasts", icon: "podcast" },
       { href: "/smart", label: "Smart playlists", icon: "spark" },
     ],
   },
