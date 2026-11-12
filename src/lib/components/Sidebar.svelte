@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import { dialogs } from "$lib/dialogs.svelte";
   import { isActive, sectionsFor } from "$lib/nav";
   import { services } from "$lib/services.svelte";
   import { session } from "$lib/session.svelte";
@@ -13,7 +13,7 @@
 </script>
 
 <aside class="sidebar" class:rail={view.rail} aria-label="Sidebar">
-  <button class="search" class:active={path === "/search"} onclick={() => goto("/search")} aria-label="Search" title={view.rail ? "Search (Ctrl K)" : undefined}>
+  <button class="search" class:active={path === "/search"} onclick={() => (dialogs.palette = true)} aria-haspopup="dialog" aria-label="Search" title={view.rail ? "Search (Ctrl K)" : undefined}>
     <span class="label">Search</span>
     <kbd>Ctrl K</kbd>
     <Icon name="search" size={16} />

@@ -8,6 +8,7 @@
   import Ambient from "$lib/components/Ambient.svelte";
   import CarbonSignIn from "$lib/components/CarbonSignIn.svelte";
   import Cinema from "$lib/components/Cinema.svelte";
+  import CommandPalette from "$lib/components/CommandPalette.svelte";
   import CompactPlayer from "$lib/components/CompactPlayer.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
@@ -149,6 +150,7 @@
     {#key dialogs.tags}<TagsDialog playlist={dialogs.tags} />{/key}
   {/if}
   {#if dialogs.shortcuts}<ShortcutsSheet />{/if}
+  {#if dialogs.palette}<CommandPalette />{/if}
   {#if youtube.dialog}
     {#key youtube.dialog}<YtPlaylistDialog request={youtube.dialog} />{/key}
   {/if}

@@ -16,7 +16,6 @@ vi.mock("$lib/player.svelte", () => ({
   },
 }));
 
-const { goto } = await import("$app/navigation");
 const { player } = await import("$lib/player.svelte");
 const { dialogs } = await import("./dialogs.svelte");
 const { menu } = await import("./menu.svelte");
@@ -44,7 +43,7 @@ describe("matchShortcut", () => {
     expect(press("ArrowUp", { ctrlKey: true })).toBe("volume-up");
     expect(press("ArrowDown", { ctrlKey: true })).toBe("volume-down");
     expect(press("L", { ctrlKey: true })).toBe("like");
-    expect(press("k", { ctrlKey: true })).toBe("search");
+    expect(press("k", { ctrlKey: true })).toBe("palette");
     expect(press("F11")).toBe("fullscreen");
     expect(press("C", { ctrlKey: true, shiftKey: true })).toBe("cinema");
     expect(press("?", { shiftKey: true })).toBe("shortcuts");
@@ -112,9 +111,10 @@ describe("handleKey", () => {
     expect(player.togglePlay).not.toHaveBeenCalled();
   });
 
-  it("opens search and the shortcuts sheet", () => {
+  it("opens the command palette and the shortcuts sheet", () => {
     key({ key: "k", ctrlKey: true });
-    expect(goto).toHaveBeenCalledWith("/search");
+    expect(dialogs.palette).toBe(true);
+    dialogs.palette = false;
     key({ key: "?", shiftKey: true });
     expect(dialogs.shortcuts).toBe(true);
   });
@@ -148,7 +148,8 @@ describe("handleKey", () => {
     expect(view.fullscreen).toBe(true);
     expect(win.setFullscreen).not.toHaveBeenCalled();
     key({ key: "k", ctrlKey: true });
-    expect(goto).toHaveBeenCalled();
+    expect(dialogs.palette).toBe(true);
+    dialogs.palette = false;
   });
 });
 

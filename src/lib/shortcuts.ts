@@ -6,7 +6,7 @@ export type ShortcutAction =
   | "volume-up"
   | "volume-down"
   | "like"
-  | "search"
+  | "palette"
   | "fullscreen"
   | "cinema"
   | "shortcuts"
@@ -28,7 +28,7 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ["Ctrl", "↑"], label: "Volume up" },
   { keys: ["Ctrl", "↓"], label: "Volume down" },
   { keys: ["Ctrl", "L"], label: "Like the current song" },
-  { keys: ["Ctrl", "K"], label: "Search" },
+  { keys: ["Ctrl", "K"], label: "Search, go anywhere or run a command" },
   { keys: ["F11"], label: "Full screen" },
   { keys: ["Ctrl", "Shift", "C"], label: "Cinema mode" },
   { keys: ["Esc"], label: "Leave cinema mode" },
@@ -41,7 +41,7 @@ const WITH_CTRL: Record<string, ShortcutAction> = {
   ArrowUp: "volume-up",
   ArrowDown: "volume-down",
   l: "like",
-  k: "search",
+  k: "palette",
 };
 
 export function matchShortcut(event: KeyLike): ShortcutAction | null {

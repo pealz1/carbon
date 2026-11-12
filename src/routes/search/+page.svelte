@@ -38,7 +38,7 @@
 </div>
 
 {#if !term}
-  <Status empty="Search Spotify for songs, artists, albums and playlists. Ctrl K brings you here from anywhere." />
+  <Status empty="Search Spotify for songs, artists, albums and playlists. Ctrl K searches from anywhere." />
 {:else if results.loading && !results.data}
   <Status loading />
 {:else if results.error}

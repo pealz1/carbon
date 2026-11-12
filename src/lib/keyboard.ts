@@ -1,5 +1,4 @@
 // The app's one keydown handler: decides whether a key press is a shortcut here, then runs it.
-import { goto } from "$app/navigation";
 import { dialogs } from "$lib/dialogs.svelte";
 import { menu } from "$lib/menu.svelte";
 import { player } from "$lib/player.svelte";
@@ -32,9 +31,10 @@ export function run(action: ShortcutAction): unknown {
       return nudgeVolume(-VOLUME_STEP);
     case "like":
       return likeCurrent();
-    case "search":
+    case "palette":
       if (view.cinema) void view.exitCinema();
-      return goto("/search");
+      dialogs.palette = true;
+      return;
     case "fullscreen":
       return view.toggleFullscreen();
     case "cinema":
