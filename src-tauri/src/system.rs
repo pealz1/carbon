@@ -1,4 +1,4 @@
-//! App info, uninstalling and removing saved data.
+//! App info, opening at startup, uninstalling and removing saved data.
 use crate::{blocklist, carbon_playlists, discord, engine, lastfm, library, library_tools, listenbrainz, local_library, settings, token_store, youtube};
 use serde::Serialize;
 use std::path::PathBuf;
@@ -19,6 +19,27 @@ pub struct AppInfo {
 fn uninstaller() -> Option<PathBuf> {
     let path = std::env::current_exe().ok()?.parent()?.join(UNINSTALLER);
     path.exists().then_some(path)
+}
+
+/// An installed Carbon opens at startup from its first run, like most music apps. Once only:
+/// after that the Settings toggle owns it, so turning it off sticks through updates. Dev builds
+/// (no uninstaller) are skipped so they never point Windows at a build folder.
+pub fn start_with_windows_once(app: &AppHandle) {
+    use tauri_plugin_autostart::ManagerExt;
+    let state = app.state::<settings::SettingsState>();
+    let Ok(mut current) = state.0.lock() else { return };
+    if current.startup_set_up || uninstaller().is_none() {
+        return;
+    }
+    if let Err(e) = app.autolaunch().enable() {
+        eprintln!("[startup] couldn't turn on open at startup: {e}");
+        return;
+    }
+    let next = settings::Settings { startup_set_up: true, ..current.clone() };
+    match settings::save(app, &next) {
+        Ok(()) => *current = next,
+        Err(e) => eprintln!("[startup] {e}"),
+    }
 }
 
 #[tauri::command]

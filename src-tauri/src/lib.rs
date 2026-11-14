@@ -97,6 +97,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(hotkeys::HotkeyState::default());
     hotkeys::apply(&handle, &prefs.hotkeys);
     app.manage(SettingsState(Mutex::new(prefs)));
+    system::start_with_windows_once(&handle);
     app.manage(LibraryState(Mutex::new(library::load(&handle))));
     app.manage(BlocklistState(Mutex::new(blocklist::load(&handle))));
     app.manage(tray::build(&handle)?);

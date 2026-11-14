@@ -42,6 +42,7 @@
   import { isPopoutPath } from "$lib/popout/now";
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
+  import { updates } from "$lib/updates.svelte";
   import { installSoundFeedback, setSoundGate } from "$lib/sfx";
   import { useSmartShuffle } from "$lib/smart-shuffle-play";
   import { view } from "$lib/view.svelte";
@@ -71,10 +72,11 @@
       paused: player.paused,
       trackUri: player.track?.uri ?? null,
     }));
+    const stopUpdates = updates.start(); // looks for new versions in the background
     const stopPopouts = popouts.start();
     const stopSounds = installSoundFeedback(document);
     const onScreen = keepYoutubeOnScreen(async () => void (player.paused || (await player.togglePlay())));
-    return () => (stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
+    return () => (stopUpdates(), stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
   });
 
   // Music services start once the Carbon account gate (if this build has one) is passed.

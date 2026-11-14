@@ -110,6 +110,11 @@ pub struct Settings {
     pub sponsor_block: bool,
     /// What's playing as JSON and an overlay page for OBS, for programs on this PC (Settings → Remote).
     pub streamer_widgets: bool,
+    /// Download new versions in the background and install them when Carbon is in the tray and quiet.
+    pub auto_update: bool,
+    /// Carbon has turned on "Open at startup" once, on its first run as an installed app. After that
+    /// the Settings toggle owns it, so turning it off sticks.
+    pub startup_set_up: bool,
     /// Shortcuts that work from any app (Settings → Global shortcuts).
     pub hotkeys: crate::hotkeys::Hotkeys,
 }
@@ -150,6 +155,8 @@ impl Default for Settings {
             track_notifications: false,
             sponsor_block: true,
             streamer_widgets: false,
+            auto_update: true,
+            startup_set_up: false,
             hotkeys: crate::hotkeys::Hotkeys::default(),
         }
     }
@@ -254,7 +261,7 @@ pub fn load(app: &AppHandle) -> Settings {
     }
 }
 
-fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
+pub(crate) fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
     let file = path(app)?;
     if let Some(dir) = file.parent() {
         fs::create_dir_all(dir).map_err(|e| format!("could not create settings folder: {e}"))?;
@@ -403,6 +410,8 @@ mod tests {
         assert_eq!(clean.hotkeys.next, "");
         assert!(!Settings::default().track_notifications);
         assert!(!Settings::default().streamer_widgets);
+        assert!(Settings::default().auto_update);
+        assert!(!Settings::default().startup_set_up);
     }
 
     #[test]

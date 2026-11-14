@@ -285,15 +285,24 @@
 
     <section class="panel plate">
       <h2>System</h2>
-      <Toggle checked={startup} label="Open at startup" description="Starts quietly in the tray when you sign in to Windows." onchange={toggleStartup} />
+      <Toggle checked={startup} label="Open at startup" description="Starts quietly in the tray when you sign in to Windows. Click the tray icon, or press the show/hide shortcut, to open it." onchange={toggleStartup} />
       <Toggle checked={s.closeToTray} label="Keep playing when closed" description="Closing the window keeps Carbon in the tray. Quit from the tray icon." onchange={(v) => prefs.update({ closeToTray: v })} />
     </section>
 
     <section class="panel plate">
       <h2>Updates</h2>
       <p class="muted">Carbon {info?.version ?? ""}</p>
-      {#if updates.state === "available"}
-        <p>Version {updates.version} is ready.</p>
+      <Toggle
+        checked={s.autoUpdate}
+        label="Install updates automatically"
+        description="Downloads new versions in the background and installs them while Carbon is in the tray with nothing playing. Off: Carbon only tells you."
+        onchange={(v) => prefs.update({ autoUpdate: v })}
+      />
+      {#if updates.state === "ready"}
+        <p>Version {updates.version} is downloaded and ready.</p>
+        <button class="pill accent" onclick={() => updates.install()}>Restart to update</button>
+      {:else if updates.state === "available"}
+        <p>Version {updates.version} is out.</p>
         <button class="pill accent" onclick={() => updates.install()}>Update and restart</button>
       {:else if updates.state === "downloading"}
         <div class="bar"><span style="transform: scaleX({updates.progress})"></span></div>
