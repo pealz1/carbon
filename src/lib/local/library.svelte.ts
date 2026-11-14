@@ -17,13 +17,16 @@ class LocalLibrary {
   albums = $derived(albumsOf(this.raw, (t) => this.byUri.get(`local:${t.id}`) ?? fromLocal(t)));
   artists = $derived(artistsOf(this.albums));
   #listening: Promise<unknown> | null = null;
+  #loaded: Promise<void> | null = null;
 
   async load(): Promise<void> {
     this.#listening ??= Promise.all([
       api.onChanged(() => void this.#refresh()),
       api.onProgress((done, total) => (this.progress = { done, total })),
     ]);
-    await this.#refresh();
+    this.#loaded ??= this.#refresh();
+    await this.#loaded;
+    if (!this.loaded) this.#loaded = null; // that read failed: the next visit tries again
   }
 
   async #refresh(): Promise<void> {

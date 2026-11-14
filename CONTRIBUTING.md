@@ -52,6 +52,13 @@ npm run tauri dev
 | `src/` | The interface (SvelteKit + TypeScript). Views in `routes/`, shared logic in `lib/`. |
 | `src/lib/spotify/` | Web API client, endpoint wrappers and response mappers. |
 | `src/lib/youtube/`, `src-tauri/src/youtube/` | YouTube Music: InnerTube requests and sign-in (Rust), response mappers, the embedded-player backend. It never shares a queue or playlist with Spotify (`src/lib/sources.ts`). |
+| `src/lib/servers/`, `src-tauri/src/servers.rs` | The listener's own servers (Navidrome/Subsonic, Jellyfin, Plex): sign-in and library calls in Rust, one adapter per server kind, shared pages under `src/routes/server/`. |
+| `src/lib/stream/` | The queue player for songs that are plain audio addresses (server songs, SoundCloud, Bandcamp). A new source of that kind registers in `stream/sources.ts` and `stream/uri.ts`. |
+| `src/lib/soundcloud/`, `src/lib/bandcamp/`, `src-tauri/src/{soundcloud,bandcamp}.rs` | SoundCloud and Bandcamp through their unofficial web APIs: streaming only, nothing saved. |
+| `src/lib/together/`, `cloud/src/rooms/` | Listen together: the room relay (a Durable Object) and the client that keeps a guest in step. |
+| `src-tauri/src/cli.rs`, `links.rs`, `remote/widgets.rs`, `packages/carbon-mcp/` | Automation: the command line, `carbon://` links, streamer widgets and the MCP server ([`docs/automation.md`](docs/automation.md)). |
+| `src/lib/history/`, `src/lib/ratings/`, `src/lib/bookmarks/`, `src/lib/collections/` | What Carbon keeps for the listener on this PC: listening history and recap, star ratings, bookmarks, album collections (`src-tauri/src/history.rs`, `yours.rs`). |
+| `src/lib/radio/`, `src-tauri/src/radio.rs` | Internet radio: the Radio Browser directory (Rust) and the audio-element player. A station never joins a queue (`src/lib/sources.ts`). |
 | `src-tauri/src/` | The Rust core: sign-in callback, credential storage, settings, tray, Windows media controls, Discord and Last.fm. |
 | `src-tauri/remote/` | The phone remote web app, embedded in the binary. Protocol: [`docs/remote-protocol.md`](docs/remote-protocol.md). |
 | `packages/carbon-sdk/` | `@getcarbon/sdk`, the TypeScript client for the remote protocol. Has its own `npm install` and `npm test`. |

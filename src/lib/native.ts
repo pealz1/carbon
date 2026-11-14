@@ -6,6 +6,7 @@ import type { LibraryData } from "$lib/organizer";
 export type Effects = "full" | "balanced" | "minimal";
 export type RomanPlace = "below" | "instead";
 export type ChineseScript = "original" | "simplified" | "traditional";
+export type LyricsSource = "lrclib" | "youtube" | "netease" | "musixmatch";
 export type CinemaLayout = "split" | "lyrics" | "cover" | "ambient";
 export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
@@ -29,6 +30,8 @@ export interface Settings {
   lyricsScale: number;
   /** Soft blur on lyric lines away from the sung one. */
   lyricsBlur: boolean;
+  /** Every song's lyrics this much later (negative: sooner), for outputs that play late. */
+  lyricsDelayMs: number;
   cinemaLayout: CinemaLayout;
   /** Romanised Japanese, Chinese and Korean lyrics by default; each song can override it. */
   lyricsRomanise: boolean;
@@ -36,6 +39,10 @@ export interface Settings {
   /** Readings over kanji while romanisation is on. */
   lyricsFurigana: boolean;
   lyricsChinese: ChineseScript;
+  /** Where lyrics are looked up, in the order they're asked; NetEase and Musixmatch are unofficial. */
+  lyricsSources: LyricsSource[];
+  /** The language lyrics are translated into ("en", "zh-CN"); "" = no translation. */
+  lyricsTranslate: string;
   spotifyClientId: string;
   remoteEnabled: boolean;
   remotePort: number;
@@ -53,6 +60,10 @@ export interface Settings {
   brandVersion: number;
   /** A Windows notification when the song changes while Carbon isn't focused. */
   trackNotifications: boolean;
+  /** Skip the non-music parts of YouTube Music videos marked on SponsorBlock. */
+  sponsorBlock: boolean;
+  /** What's playing as JSON and an overlay page for OBS, for programs on this PC. */
+  streamerWidgets: boolean;
   hotkeys: Hotkeys;
 }
 
@@ -98,7 +109,7 @@ export interface PlaybackInfo {
   volume?: number;
   queue?: QueueItem[];
   /** Where it plays from, for attribution in song notifications. */
-  source?: "spotify" | "youtube" | "local";
+  source?: "spotify" | "youtube" | "local" | "radio" | "server";
 }
 
 export type MediaCommand =
@@ -147,7 +158,17 @@ export interface Blocked {
 export interface BlocklistData {
   items: Blocked[];
   skipExplicit: boolean;
+  /** Words that mark a version to skip ("live", "remix"); missing in lists saved before this existed. */
+  skipVersions?: string[];
+  /** "liked" skips what's already in the listener's likes, "unliked" what isn't. */
+  skipByLike?: LikeRule;
+  /** Skip a song once it has been skipped this many times; 0 or missing is off. */
+  skipAfter?: number;
+  /** Artist genres to skip, where the service gives them (Spotify). */
+  skipGenres?: string[];
 }
+
+export type LikeRule = "off" | "liked" | "unliked";
 
 export interface LastfmStatus {
   configured: boolean;

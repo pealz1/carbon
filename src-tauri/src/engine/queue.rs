@@ -12,6 +12,21 @@ pub enum Repeat {
     One,
 }
 
+/// The part of a file a track plays: all of it, or one track of a CUE sheet.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Clip {
+    pub start_ms: u64,
+    /// None plays to the end of the file.
+    pub end_ms: Option<u64>,
+}
+
+impl Clip {
+    pub fn is_whole(&self) -> bool {
+        *self == Clip::default()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct QueueTrack {
     pub id: String,
@@ -20,6 +35,10 @@ pub struct QueueTrack {
     /// ReplayGain track gain from tags, if any.
     pub replay_gain_db: Option<f32>,
     pub replay_peak: Option<f32>,
+    /// ReplayGain album gain: keeps the level differences between an album's tracks.
+    pub album_gain_db: Option<f32>,
+    pub album_peak: Option<f32>,
+    pub clip: Clip,
 }
 
 #[derive(Default, Debug)]
@@ -78,7 +97,7 @@ mod tests {
     use super::*;
 
     fn track(id: &str) -> QueueTrack {
-        QueueTrack { id: id.into(), path: PathBuf::from(id), title: id.into(), replay_gain_db: None, replay_peak: None }
+        QueueTrack { id: id.into(), path: PathBuf::from(id), title: id.into(), replay_gain_db: None, replay_peak: None, album_gain_db: None, album_peak: None, clip: Clip::default() }
     }
 
     fn queue(n: usize, index: usize, repeat: Repeat) -> Queue {

@@ -105,6 +105,8 @@ export class YoutubeEmbed {
   play = () => this.#send("playVideo");
   pause = () => this.#send("pauseVideo");
   seek = (seconds: number) => this.#send("seekTo", [Math.max(0, seconds), true]);
+  /** One of YouTube's own speeds (0.25 steps); anything else it would round. */
+  setRate = (rate: number) => this.#send("setPlaybackRate", [rate]);
 
   /** 0..1, like the rest of Carbon. */
   setVolume(volume: number): void {

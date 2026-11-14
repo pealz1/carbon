@@ -1,4 +1,4 @@
-//! Sound settings (EQ, normalization, crossfade, output device), persisted as sound.json in the
+//! Sound settings (EQ, normalization, compressor, crossfade, output device), persisted as sound.json in the
 //! app config directory. Kept apart from settings.json so the two can evolve independently.
 use super::crossfade;
 use super::dsp::Snapshot;
@@ -13,6 +13,16 @@ const MAX_DEVICE_NAME: usize = 256;
 pub const MAX_PREAMP_DB: f32 = 12.0;
 pub const MAX_WIDTH: f32 = 2.0;
 
+/// Which loudness tags to trust before measuring a file ourselves.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum TagGain {
+    Off,
+    #[default]
+    Track,
+    Album,
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct SoundSettings {
@@ -23,6 +33,13 @@ pub struct SoundSettings {
     pub custom_bands: Bands,
     pub preamp_db: f32,
     pub normalize: bool,
+    /// ReplayGain / R128 tags to use for `normalize`; untagged files are always measured.
+    pub tag_gain: TagGain,
+    pub compressor: bool,
+    /// 0 to 1; see dsp/compressor.rs for what it maps to.
+    pub compressor_amount: f32,
+    /// Skip long silence at the start and end of each file.
+    pub skip_silence: bool,
     pub crossfade_secs: f32,
     pub width: f32,
     /// Output device name; empty follows the Windows default.
@@ -39,6 +56,10 @@ impl Default for SoundSettings {
             custom_bands: [0.0; BANDS],
             preamp_db: 0.0,
             normalize: true,
+            tag_gain: TagGain::Track,
+            compressor: false,
+            compressor_amount: 0.5,
+            skip_silence: false,
             crossfade_secs: 0.0,
             width: 1.0,
             device: String::new(),
@@ -58,6 +79,9 @@ impl SoundSettings {
         if !self.preamp_db.is_finite() || self.preamp_db.abs() > MAX_PREAMP_DB {
             return Err(format!("preamp must be between -{0} and +{0} dB", MAX_PREAMP_DB));
         }
+        if !(0.0..=1.0).contains(&self.compressor_amount) {
+            return Err("compressor amount must be between 0% and 100%".into());
+        }
         if !(0.0..=crossfade::MAX_SECONDS).contains(&self.crossfade_secs) {
             return Err(format!("crossfade must be between 0 and {} seconds", crossfade::MAX_SECONDS));
         }
@@ -71,7 +95,8 @@ impl SoundSettings {
     }
 
     pub fn dsp(&self, volume: f32) -> Snapshot {
-        Snapshot { preamp_db: self.preamp_db, bands: self.bands, width: self.width, volume }
+        let compress = if self.compressor { self.compressor_amount } else { 0.0 };
+        Snapshot { preamp_db: self.preamp_db, bands: self.bands, width: self.width, compress, volume }
     }
 }
 
@@ -122,6 +147,8 @@ mod tests {
         bad(SoundSettings { bands: [13.0; BANDS], ..Default::default() });
         bad(SoundSettings { preamp_db: f32::NAN, ..Default::default() });
         bad(SoundSettings { crossfade_secs: 12.5, ..Default::default() });
+        bad(SoundSettings { compressor_amount: 1.2, ..Default::default() });
+        bad(SoundSettings { compressor_amount: f32::NAN, ..Default::default() });
         bad(SoundSettings { width: -0.1, ..Default::default() });
         bad(SoundSettings { device: "x\u{0}y".into(), ..Default::default() });
         assert!(SoundSettings { preset: "custom".into(), ..Default::default() }.validate().is_ok());
@@ -133,5 +160,21 @@ mod tests {
         assert_eq!(s.crossfade_secs, 4.0);
         assert!(s.normalize);
         assert_eq!(s.preset, "flat");
+        assert_eq!((s.tag_gain, s.compressor, s.skip_silence), (TagGain::Track, false, false));
+    }
+
+    #[test]
+    fn new_settings_round_trip_and_reject_unknown_tag_modes() {
+        let s: SoundSettings = serde_json::from_str(r#"{"tagGain":"album","compressor":true,"compressorAmount":0.8,"skipSilence":true}"#).unwrap();
+        assert_eq!((s.tag_gain, s.skip_silence), (TagGain::Album, true));
+        assert!(serde_json::to_string(&s).unwrap().contains(r#""tagGain":"album""#));
+        assert!(serde_json::from_str::<SoundSettings>(r#"{"tagGain":"loudest"}"#).is_err());
+    }
+
+    #[test]
+    fn the_compressor_reaches_the_chain_only_when_switched_on() {
+        let on = SoundSettings { compressor: true, compressor_amount: 0.8, ..Default::default() };
+        assert_eq!(on.dsp(1.0).compress, 0.8);
+        assert_eq!(SoundSettings { compressor: false, ..on }.dsp(1.0).compress, 0.0);
     }
 }

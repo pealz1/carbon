@@ -1,10 +1,12 @@
-//! The real-time DSP chain: preamp → 10-band EQ → stereo width → volume → limiter.
+//! The real-time DSP chain: preamp → 10-band EQ → stereo width → compressor → volume → limiter.
 //! Runs inside the audio callback, so nothing here allocates, locks or blocks.
 pub mod biquad;
+pub mod compressor;
 pub mod eq;
 pub mod limiter;
 
 use biquad::Biquad;
+use compressor::Compressor;
 use eq::{BANDS, Bands};
 use limiter::Limiter;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
@@ -18,12 +20,14 @@ pub struct Snapshot {
     pub bands: Bands,
     /// 0 = mono, 1 = unchanged, 2 = extra wide.
     pub width: f32,
+    /// Compressor amount: 0 = off, 1 = strongest.
+    pub compress: f32,
     pub volume: f32,
 }
 
 impl Default for Snapshot {
     fn default() -> Self {
-        Snapshot { preamp_db: 0.0, bands: [0.0; BANDS], width: 1.0, volume: 1.0 }
+        Snapshot { preamp_db: 0.0, bands: [0.0; BANDS], width: 1.0, compress: 0.0, volume: 1.0 }
     }
 }
 
@@ -34,6 +38,7 @@ pub struct Params {
     preamp_db: AtomicU32,
     bands: [AtomicU32; BANDS],
     width: AtomicU32,
+    compress: AtomicU32,
     volume: AtomicU32,
     generation: AtomicU64,
 }
@@ -44,6 +49,7 @@ impl Params {
             preamp_db: AtomicU32::new(0),
             bands: std::array::from_fn(|_| AtomicU32::new(0)),
             width: AtomicU32::new(0),
+            compress: AtomicU32::new(0),
             volume: AtomicU32::new(0),
             generation: AtomicU64::new(0),
         };
@@ -56,6 +62,7 @@ impl Params {
         put(&self.preamp_db, s.preamp_db);
         self.bands.iter().zip(s.bands).for_each(|(a, v)| put(a, v));
         put(&self.width, s.width);
+        put(&self.compress, s.compress);
         put(&self.volume, s.volume);
         self.generation.fetch_add(1, Ordering::Release);
     }
@@ -66,6 +73,7 @@ impl Params {
             preamp_db: get(&self.preamp_db),
             bands: std::array::from_fn(|i| get(&self.bands[i])),
             width: get(&self.width),
+            compress: get(&self.compress),
             volume: get(&self.volume),
         }
     }
@@ -85,6 +93,7 @@ pub struct Chain {
     active: [bool; BANDS],
     preamp: f32,
     width: f32,
+    compressor: Compressor,
     volume: f32,
     volume_target: f32,
     smooth: f32,
@@ -101,6 +110,7 @@ impl Chain {
             active: [false; BANDS],
             preamp: 1.0,
             width: 1.0,
+            compressor: Compressor::new(sample_rate as f32),
             volume: 0.0,
             volume_target: 1.0,
             smooth: 1.0 - (-1.0 / (SMOOTH_SECONDS * sample_rate as f32)).exp(),
@@ -127,6 +137,7 @@ impl Chain {
         }
         self.preamp = db_to_gain(s.preamp_db);
         self.width = s.width;
+        self.compressor.set(s.compress);
         self.volume_target = s.volume;
     }
 
@@ -142,6 +153,7 @@ impl Chain {
             }
         }
         let (l, r) = widen(l as f32, r as f32, self.width);
+        let (l, r) = self.compressor.process(l, r);
         self.volume += (self.volume_target - self.volume) * self.smooth;
         let g = self.volume * fade;
         let (l, r) = self.limiter.process(l * g, r * g);
@@ -178,6 +190,7 @@ mod tests {
     fn params_round_trip_and_bump_generation() {
         let mut s = Snapshot::default();
         s.bands[3] = -4.5;
+        s.compress = 0.3;
         s.volume = 0.4;
         let p = Params::new(Snapshot::default());
         let before = p.generation();
@@ -200,7 +213,7 @@ mod tests {
     #[test]
     fn hot_settings_still_never_clip() {
         let mut chain = Chain::new(48_000);
-        chain.set(&Snapshot { preamp_db: 12.0, bands: [12.0; BANDS], width: 2.0, volume: 1.0 });
+        chain.set(&Snapshot { preamp_db: 12.0, bands: [12.0; BANDS], width: 2.0, compress: 1.0, volume: 1.0 });
         for n in 0..48_000 {
             let x = (n as f32 * 0.03).sin();
             let (l, r) = chain.frame(x, -x, 1.0);

@@ -1,6 +1,7 @@
 //! Walks library folders for audio files and reads their tags and embedded artwork with lofty.
-//! Files whose size and mtime haven't changed since the last scan are reused as-is.
-use super::LocalTrack;
+//! Files whose size and mtime haven't changed since the last scan are reused as-is. A file with
+//! a CUE sheet beside it is listed as the sheet's tracks instead (cue.rs).
+use super::{LocalTrack, cue};
 use crate::engine::contain::contain;
 use crate::engine::loudness;
 use lofty::picture::{MimeType, PictureType};
@@ -13,6 +14,7 @@ use std::path::{Path, PathBuf};
 /// Formats the engine can decode. Opus isn't here: Symphonia has no pure-Rust Opus decoder.
 pub const EXTENSIONS: [&str; 9] = ["mp3", "flac", "m4a", "mp4", "aac", "ogg", "oga", "wav", "wave"];
 pub const MAX_FILES: usize = 100_000;
+const SHEET_EXTENSION: &str = "cue";
 const MAX_DEPTH: usize = 32;
 const MAX_ARTWORK_BYTES: usize = 16 * 1024 * 1024;
 const UNKNOWN_ARTIST: &str = "Unknown artist";
@@ -21,15 +23,26 @@ pub fn track_id(path: &Path) -> String {
     format!("{:x}", md5::compute(path.to_string_lossy().as_bytes()))
 }
 
-fn is_audio(path: &Path) -> bool {
-    path.extension().and_then(|e| e.to_str()).is_some_and(|e| EXTENSIONS.contains(&e.to_ascii_lowercase().as_str()))
+fn has_extension(path: &Path, wanted: &[&str]) -> bool {
+    path.extension().and_then(|e| e.to_str()).is_some_and(|e| wanted.contains(&e.to_ascii_lowercase().as_str()))
 }
 
-/// Every audio file under `roots`, without following links or entering hidden folders.
-pub fn find_audio(roots: &[PathBuf]) -> Vec<PathBuf> {
-    let mut found = Vec::new();
+fn is_audio(path: &Path) -> bool {
+    has_extension(path, &EXTENSIONS)
+}
+
+/// What a walk of the library folders turned up, each list in path order.
+#[derive(Default, Debug, PartialEq)]
+pub struct Found {
+    pub audio: Vec<PathBuf>,
+    pub sheets: Vec<PathBuf>,
+}
+
+/// Every audio file and CUE sheet under `roots`, without following links or entering hidden folders.
+pub fn find(roots: &[PathBuf]) -> Found {
+    let mut found = Found::default();
     let mut stack: Vec<(PathBuf, usize)> = roots.iter().map(|r| (r.clone(), 0)).collect();
-    while let Some((dir, depth)) = stack.pop() {
+    while let Some((dir, depth)) = stack.pop().filter(|_| found.audio.len() < MAX_FILES) {
         let Ok(entries) = fs::read_dir(&dir) else { continue };
         for entry in entries.flatten() {
             let Ok(kind) = entry.file_type() else { continue };
@@ -37,15 +50,15 @@ pub fn find_audio(roots: &[PathBuf]) -> Vec<PathBuf> {
             let hidden = entry.file_name().to_string_lossy().starts_with('.');
             if kind.is_dir() && !hidden && depth < MAX_DEPTH {
                 stack.push((path, depth + 1));
-            } else if kind.is_file() && is_audio(&path) {
-                found.push(path);
-                if found.len() >= MAX_FILES {
-                    return found;
-                }
+            } else if kind.is_file() && is_audio(&path) && found.audio.len() < MAX_FILES {
+                found.audio.push(path);
+            } else if kind.is_file() && has_extension(&path, &[SHEET_EXTENSION]) && found.sheets.len() < MAX_FILES {
+                found.sheets.push(path);
             }
         }
     }
-    found.sort();
+    found.audio.sort();
+    found.sheets.sort();
     found
 }
 
@@ -55,24 +68,47 @@ fn stamp(path: &Path) -> Option<(u64, u64)> {
     Some((meta.len(), modified))
 }
 
-pub fn scan(files: &[PathBuf], previous: &HashMap<String, LocalTrack>, art_dir: Option<&Path>, mut progress: impl FnMut(usize)) -> Vec<LocalTrack> {
-    let mut tracks = Vec::with_capacity(files.len());
-    for (i, path) in files.iter().enumerate() {
+/// `previous` holds the last scan's whole files by path.
+/// shortcut: a file split by a CUE sheet is never in it, so it is read again on every scan;
+/// keep those whole-file reads too if libraries of single-file albums scan slowly.
+pub fn scan(found: &Found, previous: &HashMap<String, LocalTrack>, art_dir: Option<&Path>, mut progress: impl FnMut(usize)) -> Vec<LocalTrack> {
+    let sheets = cue::assign(&found.sheets, &found.audio);
+    let mut tracks = Vec::with_capacity(found.audio.len());
+    for (i, path) in found.audio.iter().enumerate() {
         if i % 200 == 0 {
             progress(i);
         }
-        let Some((size, modified)) = stamp(path) else { continue };
-        let key = path.to_string_lossy();
-        match previous.get(key.as_ref()) {
-            Some(old) if old.size == size && old.modified == modified => tracks.push(old.clone()),
-            // lofty parses untrusted bytes: a panic there skips the file instead of the scan.
-            _ => match contain(|| read(path, size, modified, art_dir)) {
-                Ok(track) => tracks.push(track),
-                Err(e) => eprintln!("[library] skipped {}: {e}", path.display()),
-            },
+        let Some(whole) = whole_file(path, previous, art_dir) else { continue };
+        match sheets.get(path).and_then(|sheet| cut(&whole, sheet)) {
+            Some(cut) => tracks.extend(cut),
+            None => tracks.push(whole),
         }
     }
     tracks
+}
+
+fn cut(whole: &LocalTrack, sheet: &cue::Sheet) -> Option<Vec<LocalTrack>> {
+    let tracks = cue::tracks(whole, sheet);
+    if tracks.is_none() {
+        eprintln!("[library] the CUE sheet for {} describes a longer recording; listing the file whole", whole.path);
+    }
+    tracks
+}
+
+/// The file as one track, reused from the last scan when its size and date haven't changed.
+fn whole_file(path: &Path, previous: &HashMap<String, LocalTrack>, art_dir: Option<&Path>) -> Option<LocalTrack> {
+    let (size, modified) = stamp(path)?;
+    match previous.get(path.to_string_lossy().as_ref()) {
+        Some(old) if old.size == size && old.modified == modified => Some(old.clone()),
+        // lofty parses untrusted bytes: a panic there skips the file instead of the scan.
+        _ => contain(|| read(path, size, modified, art_dir)).map_err(|e| eprintln!("[library] skipped {}: {e}", path.display())).ok(),
+    }
+}
+
+/// One file read fresh, whatever the last scan knew about it.
+pub fn read_one(path: &Path, art_dir: Option<&Path>) -> Result<LocalTrack, String> {
+    let (size, modified) = stamp(path).ok_or("the file couldn't be found")?;
+    contain(|| read(path, size, modified, art_dir))
 }
 
 fn read(path: &Path, size: u64, modified: u64, art_dir: Option<&Path>) -> Result<LocalTrack, String> {
@@ -86,6 +122,10 @@ fn read(path: &Path, size: u64, modified: u64, art_dir: Option<&Path>) -> Result
     if artists.is_empty() {
         artists.push(UNKNOWN_ARTIST.into());
     }
+    // Opus-style R128 tags stand in when a file has no ReplayGain tag.
+    let gain = |replay_gain: ItemKey, r128: ItemKey| {
+        text(replay_gain).and_then(|g| loudness::parse_gain(&g)).or_else(|| text(r128).and_then(|g| loudness::parse_r128(&g)))
+    };
     let album_artist = text(ItemKey::AlbumArtist).unwrap_or_else(|| artists[0].clone());
     Ok(LocalTrack {
         id: track_id(path),
@@ -99,10 +139,13 @@ fn read(path: &Path, size: u64, modified: u64, art_dir: Option<&Path>) -> Result
         year: tag.and_then(|t| t.date()).map(|d| u32::from(d.year)),
         duration_ms,
         artwork: tag.and_then(|t| save_artwork(t, art_dir?)),
-        replay_gain_db: text(ItemKey::ReplayGainTrackGain).and_then(|g| loudness::parse_gain(&g)),
+        replay_gain_db: gain(ItemKey::ReplayGainTrackGain, ItemKey::R128TrackGain),
         replay_peak: text(ItemKey::ReplayGainTrackPeak).and_then(|p| loudness::parse_peak(&p)),
+        album_gain_db: gain(ItemKey::ReplayGainAlbumGain, ItemKey::R128AlbumGain),
+        album_peak: text(ItemKey::ReplayGainAlbumPeak).and_then(|p| loudness::parse_peak(&p)),
         size,
         modified,
+        clip: None,
     })
 }
 
@@ -143,6 +186,39 @@ mod tests {
         dir
     }
 
+    fn only(audio: &[PathBuf]) -> Found {
+        Found { audio: audio.to_vec(), sheets: Vec::new() }
+    }
+
+    /// A sheet that fits its file replaces the file with its tracks; any other sheet changes nothing.
+    #[test]
+    fn a_cue_sheet_splits_its_file_and_keeps_ids_across_scans() {
+        let dir = temp_dir("cue");
+        let album = dir.join("Album/Kind of Blue.wav");
+        write_wav(&album, 8000, 2, 5.0, 0.5);
+        for name in ["Single", "01", "02"] {
+            write_wav(&dir.join(format!("Album/{name}.wav")), 8000, 2, 1.0, 0.5);
+        }
+        fs::write(dir.join("Album/Kind of Blue.cue"), cue::tests::SHEET).unwrap();
+        fs::write(dir.join("Album/Single.cue"), "FILE Single.wav WAVE\nTRACK 01 AUDIO\nINDEX 01 00:00:00\nTRACK 02 AUDIO\nINDEX 01 03:00:00\n").unwrap();
+        fs::write(dir.join("Album/per-track.cue"), "FILE 01.wav WAVE\nTRACK 01 AUDIO\nINDEX 01 00:00:00\nFILE 02.wav WAVE\nTRACK 02 AUDIO\nINDEX 01 00:00:00\n").unwrap();
+
+        let found = find(std::slice::from_ref(&dir));
+        assert_eq!((found.audio.len(), found.sheets.len()), (4, 3));
+        let tracks = scan(&found, &HashMap::new(), None, |_| {});
+        let listed: Vec<_> = tracks.iter().map(|t| (t.title.as_str(), t.duration_ms, t.clip.is_some())).collect();
+        let cut = [("So What", 2000, true), ("Freddie Freeloader", 1493, true), ("Blue in \"Green\"", 1507, true)];
+        assert_eq!(listed, [&[("01", 1000, false), ("02", 1000, false)], &cut[..], &[("Single", 1000, false)]].concat());
+        let album = &found.audio[2]; // spelled as the walk found it, which is what ids are made from
+        assert!(tracks.iter().all(|t| t.id != track_id(album))); // the long file is no longer a song of its own
+        assert!(tracks[2..5].iter().all(|t| Path::new(&t.path) == album));
+        assert_eq!(tracks[3].id, cue::track_id(album, 2));
+
+        let previous = tracks.iter().filter(|t| t.clip.is_none()).map(|t| (t.path.clone(), t.clone())).collect();
+        assert_eq!(scan(&found, &previous, None, |_| {}), tracks);
+        let _ = fs::remove_dir_all(dir);
+    }
+
     #[test]
     fn finds_audio_and_skips_hidden_and_other_files() {
         let dir = temp_dir("find");
@@ -150,8 +226,10 @@ mod tests {
         write_wav(&dir.join("Album/.hidden/secret.wav"), 8000, 1, 0.1, 0.5);
         fs::write(dir.join("Album/cover.jpg"), b"jpg").unwrap();
         fs::write(dir.join("notes.txt"), b"hi").unwrap();
-        let found = find_audio(std::slice::from_ref(&dir));
-        assert_eq!(found, vec![dir.join("Album/01 Song.wav")]);
+        fs::write(dir.join("Album/01 Song.CUE"), b"").unwrap();
+        fs::write(dir.join("Album/.hidden/secret.cue"), b"").unwrap();
+        let found = find(std::slice::from_ref(&dir));
+        assert_eq!(found, Found { audio: vec![dir.join("Album/01 Song.wav")], sheets: vec![dir.join("Album/01 Song.CUE")] });
         let _ = fs::remove_dir_all(dir);
     }
 
@@ -160,7 +238,7 @@ mod tests {
         let dir = temp_dir("scan");
         let song = dir.join("Album/01 Song.wav");
         write_wav(&song, 8000, 2, 0.5, 0.5);
-        let tracks = scan(std::slice::from_ref(&song), &HashMap::new(), None, |_| {});
+        let tracks = scan(&only(std::slice::from_ref(&song)), &HashMap::new(), None, |_| {});
         assert_eq!(tracks.len(), 1);
         let t = &tracks[0];
         assert_eq!((t.title.as_str(), t.artists[0].as_str()), ("01 Song", UNKNOWN_ARTIST));
@@ -170,7 +248,7 @@ mod tests {
         let mut cached = t.clone();
         cached.title = "From cache".into();
         let previous = HashMap::from([(t.path.clone(), cached)]);
-        let again = scan(std::slice::from_ref(&song), &previous, None, |_| {});
+        let again = scan(&only(std::slice::from_ref(&song)), &previous, None, |_| {});
         assert_eq!(again[0].title, "From cache");
         let _ = fs::remove_dir_all(dir);
     }
@@ -186,7 +264,7 @@ mod tests {
             fs::write(&path, bytes).unwrap();
             files.push(path);
         }
-        let tracks = scan(&files, &HashMap::new(), Some(&dir.join("art")), |_| {});
+        let tracks = scan(&only(&files), &HashMap::new(), Some(&dir.join("art")), |_| {});
         assert_eq!(tracks.iter().map(|t| t.path.clone()).collect::<Vec<_>>(), vec![good.to_string_lossy().into_owned()]);
         let _ = fs::remove_dir_all(dir);
     }

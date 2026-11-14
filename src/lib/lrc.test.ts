@@ -19,6 +19,14 @@ describe("parseLrc", () => {
     ]);
   });
 
+  it("applies the file's own offset tag: positive shows lines sooner", () => {
+    expect(parseLrc("[offset:+500]\n[00:10.00] Line").map((l) => l.timeMs)).toEqual([9500]);
+    expect(parseLrc("[offset: -250]\n[00:10.00] Line").map((l) => l.timeMs)).toEqual([10250]);
+    expect(parseLrc("[offset:+500]\n[00:00.20] Early").map((l) => l.timeMs)).toEqual([0]);
+    const [line] = parseLrc("[offset:+1000]\n[00:10.00] <00:10.00> Hel <00:10.40> lo <00:10.90>");
+    expect(line.words?.map((w) => w.startMs)).toEqual([9000, 9400]);
+  });
+
   it("returns nothing for empty input", () => {
     expect(parseLrc("")).toEqual([]);
   });

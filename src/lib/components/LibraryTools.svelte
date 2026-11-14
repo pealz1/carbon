@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CombineDialog from "$lib/playlist-tools/CombineDialog.svelte";
   import ImportDialog from "$lib/playlist-tools/ImportDialog.svelte";
   import ToolsDialog from "$lib/playlist-tools/ToolsDialog.svelte";
   import { tools } from "$lib/playlist-tools/tools.svelte";
@@ -16,4 +17,6 @@
   {#key tools.dialog}<ToolsDialog source={tools.dialog.source} tab={tools.dialog.tab} />{/key}
 {:else if tools.dialog?.kind === "import"}
   <ImportDialog />
+{:else if tools.dialog?.kind === "combine"}
+  <CombineDialog first={tools.dialog.first} />
 {/if}

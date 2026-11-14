@@ -5,12 +5,15 @@ use super::crossfade;
 use super::loudness::{self, Request};
 use super::output::{self, Output, Shared};
 use super::queue::{Queue, QueueTrack, Repeat};
+use super::silence::{self, Span};
 use super::sound::SoundSettings;
 use super::source::Source;
+use super::spectrum::{self, Tap};
 use super::timeline::{Segment, Timeline};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
@@ -25,6 +28,12 @@ const RELEASE_AFTER_PAUSE: Duration = Duration::from_secs(2);
 const FLUSH_TIMEOUT: Duration = Duration::from_millis(300);
 /// Long enough for the callback's pause ramp to reach silence before the device closes.
 const STOP_FADE: Duration = Duration::from_millis(15);
+/// Used for timing when no device is open to say its own rate.
+const FALLBACK_RATE: u32 = 48_000;
+const SPECTRUM_EVERY: Duration = Duration::from_millis(33);
+/// The interface renews its request for the spectrum; one that isn't renewed (a reloaded or
+/// crashed window) runs out instead of costing CPU for the rest of the session.
+const SPECTRUM_LEASE: Duration = Duration::from_secs(5);
 
 pub enum Command {
     /// `play_id` is echoed in every state so the webview can ignore states from older queues.
@@ -38,6 +47,10 @@ pub enum Command {
     Volume(f32),
     Sound(Box<SoundSettings>),
     Loudness { id: String, gain_db: f32 },
+    /// Playback speed, already checked to be 0.5 to 2. Pitch follows.
+    Speed(f64),
+    /// Start (or renew) or stop the visualizer's spectrum.
+    Spectrum(bool),
 }
 
 #[derive(Serialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -56,14 +69,21 @@ pub struct EngineState {
     pub status: Status,
     pub index: Option<usize>,
     pub track_id: Option<String>,
+    /// Always the position in the track itself, whatever the speed.
     pub position_ms: u64,
     pub duration_ms: u64,
+    /// Playback speed: `position_ms` advances this many milliseconds per millisecond played.
+    pub rate: f64,
 }
 
 pub trait Events: Send + 'static {
     fn state(&self, state: &EngineState);
     fn error(&self, message: &str);
+    fn spectrum(&self, bands: &[f32]);
 }
+
+/// Files the engine has open or is paused on. The tag editor leaves these alone.
+pub type InUse = Arc<Mutex<Vec<PathBuf>>>;
 
 pub struct Player<E: Events> {
     events: E,
@@ -80,8 +100,16 @@ pub struct Player<E: Events> {
     play_id: u32,
     sound: SoundSettings,
     volume: f32,
+    speed: f64,
     gains: HashMap<String, f32>,
     requested: HashSet<String>,
+    /// Where each file's sound starts and stops, found once per file when skip-silence is on.
+    spans: HashMap<String, Span>,
+    tap: Option<Tap>,
+    spectrum_until: Instant,
+    last_spectrum: Instant,
+    /// The interface is showing bars that a frame of silence still has to bring down.
+    spectrum_shown: bool,
     analyzer: Sender<Request>,
     scratch: Vec<f32>,
     incoming_buf: Vec<f32>,
@@ -90,6 +118,7 @@ pub struct Player<E: Events> {
     last_emit: Instant,
     last_device_check: Instant,
     last_seen: Option<(Status, Option<usize>)>,
+    in_use: InUse,
 }
 
 impl<E: Events> Player<E> {
@@ -108,8 +137,14 @@ impl<E: Events> Player<E> {
             play_id: 0,
             sound,
             volume: 1.0,
+            speed: 1.0,
             gains: HashMap::new(),
             requested: HashSet::new(),
+            spans: HashMap::new(),
+            tap: None,
+            spectrum_until: Instant::now(),
+            last_spectrum: Instant::now(),
+            spectrum_shown: false,
             analyzer,
             scratch: Vec::new(),
             incoming_buf: Vec::new(),
@@ -118,7 +153,12 @@ impl<E: Events> Player<E> {
             last_emit: Instant::now(),
             last_device_check: Instant::now(),
             last_seen: None,
+            in_use: InUse::default(),
         }
+    }
+
+    pub fn in_use(&self) -> InUse {
+        self.in_use.clone()
     }
 
     pub fn run(mut self, commands: Receiver<Command>) {
@@ -135,9 +175,23 @@ impl<E: Events> Player<E> {
             self.check_device();
             if self.status == Status::Playing {
                 self.fill();
+                self.prefetch_span();
             }
             self.release_if_idle();
+            self.report_spectrum();
             self.report(false);
+            self.publish_in_use();
+        }
+    }
+
+    fn publish_in_use(&mut self) {
+        let audible = self.playing().map(|(index, _)| index);
+        let open = [&self.current, &self.incoming].into_iter().flatten().map(|s| s.index);
+        let paths: Vec<&Path> = open.chain(audible).filter_map(|i| self.queue.get(i)).map(|t| t.path.as_path()).collect();
+        if let Ok(mut in_use) = self.in_use.lock()
+            && !in_use.iter().map(PathBuf::as_path).eq(paths.iter().copied())
+        {
+            *in_use = paths.into_iter().map(Path::to_path_buf).collect();
         }
     }
 
@@ -175,16 +229,31 @@ impl<E: Events> Player<E> {
                     [&mut self.current, &mut self.incoming].into_iter().flatten().filter(|s| s.id == id).for_each(|s| s.set_gain_db(gain_db));
                 }
             }
+            Command::Speed(speed) => self.set_speed(speed),
+            // Changes nothing the interface shows, so there is no state to report.
+            Command::Spectrum(on) => return self.spectrum_until = Instant::now() + if on { SPECTRUM_LEASE } else { Duration::ZERO },
         }
         self.report(true);
     }
 
+    /// The resampler ratio is fixed per open file, so a new speed restarts the track where it is.
+    fn set_speed(&mut self, speed: f64) {
+        if speed == self.speed {
+            return;
+        }
+        let at = self.playing();
+        self.speed = speed;
+        if let Some((index, ms)) = at {
+            self.start(index, ms, self.status == Status::Paused);
+        }
+    }
+
     fn apply_sound(&mut self, sound: SoundSettings) {
         let device_changed = sound.device != self.sound.device;
-        let normalize_changed = sound.normalize != self.sound.normalize;
+        let gain_changed = sound.normalize != self.sound.normalize || sound.tag_gain != self.sound.tag_gain;
         self.sound = sound;
         self.shared.params.store(self.sound.dsp(self.volume));
-        if normalize_changed {
+        if gain_changed {
             let ids: Vec<(usize, String)> = [&self.current, &self.incoming].into_iter().flatten().map(|s| (s.index, s.id.clone())).collect();
             for (index, id) in ids {
                 let gain = self.queue.get(index).cloned().map_or(0.0, |t| self.gain_for(&t));
@@ -207,6 +276,7 @@ impl<E: Events> Player<E> {
             self.shared.failed.store(false, Ordering::Release);
             self.output = Some(output::open(self.shared.clone(), &self.sound.device)?);
             self.produced = self.shared.consumed.load(Ordering::Acquire);
+            self.tap = None; // the new device may run at another rate
         }
         Ok(())
     }
@@ -239,18 +309,36 @@ impl<E: Events> Player<E> {
         self.draining = false;
         if let Err(e) = self.ensure_output() {
             self.events.error(&e);
-            return self.stop(Status::Idle);
+            return self.park(index, ms);
         }
         let Some(mut source) = self.open_playable(index) else { return self.stop(Status::Ended) };
-        let offset_ms = if ms > 0 { source.seek(ms).unwrap_or(0) } else { 0 };
-        let rate = self.output.as_ref().map_or(48_000, |o| o.rate);
-        self.timeline.reset(rate, segment(&source, self.produced, offset_ms));
+        if ms > 0
+            && let Err(e) = source.seek(ms)
+        {
+            eprintln!("[engine] couldn't seek to {ms} ms: {e}");
+        }
+        let rate = self.output.as_ref().map_or(FALLBACK_RATE, |o| o.rate);
+        self.timeline.reset(rate, self.speed, segment(&source, self.produced));
         self.queue.jump(source.index);
         self.current = Some(source);
         self.status = if paused { Status::Paused } else { Status::Playing };
         self.shared.paused.store(paused, Ordering::Release);
         self.paused_at = paused.then(Instant::now);
         self.prefetch_loudness();
+    }
+
+    /// No device could be opened (the only headphones or HDMI output went away). Stays paused on
+    /// this track instead of going idle, so pressing play tries the device again.
+    fn park(&mut self, index: usize, ms: u64) {
+        let Some(source) = self.open_playable(index) else { return self.stop(Status::Ended) };
+        let at = self.shared.consumed.load(Ordering::Acquire);
+        let parked = Segment { offset_ms: if ms > 0 { ms.min(source.duration_ms) } else { source.position_ms() }, ..segment(&source, at) };
+        self.timeline.reset(FALLBACK_RATE, self.speed, parked);
+        self.queue.jump(source.index);
+        self.current = None;
+        self.status = Status::Paused;
+        self.shared.paused.store(true, Ordering::Release);
+        self.paused_at = None;
     }
 
     fn open_playable(&mut self, mut index: usize) -> Option<Source> {
@@ -269,23 +357,54 @@ impl<E: Events> Player<E> {
 
     fn open(&mut self, index: usize) -> Result<Source, String> {
         let track = self.queue.get(index).cloned().ok_or("That track isn't in the queue.")?;
-        let rate = self.output.as_ref().map_or(48_000, |o| o.rate);
+        let rate = self.output.as_ref().map_or(FALLBACK_RATE, |o| o.rate);
         let gain = self.gain_for(&track);
-        Source::open(&track, index, rate, gain).map_err(|e| format!("Couldn't play \u{201c}{}\u{201d}: {e}. Skipping it.", track.title))
+        let mut source = Source::open(&track, index, rate, gain, self.speed)
+            .map_err(|e| format!("Couldn't play \u{201c}{}\u{201d}: {e}. Skipping it.", track.title))?;
+        // A CUE track's edges are the sheet's: silence there is the album's own pause.
+        if self.sound.skip_silence
+            && track.clip.is_whole()
+            && let Err(e) = source.trim(self.span_for(&track))
+        {
+            eprintln!("[engine] couldn't skip the silence in {}: {e}", track.path.display());
+        }
+        Ok(source)
+    }
+
+    /// Scanned once per file: a seek reopens the file and shouldn't pay for the scan again.
+    fn span_for(&mut self, track: &QueueTrack) -> Span {
+        *self.spans.entry(track.id.clone()).or_insert_with(|| {
+            silence::scan(&track.path).unwrap_or_else(|e| {
+                eprintln!("[engine] couldn't look for silence in {}: {e}", track.path.display());
+                Span::default()
+            })
+        })
+    }
+
+    /// Looks for the next file's silence now, while the ring is full, so the scan never lands on
+    /// the gapless transition itself.
+    fn prefetch_span(&mut self) {
+        if !self.sound.skip_silence || self.current.is_none() {
+            return;
+        }
+        let next = self.queue.peek_next(true).and_then(|i| self.queue.get(i));
+        if let Some(track) = next.filter(|t| t.clip.is_whole() && !self.spans.contains_key(&t.id)).cloned() {
+            self.span_for(&track);
+        }
     }
 
     fn gain_for(&mut self, track: &QueueTrack) -> f32 {
         if !self.sound.normalize {
             return 0.0;
         }
-        if let Some(rg) = track.replay_gain_db {
-            return loudness::normalization_db(rg, track.replay_peak);
+        if let Some(gain) = loudness::tag_gain_db(track, self.sound.tag_gain) {
+            return gain;
         }
         if let Some(gain) = self.gains.get(&track.id) {
             return *gain;
         }
         if self.requested.insert(track.id.clone()) {
-            let _ = self.analyzer.send(Request { id: track.id.clone(), path: track.path.clone() });
+            let _ = self.analyzer.send(Request { id: track.id.clone(), path: track.path.clone(), clip: track.clip });
         }
         0.0
     }
@@ -312,6 +431,9 @@ impl<E: Events> Player<E> {
                 a.copy_from_slice(&self.scratch[..a.len()]);
                 b.copy_from_slice(&self.scratch[a.len()..written * 2]);
                 chunk.commit_all();
+            }
+            if let Some(tap) = self.tap.as_mut() {
+                tap.write(self.produced, &self.scratch[..written * 2]);
             }
             self.produced += written as u64;
             if written < frames {
@@ -353,8 +475,12 @@ impl<E: Events> Player<E> {
         }
         let Some(remaining) = current.remaining_frames().filter(|r| *r > 0 && *r <= fade_frames) else { return };
         let Some(next) = self.queue.peek_next(true) else { return };
+        // The next CUE track is this very recording carrying on: fading it over itself would smear it.
+        if self.follows(current.index, next) {
+            return;
+        }
         if let Ok(source) = self.open(next) {
-            self.timeline.push(segment(&source, self.produced + at as u64, 0));
+            self.timeline.push(segment(&source, self.produced + at as u64));
             self.incoming = Some(source);
             self.fade = Some((0, remaining));
         }
@@ -383,10 +509,13 @@ impl<E: Events> Player<E> {
             self.draining = true;
             return false;
         };
+        if self.carry_on(next, at) {
+            return true;
+        }
         self.queue.jump(next);
         match self.open_playable(next) {
             Some(source) => {
-                self.timeline.push(segment(&source, self.produced + at as u64, 0));
+                self.timeline.push(segment(&source, self.produced + at as u64));
                 self.queue.jump(source.index);
                 self.current = Some(source);
                 self.prefetch_loudness();
@@ -398,6 +527,29 @@ impl<E: Events> Player<E> {
                 false
             }
         }
+    }
+
+    /// Whether queue entry `next` is the stretch of the same file right after entry `now`:
+    /// consecutive tracks of a CUE sheet.
+    fn follows(&self, now: usize, next: usize) -> bool {
+        match (self.queue.get(now), self.queue.get(next)) {
+            (Some(a), Some(b)) => a.path == b.path && a.clip.end_ms == Some(b.clip.start_ms),
+            _ => false,
+        }
+    }
+
+    /// Moves on to the next CUE track of the file that is playing without reopening it, so the
+    /// join is as seamless as it is on the disc. False when `next` is anything else.
+    fn carry_on(&mut self, next: usize, at: usize) -> bool {
+        let ready = self.current.as_ref().is_some_and(|c| c.at_clip_end() && self.follows(c.index, next));
+        let Some(track) = self.queue.get(next).filter(|_| ready).cloned() else { return false };
+        let gain = self.gain_for(&track);
+        let Some(current) = self.current.as_mut() else { return false };
+        current.carry_on(&track, next, gain);
+        self.timeline.push(segment(current, self.produced + at as u64));
+        self.queue.jump(next);
+        self.prefetch_loudness();
+        true
     }
 
     fn pause(&mut self) {
@@ -500,10 +652,39 @@ impl<E: Events> Player<E> {
             Some((i, id, pos, dur)) => (Some(i), Some(id), pos, dur),
             None => (None, None, 0, 0),
         };
-        EngineState { play_id: self.play_id, status: self.status, index, track_id, position_ms, duration_ms }
+        EngineState { play_id: self.play_id, status: self.status, index, track_id, position_ms, duration_ms, rate: self.speed }
+    }
+
+    /// About 30 spectra a second while the interface wants them and music is playing; one flat
+    /// frame when it stops, so the bars fall instead of freezing.
+    fn report_spectrum(&mut self) {
+        let wanted = Instant::now() < self.spectrum_until;
+        let rate = self.output.as_ref().map(|o| o.rate);
+        match rate.filter(|_| wanted && self.status == Status::Playing) {
+            Some(rate) if self.last_spectrum.elapsed() >= SPECTRUM_EVERY => {
+                let tap = self.tap.get_or_insert_with(|| Tap::new(rate));
+                self.last_spectrum = Instant::now();
+                self.spectrum_shown = true;
+                self.events.spectrum(&tap.read(self.shared.consumed.load(Ordering::Acquire)));
+            }
+            Some(_) => {}
+            None => {
+                if std::mem::take(&mut self.spectrum_shown) && wanted {
+                    self.events.spectrum(&[0.0; spectrum::BANDS]);
+                }
+                if !wanted {
+                    self.tap = None;
+                }
+            }
+        }
     }
 }
 
-fn segment(source: &Source, start: u64, offset_ms: u64) -> Segment {
-    Segment { start, index: source.index, id: source.id.clone(), offset_ms, duration_ms: source.duration_ms }
+/// A segment that becomes audible at output frame `start`, from wherever `source` stands now
+/// (after a seek, or after its opening silence when that is skipped).
+fn segment(source: &Source, start: u64) -> Segment {
+    Segment { start, index: source.index, id: source.id.clone(), offset_ms: source.position_ms(), duration_ms: source.duration_ms }
 }
+
+#[cfg(test)]
+mod tests;

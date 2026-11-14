@@ -10,6 +10,7 @@ const SPOTIFY_PATH: &str = "/callback";
 const CARBON_PATH: &str = "/carbon-callback";
 const OAUTH_TIMEOUT: Duration = Duration::from_secs(300);
 const OAUTH_POLL: Duration = Duration::from_millis(100);
+const READ_TIMEOUT: Duration = Duration::from_secs(2);
 const DONE_PAGE: &str = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n\
 <!doctype html><title>Carbon</title><body style=\"background:#0e0f12;color:#e8e8ec;font:16px 'Segoe UI Variable',system-ui;display:grid;place-items:center;height:90vh\">\
 <p>You're signed in to Carbon. You can close this tab.</p></body>";
@@ -36,8 +37,10 @@ fn accept_redirect(path: &str) -> Result<String, String> {
             Err(e) => return Err(format!("accept failed: {e}")),
         };
         stream.set_nonblocking(false).map_err(|e| e.to_string())?;
+        // A port scanner or a stray client that connects and says nothing must not hold sign-in up.
+        let _ = stream.set_read_timeout(Some(READ_TIMEOUT));
         let mut buf = [0u8; 8192];
-        let n = stream.read(&mut buf).map_err(|e| format!("read failed: {e}"))?;
+        let Ok(n) = stream.read(&mut buf) else { continue };
         let request = String::from_utf8_lossy(&buf[..n]);
         if let Some(query) = callback_query(&request, path) {
             let _ = stream.write_all(DONE_PAGE.as_bytes()); // cosmetic; the query is what matters

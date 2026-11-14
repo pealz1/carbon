@@ -12,6 +12,21 @@ const FILE: &str = "blocklist.json";
 const MAX_ITEMS: usize = 5_000;
 const MAX_URI_LEN: usize = 128;
 const MAX_NAME_CHARS: usize = 300;
+const MAX_VERSIONS: usize = 30;
+const MAX_VERSION_CHARS: usize = 40;
+const MAX_SKIP_AFTER: u8 = 20;
+
+/// Whether being in the listener's liked songs makes a song one to skip.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum LikeRule {
+    #[default]
+    Off,
+    /// Skip what's already liked: for hearing something new.
+    Liked,
+    /// Skip what isn't liked: favourites only.
+    Unliked,
+}
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[serde(rename_all = "lowercase")]
@@ -37,6 +52,13 @@ pub struct Blocked {
 pub struct Blocklist {
     pub items: Vec<Blocked>,
     pub skip_explicit: bool,
+    /// Words that mark a version to skip when a title's notes carry them: "live", "remix", "acoustic".
+    pub skip_versions: Vec<String>,
+    pub skip_by_like: LikeRule,
+    /// Skip a song once the listener has skipped it this many times; 0 is off.
+    pub skip_after: u8,
+    /// Artist genres to skip ("country"), where the service says an artist's genres.
+    pub skip_genres: Vec<String>,
 }
 
 /// `spotify:track:…` / `ytm:video:…` for songs, `spotify:artist:…` / `ytm:artist:…` for artists.
@@ -58,6 +80,20 @@ fn check_text(text: &str, what: &str, required: bool) -> Result<(), String> {
     }
     if text.chars().any(char::is_control) {
         return Err(format!("{what} can't contain control characters"));
+    }
+    Ok(())
+}
+
+/// A short list of short words the listener typed (versions, genres).
+fn check_words(words: &[String], what: &str) -> Result<(), String> {
+    if words.len() > MAX_VERSIONS {
+        return Err(format!("you can skip at most {MAX_VERSIONS} {what}s"));
+    }
+    for word in words {
+        check_text(word, &format!("a {what} to skip"), true)?;
+        if word.chars().count() > MAX_VERSION_CHARS {
+            return Err(format!("a {what} to skip must be {MAX_VERSION_CHARS} characters or fewer"));
+        }
     }
     Ok(())
 }
@@ -91,6 +127,11 @@ impl Blocklist {
             if !seen.insert(item.key()) {
                 return Err(format!("\u{201c}{}\u{201d} is blocked twice", item.name));
             }
+        }
+        check_words(&self.skip_versions, "version")?;
+        check_words(&self.skip_genres, "genre")?;
+        if self.skip_after > MAX_SKIP_AFTER {
+            return Err(format!("\u{201c}skip after\u{201d} can be at most {MAX_SKIP_AFTER} skips"));
         }
         Ok(())
     }
@@ -178,7 +219,29 @@ mod tests {
                 item(Kind::Artist, "", "Uploader"),
             ],
             skip_explicit: true,
+            skip_versions: vec!["live".into(), "sped up".into()],
+            skip_by_like: LikeRule::Liked,
+            skip_after: 3,
+            skip_genres: vec!["country".into()],
         }
+    }
+
+    #[test]
+    fn bounds_the_versions_to_skip() {
+        let with = |skip_versions: Vec<String>| Blocklist { skip_versions, ..Blocklist::default() };
+        assert!(with(vec!["remix".into()]).validate().is_ok());
+        assert!(with(vec!["  ".into()]).validate().is_err());
+        assert!(with(vec!["x".repeat(MAX_VERSION_CHARS + 1)]).validate().is_err());
+        assert!(with(vec!["live".into(); MAX_VERSIONS + 1]).validate().is_err());
+        let old: Blocklist = serde_json::from_str(r#"{"items":[],"skipExplicit":true}"#).unwrap();
+        assert!(old.skip_versions.is_empty());
+        assert_eq!((old.skip_by_like, old.skip_after, old.skip_genres.len()), (LikeRule::Off, 0, 0));
+        let rules: Blocklist = serde_json::from_str(r#"{"skipByLike":"unliked","skipAfter":5,"skipGenres":["metal"]}"#).unwrap();
+        assert_eq!((rules.skip_by_like, rules.skip_after), (LikeRule::Unliked, 5));
+        assert!(rules.validate().is_ok());
+        assert!(Blocklist { skip_after: MAX_SKIP_AFTER + 1, ..Blocklist::default() }.validate().is_err());
+        assert!(Blocklist { skip_genres: vec!["".into()], ..Blocklist::default() }.validate().is_err());
+        assert!(serde_json::from_str::<Blocklist>(r#"{"skipByLike":"sometimes"}"#).is_err());
     }
 
     fn temp_file(name: &str) -> PathBuf {
@@ -207,7 +270,7 @@ mod tests {
             item(Kind::Artist, "", &"x".repeat(MAX_NAME_CHARS + 1)),
         ];
         for bad in cases {
-            let list = Blocklist { items: vec![bad.clone()], skip_explicit: false };
+            let list = Blocklist { items: vec![bad.clone()], skip_explicit: false, ..Blocklist::default() };
             assert!(list.validate().is_err(), "{bad:?} should be refused");
         }
     }
@@ -228,7 +291,7 @@ mod tests {
 
     #[test]
     fn limits_the_list() {
-        let many = Blocklist { items: (0..=MAX_ITEMS).map(|i| item(Kind::Song, &format!("ytm:video:v{i}"), "Song")).collect(), skip_explicit: false };
+        let many = Blocklist { items: (0..=MAX_ITEMS).map(|i| item(Kind::Song, &format!("ytm:video:v{i}"), "Song")).collect(), skip_explicit: false, ..Blocklist::default() };
         assert!(many.validate().is_err());
     }
 

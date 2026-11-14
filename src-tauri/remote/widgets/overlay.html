@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- Carbon's now-playing overlay for an OBS browser source (about 620 × 150). Served by Carbon
+     itself when Settings → Remote → Streamer widgets is on; it asks no other server for anything
+     but the cover image. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Carbon overlay</title>
+    <link rel="stylesheet" href="overlay.css" />
+  </head>
+  <body>
+    <main class="card" id="card" data-status="stopped" aria-live="polite">
+      <div class="cover"><img id="cover" alt="" width="104" height="104" hidden /></div>
+      <div class="text">
+        <p class="label" id="label">Now playing</p>
+        <h1 class="title" id="title"></h1>
+        <p class="artists" id="artists"></p>
+        <div class="bar"><span id="progress"></span></div>
+      </div>
+    </main>
+    <script src="overlay.js"></script>
+  </body>
+</html>

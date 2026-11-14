@@ -27,9 +27,9 @@ export interface Row {
   track: Track | null;
 }
 
-/** Where rows come from. Only playlists Spotify lets Carbon read (your own) appear here. */
+/** Where rows come from. `readOnly` marks a Spotify playlist you don't own: it can be copied, if Spotify shares its songs, but not changed. */
 export type Source =
-  | { kind: "playlist"; id: string; name: string }
+  | { kind: "playlist"; id: string; name: string; readOnly?: boolean }
   | { kind: "liked"; name: string }
   | { kind: "album"; id: string; name: string }
   | { kind: "carbon"; id: string; name: string }

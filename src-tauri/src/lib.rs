@@ -1,26 +1,35 @@
+mod bandcamp;
 mod blocklist;
 mod carbon_playlists;
+pub mod cli;
 mod discord;
 mod engine;
 mod fonts;
+mod history;
 mod hotkeys;
 mod lastfm;
 mod library;
 mod listenbrainz;
 mod library_tools;
+mod links;
 mod local_library;
+mod lyrics_sources;
 mod media_controls;
 mod notifications;
 mod oauth;
 mod playback;
 mod popouts;
+mod radio;
 mod remote;
+mod servers;
 mod settings;
+mod soundcloud;
 mod system;
 mod taskbar;
 mod token_store;
 mod tray;
 mod visibility;
+mod yours;
 mod youtube;
 
 use blocklist::BlocklistState;
@@ -58,9 +67,12 @@ fn playback_update(
     taskbar::set_playing(&app, info.as_ref().is_some_and(|i| !i.paused));
     tray.update(&app, info.as_ref());
     remote.publish(info.as_ref());
+    app.state::<cli::StateFile>().update(info.as_ref());
     discord.send(discord::Msg::Playback(info.clone()));
-    app.state::<Listenbrainz>().send(listenbrainz::Msg::Playback(info.clone()));
-    lastfm.send(lastfm::Msg::Playback(info));
+    // A radio station isn't a song: nothing to scrobble, and no "now playing" in its name.
+    let song = info.filter(|i| i.source != Some(playback::Source::Radio));
+    app.state::<Listenbrainz>().send(listenbrainz::Msg::Playback(song.clone()));
+    lastfm.send(lastfm::Msg::Playback(song));
     Ok(())
 }
 
@@ -76,6 +88,9 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     {
         eprintln!("[remote] {e}");
     }
+    if let Err(e) = remote.apply_widgets(prefs.streamer_widgets) {
+        eprintln!("[widgets] {e}");
+    }
     app.manage(remote);
     app.manage(notifications::Notifier::default());
     app.manage(visibility::YoutubePlaying::default());
@@ -88,7 +103,14 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let sound = engine::sound::load(&handle);
     app.manage(local_library::LocalLibrary::load(&handle));
     app.manage(carbon_playlists::Store::load(&handle));
+    app.manage(history::History::new(&handle));
+    app.manage(yours::Yours::new(&handle));
     app.manage(youtube::Youtube::new());
+    app.manage(radio::Radio::new(&app.package_info().version.to_string()));
+    app.manage(lyrics_sources::LyricsSources::new());
+    app.manage(servers::Servers::new(&app.package_info().version.to_string()));
+    app.manage(soundcloud::SoundCloud::new(&app.package_info().version.to_string()));
+    app.manage(bandcamp::Bandcamp::new(&app.package_info().version.to_string()));
     app.manage(engine::spotify_eq::SpotifyEqInjected(sound.spotify_eq));
     let window = engine::spotify_eq::create_main_window(app, sound.spotify_eq)?;
     app.manage(engine::Engine::spawn(&handle, sound));
@@ -109,7 +131,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 pub fn run() {
     tauri::Builder::default()
         // Must be first: a second launch focuses the running Carbon instead of starting another.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| tray::show_main(app)))
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| cli::second_launch(app, &args)))
+        .plugin(cli::plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -182,6 +205,8 @@ pub fn run() {
             engine::engine_seek,
             engine::engine_volume,
             engine::engine_repeat,
+            engine::engine_speed,
+            engine::engine_spectrum,
             engine::sound_get,
             engine::sound_set,
             engine::sound_presets,
@@ -192,6 +217,8 @@ pub fn run() {
             local_library::local_library_add_folder,
             local_library::local_library_remove_folder,
             local_library::local_library_rescan,
+            local_library::local_library_tags,
+            local_library::local_library_edit_tags,
             carbon_playlists::carbon_playlists,
             carbon_playlists::carbon_playlist_create,
             carbon_playlists::carbon_playlist_rename,
@@ -206,6 +233,8 @@ pub fn run() {
             library_tools::tools_cache_set,
             library_tools::smart_playlists_get,
             library_tools::smart_playlists_set,
+            library_tools::backup_save,
+            library_tools::backup_open,
             youtube::ytm_signed_in,
             youtube::signin::ytm_sign_in,
             youtube::ytm_sign_out,
@@ -213,6 +242,7 @@ pub fn run() {
             youtube::ytm_search,
             youtube::ytm_browse,
             youtube::ytm_browse_more,
+            youtube::ytm_timed_lyrics,
             youtube::ytm_next,
             youtube::ytm_playability,
             youtube::ytm_rate,
@@ -221,12 +251,41 @@ pub fn run() {
             youtube::ytm_playlist_add,
             youtube::ytm_playlist_remove,
             youtube::ytm_playlist_delete,
+            radio::radio_stations,
+            radio::radio_played,
+            lyrics_sources::lyrics_netease_search,
+            lyrics_sources::lyrics_netease_get,
+            lyrics_sources::lyrics_musixmatch,
+            lyrics_sources::lyrics_translate,
+            lyrics_sources::lyrics_save,
+            history::history_get,
+            history::history_add,
+            history::history_clear,
+            history::history_paused,
+            history::history_pause,
+            yours::ratings_get,
+            yours::rating_set,
+            yours::bookmarks_get,
+            yours::bookmarks_set,
+            yours::collections_get,
+            yours::collections_set,
+            servers::server_connect,
+            servers::server_disconnect,
+            servers::servers_connected,
+            servers::server_get,
+            soundcloud::soundcloud_get,
+            soundcloud::soundcloud_stream,
+            bandcamp::bandcamp_search,
+            bandcamp::bandcamp_release,
+            bandcamp::bandcamp_band,
+            bandcamp::bandcamp_stream,
             popouts::popout_open,
             popouts::popout_close,
             popouts::popouts_open,
             popouts::popout_command,
             hotkeys::hotkeys_status,
             hotkeys::hotkeys_suspend,
+            cli::launch_link,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Carbon");

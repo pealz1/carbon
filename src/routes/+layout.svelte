@@ -25,6 +25,7 @@
   import TitleBar from "$lib/components/TitleBar.svelte";
   import YoutubeStage from "$lib/components/YoutubeStage.svelte";
   import YtPlaylistDialog from "$lib/components/YtPlaylistDialog.svelte";
+  import { serverSession } from "$lib/servers/session.svelte";
   import { redirectFor, services } from "$lib/services.svelte";
   import { youtube } from "$lib/youtube/session.svelte";
   import Toasts from "$lib/components/Toasts.svelte";
@@ -32,6 +33,8 @@
   import { dialogs } from "$lib/dialogs.svelte";
   import { handleKey } from "$lib/keyboard";
   import { sound } from "$lib/local/sound.svelte";
+  import TagEditorDialog from "$lib/local/TagEditorDialog.svelte";
+  import { onScreen } from "$lib/on-screen.svelte";
   import { organizer } from "$lib/organizer.svelte";
   import { player } from "$lib/player.svelte";
   import { compact, keepYoutubeOnScreen } from "$lib/popout/compact.svelte";
@@ -48,14 +51,20 @@
   // The mini player and lyrics windows only mirror this window's player; they start nothing.
   const popout = isPopoutPath(page.url.pathname);
 
+  // Every window (pop-outs too) stops its per-frame work while it can't be seen.
+  onMount(() => onScreen.start());
+
   onMount(() => {
     if (popout) return;
     void account.boot();
+    void serverSession.load();
     void organizer.load();
     void view.syncFullscreen();
     void sound.boot();
     useSmartShuffle();
     void blocklist.load(); // and starts skipping blocked songs
+    void import("$lib/history/history.svelte").then((m) => m.history.start()); // local listening history
+    void import("$lib/deep-links").then((m) => m.startDeepLinks()); // carbon:// links and `carbon play-uri`
     setSoundGate(() => ({
       enabled: prefs.value?.uiSounds ?? false,
       volume: prefs.value?.uiSoundVolume ?? 0,
@@ -154,6 +163,9 @@
   {/if}
   {#if dialogs.tags}
     {#key dialogs.tags}<TagsDialog playlist={dialogs.tags} />{/key}
+  {/if}
+  {#if dialogs.tagEditor}
+    {#key dialogs.tagEditor}<TagEditorDialog id={dialogs.tagEditor} />{/key}
   {/if}
   {#if dialogs.shortcuts}<ShortcutsSheet />{/if}
   {#if dialogs.palette}<CommandPalette />{/if}

@@ -24,6 +24,13 @@ const AUTH_TIMEOUT: Duration = Duration::from_secs(180);
 const MAX_PENDING: usize = 50;
 const ERR_UNAUTHORIZED_TOKEN: i64 = 14;
 const ERR_INVALID_SESSION: i64 = 9;
+/// Last.fm's codes for "this request is wrong": invalid parameters, invalid resource. Sending the same
+/// scrobble again can't help, so it is dropped. Everything else (busy, offline, a problem with Carbon's
+/// own key) says nothing about the scrobble, so it waits.
+const ERR_REJECTED: [i64; 2] = [6, 7];
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
+/// A repeat of the same song: the position is back near the start after it was scrobbled.
+const RESTART_WITHIN_MS: u64 = 5_000;
 
 pub fn configured() -> bool {
     API_KEY.is_some() && SECRET.is_some()
@@ -92,7 +99,8 @@ impl Scrobbler {
             return actions;
         };
         let same_track = self.current.as_ref().is_some_and(|c| c.info.track_id == info.track_id);
-        if same_track {
+        let restarted = self.current.as_ref().is_some_and(|c| same_track && c.scrobbled && info.position_ms < RESTART_WITHIN_MS && c.info.position_ms > info.position_ms);
+        if same_track && !restarted {
             let cur = self.current.as_mut().expect("checked above");
             cur.playing_since_ms = (!info.paused).then_some(now_ms);
             if !info.paused && !cur.now_playing_sent {
@@ -147,6 +155,14 @@ pub fn clear_session() -> Result<(), String> {
 enum ApiError {
     Lastfm(i64, String),
     Network(String),
+}
+
+/// Worth sending again later: anything but Last.fm rejecting the scrobble itself.
+fn retryable(e: &ApiError) -> bool {
+    match e {
+        ApiError::Network(_) => true,
+        ApiError::Lastfm(code, _) => !ERR_REJECTED.contains(code),
+    }
 }
 
 impl std::fmt::Display for ApiError {
@@ -216,7 +232,7 @@ fn unix_now() -> i64 {
 }
 
 async fn run(mut rx: UnboundedReceiver<Msg>, mut enabled: bool) {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().timeout(REQUEST_TIMEOUT).build().unwrap_or_default();
     let clock = Instant::now();
     let now_ms = || clock.elapsed().as_millis() as u64;
     let mut session = load_session();
@@ -262,9 +278,14 @@ async fn run(mut rx: UnboundedReceiver<Msg>, mut enabled: bool) {
                     session = None;
                     break;
                 }
-                Err(e) => {
+                Err(e) if retryable(&e) => {
                     eprintln!("[lastfm] scrobble failed, will retry: {e}");
                     break;
+                }
+                Err(e) => {
+                    // Last.fm refused this one (bad artist, too old…): keeping it would block every later scrobble.
+                    eprintln!("[lastfm] scrobble refused, dropping it: {e}");
+                    pending.pop_front();
                 }
             }
         }
@@ -350,6 +371,27 @@ mod tests {
         assert!(s.tick(50_000).is_empty());
         assert_eq!(s.tick(100_000), vec![Action::Scrobble(info.clone(), 1_000)]);
         assert!(s.tick(150_000).is_empty(), "only once per play");
+    }
+
+    #[test]
+    fn a_song_on_repeat_scrobbles_each_time_round() {
+        let mut s = Scrobbler::default();
+        let info = sample("t1", 200_000, 0, false);
+        s.update(Some(info.clone()), 0, 1_000);
+        assert_eq!(s.tick(100_000).len(), 1);
+        s.update(Some(sample("t1", 200_000, 150_000, false)), 150_000, 1_150); // an ordinary report mid-song
+        let again = s.update(Some(sample("t1", 200_000, 500, false)), 200_500, 1_200); // back at the start
+        assert!(matches!(again.as_slice(), [Action::NowPlaying(_)]));
+        assert_eq!(s.tick(310_000).len(), 1, "the second play counts on its own");
+    }
+
+    #[test]
+    fn only_busy_or_unreachable_is_worth_retrying() {
+        assert!(retryable(&ApiError::Network("offline".into())));
+        assert!(retryable(&ApiError::Lastfm(29, "rate limit".into())));
+        assert!(retryable(&ApiError::Lastfm(8, "operation failed".into())));
+        assert!(retryable(&ApiError::Lastfm(10, "invalid api key".into())), "a problem with Carbon's key must not drain the backlog");
+        assert!(!retryable(&ApiError::Lastfm(6, "invalid parameters".into())));
     }
 
     #[test]

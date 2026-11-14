@@ -14,17 +14,21 @@ class Mirror implements NowSource {
   paused = $state(true);
   durationMs = $state(0);
   source = $state<Source>("spotify");
+  #stalled = $state(false);
+  #rate = $state(1);
   #positionMs = $state(0);
   #arrivedAt = $state(0);
 
   position(now = performance.now()): number {
-    return positionAt({ paused: this.paused, positionMs: this.#positionMs, durationMs: this.durationMs }, this.#arrivedAt, now);
+    return positionAt({ paused: this.paused, stalled: this.#stalled, rate: this.#rate, positionMs: this.#positionMs, durationMs: this.durationMs }, this.#arrivedAt, now);
   }
 
   apply(state: NowState, now = performance.now()): void {
     // Same song, same object: lyrics and art only reload when the song changes.
     if (state.track?.uri !== this.track?.uri) this.track = state.track;
     this.paused = state.paused;
+    this.#stalled = state.stalled ?? false;
+    this.#rate = state.rate ?? 1;
     this.durationMs = state.durationMs;
     this.source = state.source;
     this.#positionMs = state.positionMs;
@@ -48,6 +52,7 @@ class Mirror implements NowSource {
 
   seek = (ms: number) => {
     const positionMs = Math.round(Math.max(0, ms));
+    this.#stalled = false;
     this.#positionMs = positionMs;
     this.#arrivedAt = performance.now();
     return send({ kind: "seek", positionMs });

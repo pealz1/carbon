@@ -21,6 +21,9 @@ pub enum Source {
     Spotify,
     Youtube,
     Local,
+    Radio,
+    /// The listener's own server (Navidrome, Jellyfin).
+    Server,
 }
 
 impl Source {
@@ -29,6 +32,8 @@ impl Source {
             Source::Spotify => "Spotify",
             Source::Youtube => "YouTube Music",
             Source::Local => "On this PC",
+            Source::Radio => "Radio",
+            Source::Server => "Your server",
         }
     }
 }

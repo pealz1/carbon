@@ -1,10 +1,15 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { prefersReducedMotion } from "svelte/motion";
   import { describeError } from "$lib/errors";
   import { dotFills, withInterludes } from "$lib/interludes";
   import { activeLineIndex } from "$lib/lrc";
-  import { MAX_OFFSET_MS, OFFSET_STEP_MS, offsetFor, saveOffset } from "$lib/lyric-offsets";
-  import { lyricsFor, type Lyrics } from "$lib/lyrics";
+  import { delayLabel, MAX_OFFSET_MS, nudged, offsetFor, saveOffset } from "$lib/lyric-offsets";
+  import { foundFor, sourcesFor, type Found } from "$lib/lyrics";
+  import { copyLyrics, saveLyrics } from "$lib/lyrics/actions";
+  import { chooseSource, isSource, SOURCE_NAMES, sourceChoice, untranslated } from "$lib/lyrics/sources.svelte";
+  import { translationFor } from "$lib/lyrics/translate";
+  import { onScreen } from "$lib/on-screen.svelte";
   import { player } from "$lib/player.svelte";
   import type { NowSource } from "$lib/popout/now";
   import { prefs } from "$lib/preferences.svelte";
@@ -12,7 +17,8 @@
   import { detectScripts, mainScript } from "$lib/romanise/script";
   import { romanChoice, saveRomanChoice } from "$lib/romanise/song-choice";
   import { toasts } from "$lib/toast.svelte";
-  import { lineProgress, LYRICS_LEAD_MS, sungFraction, wordProgress } from "$lib/words";
+  import { lineProgress, lyricShift, sungFraction, wordProgress } from "$lib/words";
+  import Icon from "./Icon.svelte";
   import Interlude from "./Interlude.svelte";
   import Status from "./Status.svelte";
 
@@ -23,12 +29,17 @@
     variant = "page",
     source = player,
     offset = $bindable(0),
-  }: { variant?: "page" | "panel" | "cinema"; source?: Pick<NowSource, "track" | "position" | "seek" | "syncPosition">; offset?: number } = $props();
+  }: { variant?: "page" | "panel" | "cinema"; source?: Pick<NowSource, "track" | "paused" | "position" | "seek" | "syncPosition">; offset?: number } = $props();
 
   /** Where the sung line sits, as a fraction of the lyrics viewport height. */
   const FOCUS = 0.36;
   const RESYNC_MS = 1_000;
-  let lyrics = $state<Lyrics | null>(null);
+  /** Paused, the position only moves on a seek: a slow tick is enough to follow it. */
+  const PAUSED_TICK_MS = 250;
+  /** How long the copy button shows its tick. */
+  const COPIED_MS = 1_600;
+  let found = $state.raw<Found | null>(null);
+  const lyrics = $derived(found?.lyrics ?? null);
   let lyricsError = $state<string | null>(null);
   let clock = $state(0);
   let lineEls = $state<HTMLElement[]>([]);
@@ -36,15 +47,18 @@
 
   $effect(() => {
     const track = source.track;
-    lyrics = null;
+    found = null;
     lyricsError = null;
     if (!track) return;
     offset = offsetFor(track.id);
     songRoman = romanChoice(track.id);
+    translateOff = untranslated.get(track.id) === true;
+    askedToTranslate = false;
     void source.syncPosition();
     let current = true;
-    lyricsFor(track).then(
-      (found) => current && (lyrics = found),
+    // Follows the source order in Settings and this song's own source, so a switch looks it up again.
+    foundFor(track).then(
+      (result) => current && (found = result),
       (e) => {
         console.error("[lyrics]", e);
         if (current) lyricsError = describeError(e);
@@ -53,14 +67,24 @@
     return () => (current = false);
   });
 
-  // Drift correction: while lyrics are on screen, re-read the SDK's local position every second.
+  // The clock only runs for synced lyrics, while they can be seen: nothing ticks in the tray.
+  const ticking = $derived(lyrics?.kind === "synced" && onScreen.current);
+
+  // Drift correction: while synced lyrics play on screen, re-read the SDK's local position every second.
   $effect(() => {
-    const timer = setInterval(() => document.visibilityState === "visible" && void source.syncPosition(), RESYNC_MS);
+    if (!ticking || source.paused) return;
+    const timer = setInterval(() => void source.syncPosition(), RESYNC_MS);
     return () => clearInterval(timer);
   });
 
-  // Smooth clock for the fill: one update per frame while this view exists.
+  // Smooth clock for the fill: one update per frame while the song plays, a slow tick while paused.
   $effect(() => {
+    if (!ticking) return;
+    clock = untrack(() => source.position()); // read once now; the loop below follows it, not this effect
+    if (source.paused) {
+      const timer = setInterval(() => (clock = source.position()), PAUSED_TICK_MS);
+      return () => clearInterval(timer);
+    }
     let frame = 0;
     const loop = () => {
       clock = source.position();
@@ -104,23 +128,80 @@
     if (source.track) songRoman = saveRomanChoice(source.track.id, !romanOn, prefs.value?.lyricsRomanise ?? false);
   }
 
-  const position = $derived(clock + LYRICS_LEAD_MS + offset);
+  // The source these lyrics came from, and the others this song can be switched to.
+  const sources = $derived(source.track ? sourcesFor(source.track) : []);
+  const chosen = $derived(source.track ? sourceChoice(source.track.id) : undefined);
+  const hasText = $derived(lyrics?.kind === "synced" || lyrics?.kind === "plain");
+  let copied = $state(false);
+
+  function pickSource(value: string) {
+    if (source.track) chooseSource(source.track.id, isSource(value) ? value : undefined);
+  }
+
+  async function copy() {
+    if (!lyrics || !(await copyLyrics(lyrics))) return;
+    copied = true;
+    setTimeout(() => (copied = false), COPIED_MS);
+  }
+
+  // Translation: a line under each lyric line, in the language chosen in Settings; a song can opt out.
+  const target = $derived(prefs.value?.lyricsTranslate ?? "");
+  let translateOff = $state(false);
+  let translated = $state.raw<Map<string, string> | null>(null);
+  /** The listener just pressed the chip, so a failure is worth telling them about. */
+  let askedToTranslate = false;
+  const translateOn = $derived(!!target && !translateOff);
+
+  $effect(() => {
+    const [what, to] = [found, target];
+    translated = null;
+    const track = untrack(() => source.track);
+    if (!what || !translateOn || !track) return;
+    let current = true;
+    translationFor(track, what, to).then(
+      (lines) => current && (translated = lines),
+      (e) => {
+        console.warn("[lyrics] translation failed; showing the lyrics without it", e);
+        if (current && askedToTranslate) toasts.error("Couldn't translate these lyrics just now.");
+      },
+    );
+    return () => (current = false);
+  });
+
+  function toggleTranslate() {
+    if (!source.track) return;
+    translateOff = !translateOff;
+    askedToTranslate = !translateOff;
+    untranslated.set(source.track.id, translateOff || undefined);
+  }
+
+  // Keyed by the line as shown, which differs from the line as found once Chinese is converted.
+  const translations = $derived.by(() => {
+    if (!translated?.size || !lyrics) return null;
+    const from = textsOf(lyrics);
+    const pairs = textsOf(shown ?? lyrics).map((text, i) => [text, translated?.get(from[i]?.trim() ?? "")] as const);
+    return new Map(pairs.filter((pair): pair is [string, string] => !!pair[1]));
+  });
+
+  const shift = $derived(lyricShift(offset, prefs.value?.lyricsDelayMs));
+  const position = $derived(clock + shift);
   const lines = $derived(shown?.kind === "synced" ? withInterludes(shown.lines) : []);
   const still = $derived(prefersReducedMotion.current || prefs.value?.effects === "minimal");
   const active = $derived(activeLineIndex(lines, position));
-  const shift = $derived.by(() => {
+  const scroll = $derived.by(() => {
     const el = lineEls[Math.max(0, active)];
     if (!el || !viewport) return 0;
     return viewport.clientHeight * FOCUS - el.offsetTop - el.offsetHeight / 2;
   });
 
-  function nudge(by: number) {
+  /** -1 shows this song's lyrics earlier, 1 later, 0 resets. */
+  function nudge(direction: -1 | 0 | 1) {
     if (!source.track) return;
-    offset = saveOffset(source.track.id, by === 0 ? 0 : offset + by);
+    offset = saveOffset(source.track.id, direction === 0 ? 0 : nudged(offset, direction));
   }
 
-  const seekTo = (timeMs: number) => source.seek(Math.max(0, timeMs - LYRICS_LEAD_MS - offset));
-  const offsetLabel = $derived(`${offset > 0 ? "+" : offset < 0 ? "−" : "±"}${(Math.abs(offset) / 1000).toFixed(2)} s`);
+  const seekTo = (timeMs: number) => source.seek(Math.max(0, timeMs - shift));
+  const offsetLabel = $derived(delayLabel(offset));
 </script>
 
 <section class="lyrics {variant}" aria-label="Lyrics" bind:this={viewport}>
@@ -129,9 +210,10 @@
   {:else if !lyrics}
     <Status loading />
   {:else if lyrics.kind === "synced"}
-    <ol style="transform: translate3d(0, {shift}px, 0)">
+    <ol style="transform: translate3d(0, {scroll}px, 0)">
       {#each lines as line, i (i)}
         {@const aid = aids?.get(line.text)}
+        {@const translation = translations?.get(line.text)}
         {@const fill = i === active ? sungFraction(lines, i, position) : null}
         <li bind:this={lineEls[i]} class:active={i === active} class:past={i < active} class:near={Math.abs(i - active) === 1} class:far={Math.abs(i - active) > 3}>
           <button onclick={() => seekTo(line.timeMs)} aria-current={i === active ? "true" : undefined}>
@@ -149,17 +231,20 @@
               {line.text}
             {/if}
             {#if aid && place === "below"}<span class="roman">{@render aidText([{ text: aid.roman }], fill)}</span>{/if}
+            {#if translation}<span class="roman translation">{translation}</span>{/if}
           </button>
         </li>
       {/each}
     </ol>
-  {:else if lyrics.kind === "plain" && aids?.size}
+  {:else if lyrics.kind === "plain" && (aids?.size || translations)}
     <div class="plain">
       {#each textsOf(shown ?? lyrics) as text, k (k)}
-        {@const aid = aids.get(text)}
+        {@const aid = aids?.get(text)}
+        {@const translation = translations?.get(text)}
         <p>
           {#if aid && (place === "instead" || aid.ruby)}{@render aidText(place === "instead" ? [{ text: aid.roman }] : (aid.ruby ?? []), null)}{:else}{text}{/if}
           {#if aid && place === "below"}<span class="roman">{aid.roman}</span>{/if}
+          {#if translation}<span class="roman translation">{translation}</span>{/if}
         </p>
       {/each}
     </div>
@@ -171,21 +256,42 @@
     <p class="note">No lyrics found for this song.</p>
   {/if}
 
-  {#if songScript}
-    <button class="romanise glass" class:raised={lyrics?.kind === "synced" && variant !== "cinema"} aria-pressed={romanOn} onclick={toggleRoman} title="{romanOn ? 'Hide' : 'Show'} {AID_NAMES[songScript]} for this song">
-      {AID_NAMES[songScript]}
-    </button>
-  {/if}
-
-  {#if lyrics?.kind === "synced" && variant !== "cinema"}
-    <div class="sync glass" role="group" aria-label="Lyrics timing for this song">
-      <button onclick={() => nudge(-OFFSET_STEP_MS)} disabled={offset <= -MAX_OFFSET_MS} aria-label="Show lyrics 0.25 seconds earlier" title="Earlier">−</button>
-      <button class="value tabular" onclick={() => nudge(0)} disabled={offset === 0} title="Reset" aria-label="Lyrics offset {offsetLabel}. Reset">
-        {offsetLabel}
-      </button>
-      <button onclick={() => nudge(OFFSET_STEP_MS)} disabled={offset >= MAX_OFFSET_MS} aria-label="Show lyrics 0.25 seconds later" title="Later">+</button>
+  <!-- This song's own switches, bottom right: where the lyrics come from, translation, romanisation,
+       keeping a copy and, under them, the timing nudge. Cinema keeps most of these in its bar. -->
+  <div class="chips">
+    <div class="row">
+      {#if sources.length > 1 && variant !== "cinema"}
+        <select class="chip glass" value={chosen ?? ""} onchange={(e) => pickSource(e.currentTarget.value)} aria-label="Lyrics source for this song" title="Where these lyrics come from">
+          <option value="">{!chosen && found?.source ? `Best: ${SOURCE_NAMES[found.source]}` : "Best available"}</option>
+          {#each sources as id (id)}<option value={id}>{SOURCE_NAMES[id]}</option>{/each}
+        </select>
+      {/if}
+      {#if target && hasText}
+        <button class="chip glass" aria-pressed={translateOn} onclick={toggleTranslate} title="{translateOn ? 'Hide' : 'Show'} the translation for this song">Translate</button>
+      {/if}
+      {#if songScript}
+        <button class="chip glass" aria-pressed={romanOn} onclick={toggleRoman} title="{romanOn ? 'Hide' : 'Show'} {AID_NAMES[songScript]} for this song">
+          {AID_NAMES[songScript]}
+        </button>
+      {/if}
+      {#if hasText && lyrics && source.track && variant !== "cinema"}
+        {@const track = source.track}
+        <button class="chip icon glass" onclick={() => saveLyrics(track, lyrics)} aria-label="Save lyrics…" title="Save lyrics…"><Icon name="export" size={14} /></button>
+        <button class="chip icon glass" onclick={copy} aria-label={copied ? "Lyrics copied" : "Copy lyrics"} title={copied ? "Copied" : "Copy lyrics"}>
+          <Icon name={copied ? "check" : "duplicate"} size={14} />
+        </button>
+      {/if}
     </div>
-  {/if}
+    {#if lyrics?.kind === "synced" && variant !== "cinema"}
+      <div class="sync glass" role="group" aria-label="Lyrics timing for this song">
+        <button onclick={() => nudge(-1)} disabled={offset >= MAX_OFFSET_MS} aria-label="Show lyrics 0.25 seconds earlier" title="Earlier">−</button>
+        <button class="value tabular" onclick={() => nudge(0)} disabled={offset === 0} title="Reset" aria-label="Lyrics delay {offsetLabel}. Reset">
+          {offsetLabel}
+        </button>
+        <button onclick={() => nudge(1)} disabled={offset <= -MAX_OFFSET_MS} aria-label="Show lyrics 0.25 seconds later" title="Later">+</button>
+      </div>
+    {/if}
+  </div>
 </section>
 
 {#snippet aidText(parts: RubyPart[], fill: number | null)}
@@ -346,22 +452,77 @@
     color: var(--text-muted);
   }
 
-  .sync {
+  .chips {
     position: absolute;
-    right: var(--sp-2);
-    bottom: var(--sp-5);
+    inset: auto var(--sp-2) var(--sp-5);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--sp-2);
+    pointer-events: none; /* the lines under its gaps stay clickable */
+    opacity: 0.4;
+    transition: opacity var(--dur-fast);
+  }
+
+  .lyrics:hover .chips,
+  .chips:focus-within {
+    opacity: 1;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap-reverse;
+    justify-content: flex-end;
+    gap: var(--sp-2);
+  }
+
+  .row > *,
+  .sync {
+    pointer-events: auto;
+  }
+
+  .chip {
+    height: 32px;
+    padding: 0 var(--sp-3);
+    border-radius: var(--r-pill);
+    color: var(--text-muted);
+    font-size: var(--fs-micro);
+    font-weight: 700;
+    transition:
+      color var(--dur-fast),
+      transform var(--dur-press) var(--ease-out);
+  }
+
+  .chip:hover {
+    color: var(--text);
+  }
+
+  .chip:active {
+    transform: scale(var(--press));
+  }
+
+  .chip[aria-pressed="true"] {
+    color: var(--accent);
+  }
+
+  .chip.icon {
+    width: 32px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  select.chip {
+    max-width: 168px;
+    cursor: pointer;
+  }
+
+  .sync {
     display: flex;
     align-items: center;
     gap: 2px;
     padding: 2px;
     border-radius: var(--r-pill);
-    opacity: 0.4;
-    transition: opacity var(--dur-fast);
-  }
-
-  .lyrics:hover .sync,
-  .sync:focus-within {
-    opacity: 1;
   }
 
   .sync button {
@@ -386,8 +547,8 @@
     font-size: var(--fs-micro);
     font-weight: 600;
   }
-  /* Romanisation: a smaller line under the original that fills with it, readings over kanji, and the
-     per-song switch above the timing control. */
+  /* Romanisation: a smaller line under the original that fills with it, and readings over kanji.
+     A translation takes the same slot, a step quieter, under any romanisation. */
   .roman {
     display: block;
     margin-top: 0.18em;
@@ -395,6 +556,11 @@
     font-weight: 600;
     line-height: 1.3;
     letter-spacing: 0;
+  }
+
+  .translation {
+    font-weight: 500;
+    opacity: 0.78;
   }
 
   rt {
@@ -412,32 +578,5 @@
     margin-top: 0;
     font-size: 0.8em;
     color: var(--text-faint);
-  }
-
-  .romanise {
-    position: absolute;
-    right: var(--sp-2);
-    bottom: var(--sp-5);
-    height: 32px;
-    padding: 0 var(--sp-3);
-    border-radius: var(--r-pill);
-    color: var(--text-muted);
-    font-size: var(--fs-micro);
-    font-weight: 700;
-    opacity: 0.4;
-    transition: opacity var(--dur-fast);
-  }
-
-  .romanise.raised {
-    bottom: calc(var(--sp-5) + 40px);
-  }
-
-  .romanise[aria-pressed="true"] {
-    color: var(--accent);
-  }
-
-  .lyrics:hover .romanise,
-  .romanise:focus-visible {
-    opacity: 1;
   }
 </style>

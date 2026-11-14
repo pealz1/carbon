@@ -1,13 +1,16 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { isLocalUri } from "$lib/local/tracks";
+  import { isRadioUri } from "$lib/radio/uri";
+  import { isStreamUri } from "$lib/stream/uri";
   import { saved } from "$lib/saved.svelte";
   import Icon from "./Icon.svelte";
 
   let { uri, label, size = 16 }: { uri: string; label: string; size?: number } = $props();
 
-  // Liked Songs is Spotify's: local files have nothing to like.
-  const likeable = $derived(!isLocalUri(uri));
+  // Liked Songs is Spotify's: local files have nothing to like, and radio stations are kept on the Radio page.
+  // shortcut: server songs have no heart yet; wire it to the server's own star/favourite call when wanted.
+  const likeable = $derived(!isLocalUri(uri) && !isRadioUri(uri) && !isStreamUri(uri));
 
   $effect(() => {
     const target = uri;

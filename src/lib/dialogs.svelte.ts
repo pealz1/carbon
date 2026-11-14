@@ -14,12 +14,14 @@ class Dialogs {
   playlist = $state<PlaylistDialog | null>(null);
   folder = $state<FolderDialog | null>(null);
   tags = $state<PlaylistSummary | null>(null);
+  /** Library id of the local file whose tags are being edited. */
+  tagEditor = $state<string | null>(null);
   shortcuts = $state(false);
   /** The command palette (Ctrl K). */
   palette = $state(false);
 
   get anyOpen(): boolean {
-    return !!(this.playlist || this.folder || this.tags || this.shortcuts || this.palette);
+    return !!(this.playlist || this.folder || this.tags || this.tagEditor || this.shortcuts || this.palette);
   }
 }
 

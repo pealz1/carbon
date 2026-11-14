@@ -121,6 +121,12 @@ pub async fn ytm_browse(yt: State<'_, Youtube>, id: String, params: Option<Strin
     yt.send(request::browse(&id, params.as_deref())?).await
 }
 
+/// A lyrics page with each line's timing, when YouTube Music has it for the song.
+#[tauri::command]
+pub async fn ytm_timed_lyrics(yt: State<'_, Youtube>, id: String) -> Result<Value, String> {
+    yt.send(request::timed_lyrics(&id)?).await
+}
+
 #[tauri::command]
 pub async fn ytm_browse_more(yt: State<'_, Youtube>, token: String) -> Result<Value, String> {
     yt.send(request::browse_more(&token)?).await

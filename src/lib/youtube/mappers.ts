@@ -360,6 +360,19 @@ export function lyricsText(res: Json): string | null {
   return text || null;
 }
 
+/** A break in YouTube Music's timed lyrics is a line holding only a note. */
+const ONLY_NOTES = /^[\s♪♫🎵🎶]*$/u;
+
+/** YouTube Music's line-timed lyrics (the phone app's lyrics page): start times in ms, breaks as empty lines. */
+export function timedLyrics(res: Json): { timeMs: number; text: string }[] {
+  const data: Json[] = res?.contents?.elementRenderer?.newElement?.type?.componentType?.model?.timedLyricsModel?.lyricsData?.timedLyricsData ?? [];
+  return data
+    .map((line) => ({ timeMs: Number(line?.cueRange?.startTimeMilliseconds), text: String(line?.lyricLine ?? "").trim() }))
+    .filter((line) => Number.isFinite(line.timeMs) && line.timeMs >= 0)
+    .map((line) => (ONLY_NOTES.test(line.text) ? { ...line, text: "" } : line))
+    .sort((a, b) => a.timeMs - b.timeMs);
+}
+
 /** Library pages (playlists, albums, artists): grids or lists of cards, in whatever wrapper. */
 export function libraryCards(res: Json): Card[] {
   const cards: Card[] = [];

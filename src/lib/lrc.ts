@@ -17,6 +17,8 @@ export interface LyricLine {
 
 const TIMESTAMP = /\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]/g;
 const WORD_TAG = /<(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)>/g;
+/** "[offset:+250]": the file's own correction in ms; positive shows every line that much sooner. */
+const OFFSET_TAG = /^\s*\[offset:\s*([+-]?\d+)\s*\]/im;
 /** The last word of a line has no closing tag; don't let its fill crawl across a long gap. */
 const LAST_WORD_MAX_MS = 2_500;
 
@@ -52,16 +54,18 @@ const shift = (words: LyricWord[] | undefined, by: number) =>
 
 export function parseLrc(lrc: string): LyricLine[] {
   const lines: LyricLine[] = [];
+  const sooner = Number(OFFSET_TAG.exec(lrc)?.[1] ?? 0);
   for (const raw of lrc.split(/\r?\n/)) {
     const stamps = [...raw.matchAll(TIMESTAMP)];
     if (stamps.length === 0) continue; // metadata tags like [ar:...] or plain text
     const body = raw.replace(TIMESTAMP, "");
     const text = body.replace(WORD_TAG, "").replace(/\s+/g, " ").trim();
-    const first = toMs(stamps[0][1], stamps[0][2]);
-    const words = parseWords(body, first);
+    const written = toMs(stamps[0][1], stamps[0][2]);
+    const first = Math.max(0, written - sooner);
+    const words = shift(parseWords(body, written), first - written);
     // Repeated lines ("[00:05][00:30] chorus") reuse the word timing, shifted to each stamp.
     for (const [, minutes, seconds] of stamps) {
-      const timeMs = toMs(minutes, seconds);
+      const timeMs = Math.max(0, toMs(minutes, seconds) - sooner);
       lines.push(words ? { timeMs, text, words: shift(words, timeMs - first) } : { timeMs, text });
     }
   }
@@ -69,7 +73,7 @@ export function parseLrc(lrc: string): LyricLine[] {
   return lines.map((line, i) => (line.words ? { ...line, words: closeLastWord(line.words, lines[i + 1]?.timeMs) } : line));
 }
 
-function closeLastWord(words: LyricWord[], nextLineMs: number | undefined): LyricWord[] {
+export function closeLastWord(words: LyricWord[], nextLineMs: number | undefined): LyricWord[] {
   return words.map((w) => {
     if (Number.isFinite(w.endMs)) return w;
     const cap = w.startMs + LAST_WORD_MAX_MS;

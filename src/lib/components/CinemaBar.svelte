@@ -4,6 +4,8 @@
   import { formatDuration } from "$lib/format";
   import { hold } from "$lib/hold";
   import { hasPage, isLocalUri } from "$lib/local/tracks";
+  import { onScreen } from "$lib/on-screen.svelte";
+  import { streamName } from "$lib/stream/uri";
   import type { LyricLine } from "$lib/lrc";
   import { menu } from "$lib/menu.svelte";
   import { addToPlaylistItems, trackMenu } from "$lib/menus";
@@ -47,7 +49,7 @@
   } = $props();
 
   const TICK_MS = 250;
-  const SOURCES = { spotify: "Spotify", youtube: "YouTube Music", local: "On this PC" } as const;
+  const SOURCES = { spotify: "Spotify", youtube: "YouTube Music", local: "On this PC", radio: "Radio", server: "Your server" } as const;
   const OPEN_POPOVER = "[aria-expanded='true']";
   let bar = $state<HTMLElement>();
   let position = $state(player.position());
@@ -55,6 +57,7 @@
   let queueMode = $state(false);
 
   $effect(() => {
+    if (!onScreen.current) return;
     const timer = setInterval(() => ((position = player.position()), (now = Date.now())), TICK_MS);
     return () => clearInterval(timer);
   });
@@ -142,7 +145,7 @@
         <div class="meta">
           <span class="line">
             {#if hasPage(album)}<a class="title" href={pageHref("album", album!)}>{track.name}</a>{:else}<span class="title">{track.name}</span>{/if}
-            <span class="badge {player.source}">{SOURCES[player.source]}</span>
+            <span class="badge {player.source}">{player.source === "server" ? streamName(player.track?.uri) : SOURCES[player.source]}</span>
           </span>
           <span class="sub">
             {#each track.artists as artist, i (artist.uri + i)}
@@ -152,7 +155,7 @@
           </span>
         </div>
         <LikeButton uri={track.uri} label={track.name} size={18} />
-        {#if !isLocalUri(track.uri)}
+        {#if !isLocalUri(track.uri) && player.source !== "radio"}
           <button class="ctl" onclick={addToPlaylist} aria-label="Add {track.name} to a playlist" title="Add to playlist"><Icon name="listAdd" size={18} /></button>
         {/if}
       {:else}

@@ -4,8 +4,12 @@
   import { hasPage, isLocalUri } from "$lib/local/tracks";
   import { isYoutubeUri, pageHref } from "$lib/youtube/uri";
   import { menu } from "$lib/menu.svelte";
-  import { trackMenu } from "$lib/menus";
+  import { selectionMenu, trackMenu } from "$lib/menus";
+  import { addTracks } from "$lib/playlist-actions";
   import { player } from "$lib/player.svelte";
+  import Stars from "$lib/ratings/Stars.svelte";
+  import { all, clicked, copyText, NONE, pastedSpotifyUris, picked, type Selection } from "$lib/selection";
+  import { toasts } from "$lib/toast.svelte";
   import type { PlaylistSummary, Track } from "$lib/spotify/types";
   import AddToCarbon from "./AddToCarbon.svelte";
   import Icon from "./Icon.svelte";
@@ -33,9 +37,60 @@
     onremove?: (uri: string) => void;
   } = $props();
 
-  const menuFor = (track: Track) => trackMenu(track, { removeFrom, onRemoved: () => onremove?.(track.uri) });
-  const openMenu = (event: MouseEvent | KeyboardEvent, track: Track) => menu.open(event, menuFor(track));
-  const holdFor = (track: Track) => ({ onhold: (at: { x: number; y: number }, node: HTMLElement) => menu.openAt(at.x, at.y, menuFor(track), node) });
+  // Several rows can be selected (click, Ctrl-click, Shift-click, Ctrl+A) and then queued, added to a
+  // playlist, copied or removed together. A list that changes under the selection drops it.
+  let selection = $state<Selection>(NONE);
+  $effect(() => {
+    void tracks;
+    selection = NONE;
+  });
+  const chosen = $derived(picked(tracks, selection));
+
+  async function copy() {
+    const songs = chosen.length ? chosen : tracks;
+    try {
+      await navigator.clipboard.writeText(copyText(songs));
+      toasts.show(songs.length === 1 ? "Copied." : `Copied ${songs.length} songs.`);
+    } catch (e) {
+      console.error("[tracks] copy failed", e);
+      toasts.error("Couldn't copy that.");
+    }
+  }
+
+  /** Pasting song links into a playlist you can edit adds them. */
+  async function paste() {
+    if (!removeFrom) return;
+    const uris = pastedSpotifyUris(await navigator.clipboard.readText().catch(() => ""));
+    if (!uris.length) return toasts.show("There are no Spotify song links on the clipboard.");
+    await addTracks(removeFrom, uris);
+  }
+
+  function select(event: MouseEvent, index: number) {
+    if ((event.target as HTMLElement).closest("button, a, input")) return; // the row's own controls keep their click
+    selection = clicked(selection, index, { ctrl: event.ctrlKey || event.metaKey, shift: event.shiftKey });
+  }
+
+  function onkeydown(event: KeyboardEvent) {
+    if ((event.target as HTMLElement).closest("input, textarea")) return;
+    const mod = event.ctrlKey || event.metaKey;
+    const key = event.key.toLowerCase();
+    if (mod && key === "a") selection = all(tracks.length);
+    else if (mod && key === "c" && chosen.length) void copy();
+    else if (mod && key === "v" && removeFrom) void paste();
+    else if (key === "escape" && selection.rows.size) selection = NONE;
+    else return;
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const removed = () => chosen.forEach((t) => onremove?.(t.uri));
+  /** The menu for one song, or for the whole selection when the song is part of one. */
+  const menuFor = (track: Track, index: number) =>
+    selection.rows.size > 1 && selection.rows.has(index)
+      ? selectionMenu(chosen, { removeFrom, onRemoved: removed, copy })
+      : trackMenu(track, { removeFrom, onRemoved: () => onremove?.(track.uri) });
+  const openMenu = (event: MouseEvent | KeyboardEvent, track: Track, index: number) => menu.open(event, menuFor(track, index));
+  const holdFor = (track: Track, index: number) => ({ onhold: (at: { x: number; y: number }, node: HTMLElement) => menu.openAt(at.x, at.y, menuFor(track, index), node) });
 
   function play(index: number) {
     const track = tracks[index];
@@ -46,10 +101,12 @@
   }
 </script>
 
-<ol class="tracks" class:compact class:with-album={showAlbum}>
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
+<ol class="tracks" class:compact class:with-album={showAlbum} tabindex="-1" {onkeydown} aria-label={selection.rows.size > 1 ? `${selection.rows.size} songs selected` : undefined}>
   {#each tracks as track, i (track.uri + i)}
     {@const current = player.isCurrent(track.uri)}
-    <li class="row" class:current ondblclick={() => play(i)} oncontextmenu={(e) => openMenu(e, track)} use:hold={holdFor(track)}>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <li class="row" class:current class:selected={selection.rows.has(i)} onclick={(e) => select(e, i)} ondblclick={() => play(i)} oncontextmenu={(e) => openMenu(e, track, i)} use:hold={holdFor(track, i)}>
       <button class="lead" onclick={() => play(i)} aria-label="Play {track.name}">
         {#if current && !player.paused}
           <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -68,11 +125,12 @@
             {#if track.explicit}<span class="explicit" data-tip="Explicit" aria-label="Explicit">E</span>{/if}
           </span>
           <span class="artists">
-            {#each track.artists as artist, j (artist.uri)}
+            {#each track.artists as artist, j (artist.uri || j)}
               {#if j > 0}{", "}{/if}{#if hasPage(artist)}<a href={pageHref("artist", artist)}>{artist.name}</a>{:else}{artist.name}{/if}
             {/each}
           </span>
         </div>
+        <Stars {track} quiet />
       </div>
       {#if showAlbum}
         <span class="album">
@@ -84,7 +142,7 @@
       <!-- Liked Songs is Spotify-only; the empty cell keeps local rows on the grid. -->
       {#if isLocalUri(track.uri)}<span></span>{:else}<LikeButton uri={track.uri} label={track.name} />{/if}
       <span class="duration tabular">{track.durationMs ? formatDuration(track.durationMs) : ""}</span>
-      <button class="more" onclick={(e) => openMenu(e, track)} aria-label="More options for {track.name}" aria-haspopup="menu" title="More">
+      <button class="more" onclick={(e) => openMenu(e, track, i)} aria-label="More options for {track.name}" aria-haspopup="menu" title="More">
         <Icon name="more" size={16} />
       </button>
     </li>
@@ -111,6 +169,17 @@
     transition:
       background var(--dur-fast),
       transform var(--dur-med) var(--ease-spring);
+  }
+
+  .tracks:focus {
+    outline: none;
+  }
+
+  /* After the stripes in the cascade, so a selected row reads as selected on either stripe. */
+  .row.selected,
+  .row.selected:nth-child(odd) {
+    background: var(--glass-active);
+    box-shadow: inset 2px 0 0 var(--accent);
   }
 
   /* Near-invisible stripes keep long lists trackable without drawing lines. */

@@ -1,8 +1,11 @@
 //! The local library: folders the listener added, scanned into an index cached as library.json
 //! in the app data directory. Artwork is extracted to the app cache so the webview can show it.
+mod cue;
 mod scan;
+mod tags;
 
-use crate::engine::queue::QueueTrack;
+use crate::engine::Engine;
+use crate::engine::queue::{Clip, QueueTrack};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -10,12 +13,15 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager, State};
+use tags::TagEdit;
 use tauri_plugin_dialog::DialogExt;
 
 /// Not "library.json": that name belongs to playlist folders and tags in the same directory.
 const INDEX_FILE: &str = "local-library.json";
 const ART_DIR: &str = "artwork";
 const MAX_FOLDERS: usize = 32;
+/// Bumped when the scan reads more tags, so unchanged files are read again on the next scan.
+const TAGS_VERSION: u32 = 1;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -34,8 +40,13 @@ pub struct LocalTrack {
     pub artwork: Option<String>,
     pub replay_gain_db: Option<f32>,
     pub replay_peak: Option<f32>,
+    pub album_gain_db: Option<f32>,
+    pub album_peak: Option<f32>,
     pub size: u64,
     pub modified: u64,
+    /// Set when a CUE sheet cuts this track out of a longer file; `path` is that file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clip: Option<Clip>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -43,6 +54,8 @@ pub struct LocalTrack {
 pub struct Index {
     pub folders: Vec<String>,
     pub tracks: Vec<LocalTrack>,
+    #[serde(default)]
+    pub tags_version: u32,
 }
 
 #[derive(Serialize, Clone)]
@@ -90,9 +103,39 @@ impl LocalLibrary {
                     title: t.title.clone(),
                     replay_gain_db: t.replay_gain_db,
                     replay_peak: t.replay_peak,
+                    album_gain_db: t.album_gain_db,
+                    album_peak: t.album_peak,
+                    clip: t.clip.unwrap_or_default(),
                 })
             })
             .collect()
+    }
+
+    /// The file behind `id`, if its tags may be edited: indexed, inside a library folder, and
+    /// not about to be replaced by a running scan.
+    fn editable(&self, id: &str) -> Result<PathBuf, String> {
+        if self.scanning.load(Ordering::Acquire) {
+            return Err("Carbon is still scanning your library. Try again when it's done.".into());
+        }
+        let index = self.index.lock().map_err(|e| e.to_string())?;
+        let track = index.tracks.iter().find(|t| t.id == id).ok_or("That song isn't in your library anymore. Rescan and try again.")?;
+        if track.clip.is_some() {
+            return Err("That song's details come from a CUE sheet. Edit the .cue file beside it, then rescan.".into());
+        }
+        let path = PathBuf::from(&track.path);
+        if !index.folders.iter().any(|f| path.starts_with(f)) {
+            return Err("That file is outside your library's folders.".into());
+        }
+        Ok(path)
+    }
+
+    /// Reads one file again after its tags changed and swaps it into the index.
+    fn reread(&self, path: &Path) -> Result<(), String> {
+        let fresh = scan::read_one(path, self.art_dir.as_deref()).map_err(|e| format!("The tags were saved, but the file couldn't be read back ({e}). Rescan your library."))?;
+        let mut index = self.index.lock().map_err(|e| e.to_string())?;
+        index.tracks = index.tracks.iter().map(|t| if t.id == fresh.id { fresh.clone() } else { t.clone() }).collect();
+        self.save(&index);
+        Ok(())
     }
 
     fn save(&self, index: &Index) {
@@ -165,14 +208,16 @@ fn run_scan(app: &AppHandle) {
     let library = app.state::<LocalLibrary>();
     loop {
         let Ok((folders, previous)) = library.index.lock().map(|index| {
-            (index.folders.clone(), index.tracks.iter().map(|t| (t.path.clone(), t.clone())).collect::<HashMap<_, _>>())
+            // Tracks cut by a CUE sheet are rebuilt from the sheet on every scan.
+            let reusable = index.tracks.iter().filter(|t| index.tags_version == TAGS_VERSION && t.clip.is_none());
+            (index.folders.clone(), reusable.map(|t| (t.path.clone(), t.clone())).collect::<HashMap<_, _>>())
         }) else {
             break;
         };
         let roots: Vec<PathBuf> = folders.iter().map(PathBuf::from).collect();
-        let files = scan::find_audio(&roots);
-        let total = files.len();
-        let tracks = scan::scan(&files, &previous, library.art_dir.as_deref(), |done| {
+        let found = scan::find(&roots);
+        let total = found.audio.len();
+        let tracks = scan::scan(&found, &previous, library.art_dir.as_deref(), |done| {
             let _ = app.emit("local-library-progress", (done, total));
         });
         let Ok(mut index) = library.index.lock() else { break };
@@ -180,6 +225,7 @@ fn run_scan(app: &AppHandle) {
             continue;
         }
         index.tracks = tracks;
+        index.tags_version = TAGS_VERSION;
         library.save(&index);
         break;
     }
@@ -227,9 +273,72 @@ pub fn local_library_rescan(app: AppHandle) -> Result<(), String> {
     spawn_scan(&app)
 }
 
+/// The tags the file itself has, for the editor to start from.
+#[tauri::command]
+pub async fn local_library_tags(app: AppHandle, id: String) -> Result<TagEdit, String> {
+    tags::read(&app.state::<LocalLibrary>().editable(&id)?)
+}
+
+/// Writes edited tags into the file behind `id` and refreshes that one track everywhere.
+#[tauri::command]
+pub async fn local_library_edit_tags(app: AppHandle, id: String, tags: TagEdit) -> Result<(), String> {
+    let edit = tags.checked()?;
+    let library = app.state::<LocalLibrary>();
+    let path = library.editable(&id)?;
+    // shortcut: a song that starts in the instant between this check and the write isn't caught.
+    if app.state::<Engine>().is_using(&path) {
+        return Err("That song is playing. Play something else or stop, then try again.".into());
+    }
+    tags::write(&path, &edit)?;
+    library.reread(&path)?;
+    let _ = app.emit("local-library-changed", ());
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::decoder::tests::write_wav;
+
+    fn library(folders: &[&Path], files: &[&Path]) -> LocalLibrary {
+        let index = Index {
+            folders: folders.iter().map(|f| f.to_string_lossy().into_owned()).collect(),
+            tracks: files.iter().map(|f| scan::read_one(f, None).unwrap()).collect(),
+            tags_version: TAGS_VERSION,
+        };
+        LocalLibrary { index: Mutex::new(index), scanning: AtomicBool::new(false), file: None, art_dir: None }
+    }
+
+    #[test]
+    fn tags_are_edited_only_in_indexed_files_inside_the_folders() {
+        let dir = tags::tests::temp_dir("editable");
+        let (inside, outside) = (dir.join("Music/a.wav"), dir.join("Other/b.wav"));
+        for file in [&inside, &outside] {
+            fs::create_dir_all(file.parent().unwrap()).unwrap();
+            write_wav(file, 8000, 1, 0.1, 0.5);
+        }
+        let lib = library(&[&dir.join("Music")], &[&inside, &outside]);
+        assert_eq!(lib.editable(&scan::track_id(&inside)), Ok(inside.clone()));
+        assert!(lib.editable(&scan::track_id(&outside)).unwrap_err().contains("outside"));
+        assert!(lib.editable(&inside.to_string_lossy()).unwrap_err().contains("isn't in your library")); // ids only, never paths
+
+        tags::write(&inside, &TagEdit { title: "Renamed".into(), artists: vec!["A".into(), "B".into()], ..TagEdit::default() }).unwrap();
+        lib.reread(&inside).unwrap();
+        let tracks = lib.view().unwrap().tracks;
+        assert_eq!((tracks[0].title.as_str(), tracks[0].artists.len(), tracks[0].album_artist.as_str()), ("Renamed", 2, "A"));
+        assert_eq!((tracks[0].id.as_str(), tracks[1].title.as_str()), (scan::track_id(&inside).as_str(), "b")); // same id; others untouched
+
+        // A CUE track has no tags of its own in the file.
+        let cut = LocalTrack { id: "cut".into(), clip: Some(Clip { start_ms: 0, end_ms: Some(50) }), ..tracks[0].clone() };
+        lib.index.lock().unwrap().tracks.push(cut);
+        assert!(lib.editable("cut").unwrap_err().contains("CUE sheet"));
+        assert_eq!(lib.queue_tracks(&["cut".into()]).unwrap()[0].clip, Clip { start_ms: 0, end_ms: Some(50) });
+        assert!(lib.queue_tracks(&[scan::track_id(&inside)]).unwrap()[0].clip.is_whole());
+
+        lib.scanning.store(true, Ordering::Release);
+        assert!(lib.editable(&scan::track_id(&inside)).unwrap_err().contains("scanning"));
+        let _ = fs::remove_dir_all(dir);
+    }
 
     #[test]
     fn adding_folders_dedupes_and_absorbs_children() {

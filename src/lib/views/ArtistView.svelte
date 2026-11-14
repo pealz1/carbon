@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { untrack } from "svelte";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import DetailHeader from "$lib/components/DetailHeader.svelte";
   import LoadMore from "$lib/components/LoadMore.svelte";
   import MediaCard from "$lib/components/MediaCard.svelte";
@@ -17,11 +20,27 @@
   // Each section loads on its own so one failing call never blanks the page.
   const artist = resource(() => sp.artist(id));
   const songs = resource(() => (artist.data ? sp.artistSongs(id, artist.data.name) : Promise.resolve(null)));
-  const albums = new Pager<Card>((offset) => sp.artistAlbums(id, offset));
+  // The discography can be narrowed to one kind of release; the choice lives in the address so Back keeps it.
+  const KINDS: { id: string; label: string; groups?: sp.AlbumGroup[] }[] = [
+    { id: "", label: "All" },
+    { id: "album", label: "Albums", groups: ["album"] },
+    { id: "single", label: "Singles and EPs", groups: ["single"] },
+    { id: "compilation", label: "Compilations", groups: ["compilation"] },
+    { id: "appears_on", label: "Appears on", groups: ["appears_on"] },
+  ];
+  const kind = $derived(KINDS.find((k) => k.id === page.url.searchParams.get("show")) ?? KINDS[0]);
+  const everything = new Pager<Card>((offset) => sp.artistAlbums(id, offset));
+  const albums = $derived(kind.groups ? new Pager<Card>((offset) => sp.artistAlbums(id, offset, kind.groups)) : everything);
   const discography = $derived(uniqueBy(albums.items, (c) => c.title.toLowerCase()));
+  // The latest release is the artist's own, whatever the list below is narrowed to.
+  $effect(() => {
+    // Once: a failed first page is retried from the list below, not in a loop here.
+    untrack(() => void (!everything.items.length && !everything.done && !everything.error && everything.more()));
+  });
   // Spotify groups albums before singles, so the newest is picked by year (album cards lead with it).
   const yearOf = (card: Card) => Number(card.subtitle.slice(0, 4)) || 0;
-  const latest = $derived(discography.reduce<Card | null>((best, card) => (!best || yearOf(card) > yearOf(best) ? card : best), null));
+  const latest = $derived(everything.items.reduce<Card | null>((best, card) => (!best || yearOf(card) > yearOf(best) ? card : best), null));
+  const showKind = (id: string) => goto(id ? `?show=${id}` : "?", { replaceState: true, noScroll: true, keepFocus: true });
 </script>
 
 {#if artist.loading && !artist.data}
@@ -60,10 +79,22 @@
   </section>
 {/if}
 
-<Shelf title="Discography" cards={discography} wrap />
-<LoadMore pager={albums} />
+<div class="segmented kinds" role="radiogroup" aria-label="Kind of release">
+  {#each KINDS as k (k.id)}
+    <button role="radio" aria-checked={kind === k} class:active={kind === k} onclick={() => showKind(k.id)}>{k.label}</button>
+  {/each}
+</div>
+<Shelf title={kind.groups ? kind.label : "Discography"} cards={discography} wrap />
+{#if albums.done && !discography.length && !albums.error}
+  <Status empty={kind.groups ? `Nothing under ${kind.label.toLowerCase()} for this artist.` : "No releases found for this artist."} />
+{/if}
+{#key albums}<LoadMore pager={albums} />{/key}
 
 <style>
+  .kinds {
+    margin-bottom: var(--sp-4);
+  }
+
   .overview {
     display: grid;
     grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);

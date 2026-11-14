@@ -10,6 +10,9 @@
   import Status from "./Status.svelte";
   import TrackList from "./TrackList.svelte";
 
+  /** A Carbon queue can hold thousands of songs; the panel shows what's coming, not all of it. */
+  const QUEUE_SHOWN = 100;
+
   let { onclose }: { onclose: () => void } = $props();
 
   // Re-fetch when the current track changes; the queue isn't pushed by the SDK.
@@ -39,7 +42,8 @@
   <h3>Next in queue</h3>
   <div class="list">
     {#if player.upNext}
-      <TrackList tracks={player.upNext} compact />
+      <TrackList tracks={player.upNext.slice(0, QUEUE_SHOWN)} compact />
+      {#if player.upNext.length > QUEUE_SHOWN}<p class="more">and {player.upNext.length - QUEUE_SHOWN} more</p>{/if}
     {:else if queue.data?.length}
       <TrackList tracks={queue.data} compact />
     {:else}
@@ -104,6 +108,12 @@
   header button:hover {
     color: var(--text);
     background: var(--glass-hover);
+  }
+
+  .more {
+    margin: var(--sp-2) var(--sp-3);
+    color: var(--text-muted);
+    font-size: var(--fs-small);
   }
 
   .list {

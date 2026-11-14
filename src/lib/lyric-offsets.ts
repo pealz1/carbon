@@ -1,9 +1,20 @@
 // Per-song lyric sync nudges (±0.25 s steps), kept on this PC. A per-device convenience, so
 // localStorage is enough; the oldest entries are dropped past MAX_ENTRIES.
+// The stored number is added to the playback clock, so positive shows lyrics sooner. The controls
+// speak in delay instead ("+0.25 s" = later), which is how listeners read a timing nudge.
 export const OFFSET_STEP_MS = 250;
 export const MAX_OFFSET_MS = 10_000;
 const MAX_ENTRIES = 500;
 const KEY = "carbon.lyricsOffsets";
+
+/** The nudge as the controls show it: a delay, so "+0.25 s" means the lyrics come later. */
+export function delayLabel(offsetMs: number): string {
+  const delay = -offsetMs || 0;
+  return `${delay > 0 ? "+" : delay < 0 ? "−" : "±"}${(Math.abs(delay) / 1000).toFixed(2)} s`;
+}
+
+/** The stored offset after one press of Earlier (-1) or Later (+1). */
+export const nudged = (offsetMs: number, direction: -1 | 1): number => clampOffset(offsetMs - direction * OFFSET_STEP_MS);
 
 type Store = Pick<Storage, "getItem" | "setItem">;
 

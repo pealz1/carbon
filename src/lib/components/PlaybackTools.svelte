@@ -1,11 +1,15 @@
 <script lang="ts">
-  // The player bar's playback tools: sleep timer and (with Spotify) Connect devices.
+  // The player bar's playback tools: speed (where the player can do it), sleep timer and (with Spotify) Connect devices.
   import { services } from "$lib/services.svelte";
   import DevicePicker from "./DevicePicker.svelte";
   import SleepTimer from "./SleepTimer.svelte";
+  import SpeedControl from "./SpeedControl.svelte";
+  import ListenTogether from "$lib/together/ListenTogether.svelte";
 </script>
 
 <div class="tools">
+  <ListenTogether />
+  <SpeedControl />
   <SleepTimer />
   {#if services.active.spotify}<DevicePicker />{/if}
 </div>

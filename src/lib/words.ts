@@ -6,6 +6,12 @@ const LAST_LINE_MS = 4_000;
 /** Shown slightly ahead of the audio: reading lags hearing, so on-time text feels late. */
 export const LYRICS_LEAD_MS = 150;
 
+/**
+ * What the lyrics add to the playback clock: the lead, this song's own nudge (positive = sooner),
+ * minus the listener's lyrics delay for outputs that play late (Bluetooth, AV receivers).
+ */
+export const lyricShift = (songOffsetMs: number, delayMs = 0): number => LYRICS_LEAD_MS + songOffsetMs - delayMs;
+
 export function lineEnd(lines: LyricLine[], index: number): number {
   return lines[index + 1]?.timeMs ?? lines[index].timeMs + LAST_LINE_MS;
 }

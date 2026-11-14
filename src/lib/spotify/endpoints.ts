@@ -44,13 +44,16 @@ export async function recentlyPlayed(): Promise<{ tracks: Track[]; contexts: str
   };
 }
 
-export async function topTracks(range: "short_term" | "medium_term" | "long_term" = "short_term"): Promise<Track[]> {
-  const raw = await get<Paging<RawTrack>>(`/me/top/tracks?${q({ limit: 20, time_range: range })}`, 10 * 60_000);
+/** Spotify's own windows for "top" lists: about 4 weeks, 6 months, and everything. */
+export type TopRange = "short_term" | "medium_term" | "long_term";
+
+export async function topTracks(range: TopRange = "short_term", limit = 20): Promise<Track[]> {
+  const raw = await get<Paging<RawTrack>>(`/me/top/tracks?${q({ limit, time_range: range })}`, 10 * 60_000);
   return compactTracks(raw.items.map((t) => toTrack(t)));
 }
 
-export async function topArtists(): Promise<Card[]> {
-  const raw = await get<Paging<RawArtist>>(`/me/top/artists?${q({ limit: 20, time_range: "medium_term" })}`, 10 * 60_000);
+export async function topArtists(range: TopRange = "medium_term", limit = 20): Promise<Card[]> {
+  const raw = await get<Paging<RawArtist>>(`/me/top/artists?${q({ limit, time_range: range })}`, 10 * 60_000);
   return raw.items.map(artistCard);
 }
 
@@ -138,9 +141,18 @@ export async function artist(id: string): Promise<ArtistDetail> {
   return { id, uri: raw.uri, name: raw.name, image: pickImage(raw.images), largeImage: pickLargestImage(raw.images) };
 }
 
-export async function artistAlbums(id: string, offset = 0): Promise<Page<Card>> {
+/** Spotify's release groups for an artist; "appears_on" is other people's albums they feature on. */
+export type AlbumGroup = "album" | "single" | "compilation" | "appears_on";
+
+/** An artist's genres as Spotify files them (often few, sometimes none), lower case. */
+export async function artistGenres(id: string): Promise<string[]> {
+  const raw = await get<{ genres?: unknown }>(`/artists/${encodeURIComponent(id)}`, 60 * 60_000);
+  return Array.isArray(raw.genres) ? raw.genres.filter((g): g is string => typeof g === "string").map((g) => g.toLowerCase()) : [];
+}
+
+export async function artistAlbums(id: string, offset = 0, groups: AlbumGroup[] = ["album", "single"]): Promise<Page<Card>> {
   const raw = await get<Paging<RawAlbum>>(
-    `/artists/${encodeURIComponent(id)}/albums?${q({ include_groups: "album,single", limit: ARTIST_ALBUMS_LIMIT, offset })}`,
+    `/artists/${encodeURIComponent(id)}/albums?${q({ include_groups: groups.join(","), limit: ARTIST_ALBUMS_LIMIT, offset })}`,
   );
   return { items: raw.items.map(albumCard), total: raw.total ?? null, nextOffset: nextOffset(raw, offset) };
 }

@@ -31,12 +31,17 @@ fn now() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
 }
 
-fn with_context(mut body: Value, unix_secs: u64) -> Value {
-    // English labels ("Song", "Album", "views") are what the webview's parsers read.
-    body["context"] = json!({
-        "client": { "clientName": "WEB_REMIX", "clientVersion": request::client_version(unix_secs), "hl": "en" },
-        "user": {},
-    });
+/// The phone app's version Carbon presents for timed lyrics (the value ytmusicapi sends).
+const MOBILE_VERSION: &str = "7.21.50";
+
+fn with_context(mut body: Value, unix_secs: u64, mobile: bool) -> Value {
+    let client = if mobile {
+        json!({ "clientName": "ANDROID_MUSIC", "clientVersion": MOBILE_VERSION, "hl": "en" })
+    } else {
+        // English labels ("Song", "Album", "views") are what the webview's parsers read.
+        json!({ "clientName": "WEB_REMIX", "clientVersion": request::client_version(unix_secs), "hl": "en" })
+    };
+    body["context"] = json!({ "client": client, "user": {} });
     body
 }
 
@@ -86,14 +91,15 @@ impl Youtube {
 
     /// The raw response body. Never logs cookies or the Authorization header.
     pub async fn fetch(&self, call: Call) -> Result<Vec<u8>, String> {
-        let cookies = self.cookies()?;
+        // The web session's cookies belong to the web client; the phone app's pages are public.
+        let cookies = if call.mobile { None } else { self.cookies()? };
         let now = now();
         let mut req = self
             .http
             .post(format!("{API}{}?alt=json&prettyPrint=false", call.endpoint))
             .header("Origin", auth::ORIGIN)
             .header("X-Origin", auth::ORIGIN)
-            .json(&with_context(call.body, now));
+            .json(&with_context(call.body, now, call.mobile));
         if let Some(visitor) = self.visitor.lock().ok().and_then(|v| v.clone()) {
             req = req.header("X-Goog-Visitor-Id", visitor);
         }
@@ -159,10 +165,13 @@ mod tests {
 
     #[test]
     fn adds_the_web_remix_context() {
-        let body = with_context(json!({ "query": "q" }), 0);
+        let body = with_context(json!({ "query": "q" }), 0, false);
         assert_eq!(body["context"]["client"]["clientName"], "WEB_REMIX");
         assert_eq!(body["context"]["client"]["clientVersion"], "1.19700101.01.00");
         assert_eq!(body["query"], "q");
+        let phone = with_context(json!({ "browseId": "MPLYt_x" }), 0, true);
+        assert_eq!(phone["context"]["client"]["clientName"], "ANDROID_MUSIC");
+        assert_eq!(phone["browseId"], "MPLYt_x");
     }
 
     /// Talks to the real service: `cargo test live_ -- --ignored`.

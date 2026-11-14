@@ -71,13 +71,16 @@ fn activity(info: &PlaybackInfo, start_ms: i64) -> Activity<'static> {
     if let Some(url) = &info.artwork_url {
         assets = assets.large_image(url.clone());
     }
+    // No length (a live radio station) means no end: Discord then shows time elapsed, not a full bar.
+    let started = Timestamps::new().start(start_ms);
+    let timestamps = if info.duration_ms > 0 { started.end(start_ms + info.duration_ms as i64) } else { started };
     Activity::new()
         .activity_type(ActivityType::Listening)
         .status_display_type(StatusDisplayType::Details)
         .details(field(&info.title))
         .state(field(&info.artist_line()))
         .assets(assets)
-        .timestamps(Timestamps::new().start(start_ms).end(start_ms + info.duration_ms as i64))
+        .timestamps(timestamps)
 }
 
 fn run(app_id: &'static str, mut enabled: bool, rx: Receiver<Msg>) {

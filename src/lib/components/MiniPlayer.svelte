@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { onScreen } from "$lib/on-screen.svelte";
+  import { streamName } from "$lib/stream/uri";
   import { formatDuration, joinNames } from "$lib/format";
   import type { NowSource, Source } from "$lib/popout/now";
   import Icon from "./Icon.svelte";
@@ -18,12 +20,13 @@
   }: { now: NowSource; video?: Snippet; expandLabel: string; onexpand: () => unknown; onclose?: () => unknown } = $props();
 
   const TICK_MS = 250;
-  const SOURCE_LABEL: Record<Source, string> = { spotify: "Spotify", youtube: "YouTube Music", local: "On this PC" };
+  const SOURCE_LABEL: Record<Source, string> = { spotify: "Spotify", youtube: "YouTube Music", local: "On this PC", radio: "Radio", server: "Your server" };
   let position = $state(0);
   const showVideo = $derived(!!video && now.source === "youtube");
   const art = $derived(now.track?.album?.image ?? null);
 
   $effect(() => {
+    if (!onScreen.current) return;
     const timer = setInterval(() => (position = now.position()), TICK_MS);
     return () => clearInterval(timer);
   });
@@ -70,7 +73,7 @@
           </button>
           <button class="ctl" onclick={() => now.next()} aria-label="Next" title="Next"><Icon name="next" size={18} /></button>
         </div>
-        {#if now.track}<span class="source">{SOURCE_LABEL[now.source]}</span>{/if}
+        {#if now.track}<span class="source">{now.source === "server" ? streamName(now.track.uri) : SOURCE_LABEL[now.source]}</span>{/if}
       </div>
     </div>
   </div>

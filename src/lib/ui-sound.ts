@@ -2,6 +2,8 @@
 // audio (Spotify Developer Policy III.7); they may play while paused, idle, on a local file or over
 // YouTube Music (YouTube's own player, not Spotify's).
 import { isLocalUri } from "$lib/local/tracks";
+import { isRadioUri } from "$lib/radio/uri";
+import { isStreamUri } from "$lib/stream/uri";
 import { isYoutubeUri } from "$lib/youtube/uri";
 
 export type UiSound = "tap" | "select" | "toggle-on" | "toggle-off" | "hold" | "error" | "whoosh";
@@ -16,11 +18,11 @@ export interface SoundGate {
 }
 
 /**
- * Spotify audio is playing whenever a track that isn't a local file or a YouTube Music song plays;
+ * Spotify audio is playing whenever a track that isn't a local file, a YouTube Music song or a radio station plays;
  * then Carbon stays silent. Anything unrecognised counts as Spotify, so the rule fails safe.
  */
 export function soundAllowed({ enabled, volume, paused, trackUri }: SoundGate): boolean {
-  return enabled && volume > 0 && (paused || !trackUri || isLocalUri(trackUri) || isYoutubeUri(trackUri));
+  return enabled && volume > 0 && (paused || !trackUri || isLocalUri(trackUri) || isYoutubeUri(trackUri) || isRadioUri(trackUri) || isStreamUri(trackUri));
 }
 
 /** Peak level at full volume: −18 dBFS. The default volume (0.5) peaks near −24 dBFS. */
