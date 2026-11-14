@@ -273,14 +273,16 @@ export class StreamPlayback {
   #element(): HTMLAudioElement {
     const audio = new Audio();
     audio.preload = "auto";
-    const live = (handler: () => void) => () => this.queue && handler();
+    // Only while the element holds the current song: between a skip and the next song's address
+    // arriving it still holds the last one, whose late events would show its clock under the new title.
+    const live = (handler: () => void) => () => this.queue && this.#loadedTurn === this.#turn && handler();
     audio.addEventListener("playing", live(() => ((this.#failures = 0), (this.#moving = true), this.#report())));
     audio.addEventListener("waiting", live(() => ((this.#moving = false), this.#report())));
     audio.addEventListener("timeupdate", live(() => this.#paused || this.#report()));
     audio.addEventListener("seeked", live(() => this.#report()));
     audio.addEventListener("durationchange", live(() => this.#report()));
     audio.addEventListener("ended", live(() => (this.#host.repeat() === "track" ? this.#goTo(this.index) : this.#skip(true))));
-    audio.addEventListener("error", live(() => this.#loadedTurn === this.#turn && this.#failed(audio.error)));
+    audio.addEventListener("error", live(() => this.#failed(audio.error)));
     return audio;
   }
 

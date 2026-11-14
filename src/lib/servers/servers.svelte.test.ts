@@ -276,6 +276,25 @@ describe("the server queue", () => {
     vi.useRealTimers();
   });
 
+  it("ignores the last song's late events while the next song's address is on its way", async () => {
+    const fake = host();
+    let release: (url: string) => void = () => {};
+    const q = new StreamPlayback(fake, { playable: () => true, resolve: (t) => (t.id === "a" ? "http://signed/a" : new Promise<string>((r) => (release = r))) });
+    q.play([song("a"), song("b")]);
+    Object.assign(made[0], { currentTime: 27, duration: 331 });
+    made[0].dispatchEvent(new Event("playing"));
+    q.next(); // b's address is being fetched; the element still holds a
+    const before = fake.state.syncs.length;
+    for (const type of ["timeupdate", "seeked", "durationchange", "ended"]) made[0].dispatchEvent(new Event(type));
+    expect(fake.state.syncs).toHaveLength(before); // nothing of a's is reported under b's name
+    expect([q.index, fake.state.syncs.at(-1)]).toEqual([1, [false, 0, 100_000, true]]);
+    release("http://signed/b");
+    await vi.waitFor(() => expect(made[0].src).toBe("http://signed/b"));
+    Object.assign(made[0], { currentTime: 1, duration: 200 });
+    made[0].dispatchEvent(new Event("playing"));
+    expect(fake.state.syncs.at(-1)).toEqual([false, 1_000, 200_000, false]);
+  });
+
   it("shuffles from a random song, restores the order, and lets go of the stream when stopped", async () => {
     const fake = host();
     const q = new StreamPlayback(fake, resolve);
