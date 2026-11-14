@@ -133,3 +133,21 @@ describe("sungFraction", () => {
     expect(sungFraction(timed, 0, 5000)).toBe(1);
   });
 });
+
+describe("lyric timing controls", () => {
+  it("adds the lead and the song's nudge to the clock, and takes the listener's delay off", async () => {
+    const { lyricShift, LYRICS_LEAD_MS } = await import("./words");
+    expect(lyricShift(0)).toBe(LYRICS_LEAD_MS);
+    expect(lyricShift(250, 100)).toBe(LYRICS_LEAD_MS + 150);
+  });
+
+  it("makes Earlier show lyrics sooner and Later show them later", async () => {
+    const { nudged, delayLabel } = await import("./lyric-offsets");
+    expect(nudged(0, -1)).toBe(250); // sooner: more is added to the clock
+    expect(nudged(0, 1)).toBe(-250);
+    expect(nudged(10_000, -1)).toBe(10_000);
+    expect(delayLabel(250)).toBe("−0.25 s");
+    expect(delayLabel(-500)).toBe("+0.50 s");
+    expect(delayLabel(0)).toBe("±0.00 s");
+  });
+});

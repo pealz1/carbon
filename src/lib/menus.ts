@@ -2,15 +2,22 @@
 // Labels that depend on live state (liked, pinned) are getters, so an open menu stays truthful.
 import { goto } from "$app/navigation";
 import { blockArtistMenuItem, blockItems } from "$lib/blocklist.svelte";
+import { bookmarkPageItem, bookmarkSongItems } from "$lib/bookmarks/bookmarks.svelte";
+import { collectItem } from "$lib/collections/collections.svelte";
 import { dialogs } from "$lib/dialogs.svelte";
+import { editTagsItems } from "$lib/local/tag-menu";
 import { isLocalUri } from "$lib/local/tracks";
 import type { MenuEntry, MenuItem } from "$lib/menu.svelte";
 import { flattenFolders, folderOf, movePlaylist, removeFolder, togglePin } from "$lib/organizer";
 import { organizer } from "$lib/organizer.svelte";
 import { addTracks, deletePlaylist, editablePlaylists, removeTracks } from "$lib/playlist-actions";
 import { player } from "$lib/player.svelte";
-import { exportItem, notOwnedItem, toolItems } from "$lib/playlist-tools/tools.svelte";
+import { exportItem, notOwnedItem, saveCopyItem, toolItems } from "$lib/playlist-tools/tools.svelte";
 import { saved } from "$lib/saved.svelte";
+import { bandcampHref, isBandcampUri } from "$lib/bandcamp/uri";
+import { isServerUri, serverHref } from "$lib/servers/uri";
+import { isSoundcloudUri, soundcloudHref } from "$lib/soundcloud/uri";
+import { isStreamUri } from "$lib/stream/uri";
 import { session } from "$lib/session.svelte";
 import type { Card, PlaylistSummary, Track } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
@@ -84,7 +91,9 @@ export function trackMenu(track: Track, options: TrackMenuOptions = {}): MenuEnt
   const { removeFrom, onRemoved } = options;
   const toQueue: MenuItem = { label: "Add to queue", icon: "queue", action: () => queue([track.uri], [track]) };
   // Local files exist only in Carbon: no Spotify playlists, likes, album pages or links.
-  if (isLocalUri(track.uri)) return [toQueue];
+  if (isLocalUri(track.uri)) return [toQueue, ...editTagsItems(track), ...bookmarkSongItems(track)];
+  // Songs on the listener's own server queue among themselves; Spotify's playlists and likes don't apply.
+  if (isStreamUri(track.uri)) return [toQueue];
   // YouTube Music songs get their own menu: they never go to Spotify playlists.
   if (isYoutubeUri(track.uri)) return ytTrackMenu(track, options);
   return [
@@ -106,7 +115,22 @@ export function trackMenu(track: Track, options: TrackMenuOptions = {}): MenuEnt
     ...goToArtists(track.artists),
     "separator",
     ...blockItems(track),
+    ...bookmarkSongItems(track),
     copyItem(track.uri),
+  ];
+}
+
+/** Menu for several selected songs at once. Playlists and their removal are Spotify's, so they need Spotify songs. */
+export function selectionMenu(tracks: Track[], options: TrackMenuOptions & { copy: () => unknown }): MenuEntry[] {
+  const { removeFrom, onRemoved, copy } = options;
+  const spotify = tracks.filter((t) => t.uri.startsWith("spotify:track:")).map((t) => t.uri);
+  return [
+    { label: `Add ${tracks.length} songs to queue`, icon: "queue", action: () => queue(tracks.map((t) => t.uri), tracks) },
+    ...(spotify.length ? [{ label: "Add to playlist", icon: "plus" as const, items: addToPlaylistItems(spotify) }] : []),
+    { label: "Copy", icon: "link", action: copy },
+    ...(removeFrom && spotify.length
+      ? [{ label: "Remove from this playlist", icon: "trash" as const, danger: true, action: async () => (await removeTracks(removeFrom, spotify)) && onRemoved?.() }]
+      : []),
   ];
 }
 
@@ -121,6 +145,8 @@ export function albumMenu(album: Card, tracks: Track[] = []): MenuEntry[] {
     ...(tracks.length ? [{ label: "Add to queue", icon: "queue", action: () => queue(tracks.map((t) => t.uri), tracks) } satisfies MenuItem] : []),
     ...(tracks.length ? [{ label: "Add to playlist", icon: "plus", items: addToPlaylistItems(tracks.map((t) => t.uri)) } satisfies MenuItem] : []),
     likeItem(album.uri, "Save to library", "Remove from library"),
+    collectItem({ ...album, subtitle: album.subtitle || (tracks[0]?.artists ?? []).map((a) => a.name).join(", ") }),
+    bookmarkPageItem({ path: `/album/${album.id}`, title: album.title, subtitle: "Album", image: album.image }),
     "separator",
     exportItem({ kind: "album", id: album.id, name: album.title }),
     copyItem(album.uri),
@@ -129,7 +155,7 @@ export function albumMenu(album: Card, tracks: Track[] = []): MenuEntry[] {
 
 export function artistMenu(artist: Card): MenuEntry[] {
   const ref = { id: artist.id, name: artist.title, uri: artist.uri };
-  return [...playItems(artist.uri), "separator", { label: "Go to artist", icon: "artist", action: () => goto(`/artist/${artist.id}`) }, blockArtistMenuItem(ref), copyItem(artist.uri)];
+  return [...playItems(artist.uri), "separator", { label: "Go to artist", icon: "artist", action: () => goto(`/artist/${artist.id}`) }, blockArtistMenuItem(ref), bookmarkPageItem({ path: `/artist/${artist.id}`, title: artist.title, subtitle: "Artist", image: artist.image }), copyItem(artist.uri)];
 }
 
 function moveToFolderItems(playlistId: string): MenuEntry[] {
@@ -147,9 +173,10 @@ function moveToFolderItems(playlistId: string): MenuEntry[] {
 
 export function playlistMenu(playlist: PlaylistSummary, largeImage?: string | null): MenuEntry[] {
   const owned = playlist.ownerId === session.profile?.id;
+  const bookmark = bookmarkPageItem({ path: `/playlist/${playlist.id}`, title: playlist.name, subtitle: "Playlist", image: playlist.image });
   if (!session.playlists.some((p) => p.id === playlist.id)) {
     // Not in your library (e.g. a search result): nothing to organise yet.
-    return [...playItems(playlist.uri), "separator", likeItem(playlist.uri, "Save to library", "Remove from library"), copyItem(playlist.uri)];
+    return [...playItems(playlist.uri), "separator", likeItem(playlist.uri, "Save to library", "Remove from library"), bookmark, copyItem(playlist.uri)];
   }
   return [
     ...playItems(playlist.uri, playlist.trackCount ?? undefined),
@@ -166,7 +193,9 @@ export function playlistMenu(playlist: PlaylistSummary, largeImage?: string | nu
     { label: "Tags…", icon: "tag", action: () => (dialogs.tags = playlist) },
     // Spotify only shares the items of playlists you own with apps like Carbon.
     owned ? { label: "Playlist tools", icon: "sort", items: toolItems({ kind: "playlist", id: playlist.id, name: playlist.name }) } : notOwnedItem,
+    ...(owned ? [] : [saveCopyItem({ kind: "playlist", id: playlist.id, name: playlist.name, readOnly: true })]),
     "separator",
+    bookmark,
     copyItem(playlist.uri),
     owned
       ? { label: "Delete…", icon: "trash", danger: true, action: () => (dialogs.playlist = { mode: "edit", playlist, largeImage, confirmDelete: true }) }
@@ -197,9 +226,21 @@ export function folderMenu(folder: { id: string; name: string; folders: unknown[
   ];
 }
 
+/** An album, artist or playlist on the listener's own server: play it, or open its page. */
+function serverCardMenu(card: Card): MenuEntry[] {
+  const href = serverHref(card.uri) ?? soundcloudHref(card.uri) ?? bandcampHref(card.uri);
+  return [
+    { label: "Play", icon: "play", action: () => void player.playContext(card.playUri) },
+    { label: "Shuffle", icon: "shuffle", action: () => void player.shufflePlay(card.playUri) },
+    ...(href ? [{ label: `Go to ${card.kind}`, icon: card.kind === "artist" ? ("artist" as const) : ("album" as const), action: () => void goto(href) }] : []),
+  ];
+}
+
 /** Menu for any media card (home shelves, search, library grids). */
 export function cardMenu(card: Card): MenuEntry[] {
   if (isYoutubeUri(card.uri)) return ytCardMenu(card);
+  if (isServerUri(card.uri)) return serverCardMenu(card);
+  if (isSoundcloudUri(card.uri) || isBandcampUri(card.uri)) return serverCardMenu(card); // the same choices: play, shuffle, open its page
   if (card.kind === "album") return albumMenu(card);
   if (card.kind === "artist") return artistMenu(card);
   if (card.kind === "track") {

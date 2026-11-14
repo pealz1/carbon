@@ -1,6 +1,9 @@
 //! Files and storage for the library tools: playlist export and import through the Windows file
-//! dialogs (the webview never names a path), smart-playlist rules, and a small expiring cache for
-//! Spotify metadata such as new releases (Spotify's terms only allow temporary metadata caches).
+//! dialogs (the webview never names a path), library backups, smart-playlist rules, and a small
+//! expiring cache for Spotify metadata such as new releases (Spotify's terms only allow temporary
+//! metadata caches).
+use crate::carbon_playlists;
+use crate::library::Library;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -18,6 +21,17 @@ const MAX_IMPORT_BYTES: u64 = 8 * 1024 * 1024;
 const MAX_STORE_BYTES: usize = 8 * 1024 * 1024;
 const MAX_TTL_SECS: u64 = 7 * 24 * 60 * 60;
 const MAX_NAME_CHARS: usize = 120;
+const BACKUP_VERSION: u64 = 1;
+const MAX_BACKUP_BYTES: usize = 32 * 1024 * 1024;
+const MAX_SAVED: usize = 100_000;
+const MAX_BACKUP_PLAYLISTS: usize = 5_000;
+const MAX_BACKUP_TRACKS: usize = 20_000;
+const MAX_CARBON_PLAYLISTS: usize = 500;
+const MAX_CARBON_ITEMS: usize = 10_000;
+const MAX_SMART: usize = 500;
+const MAX_BACKUP_TEXT: usize = 1_000;
+const MAX_ENTRY_ARTISTS: usize = 100;
+const MAX_ID_LEN: usize = 64;
 
 fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
@@ -113,6 +127,175 @@ pub async fn tools_import(app: AppHandle) -> Result<Option<Imported>, String> {
     let Some(picked) = picked else { return Ok(None) };
     let path = picked.into_path().map_err(|_| "That file can't be opened.".to_string())?;
     read_text(&path).map(Some)
+}
+
+// ——— Library backup ———
+// One JSON file with the listener's library. It is checked here before it is written and again
+// when it is read back: a backup is a file from disk, so nothing in it is trusted. The webview
+// applies the same limits (src/lib/playlist-tools/backup-format.ts).
+
+#[derive(Deserialize)]
+struct BackupEntry {
+    uri: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    artists: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct BackupPlaylist {
+    id: String,
+    name: String,
+    #[serde(default)]
+    description: String,
+    #[serde(default)]
+    owner: String,
+    tracks: Vec<BackupEntry>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Backup {
+    app: String,
+    kind: String,
+    version: u64,
+    created_at: String,
+    liked: Vec<BackupEntry>,
+    albums: Vec<BackupEntry>,
+    artists: Vec<BackupEntry>,
+    playlists: Vec<BackupPlaylist>,
+    carbon_playlists: Vec<carbon_playlists::Playlist>,
+    smart_playlists: Vec<serde_json::Value>,
+    organizer: Library,
+}
+
+const NOT_A_BACKUP: &str = "That file isn't a Carbon library backup.";
+
+fn invalid(what: &str) -> String {
+    format!("That backup can't be used: {what}.")
+}
+
+fn plain(text: &str, max: usize) -> bool {
+    text.chars().count() <= max && !text.chars().any(char::is_control)
+}
+
+/// Spotify ids are base-62.
+fn is_spotify_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= MAX_ID_LEN && id.bytes().all(|b| b.is_ascii_alphanumeric())
+}
+
+/// `spotify:<kind>:<id>` for one of `kinds`.
+fn is_uri(uri: &str, kinds: &[&str]) -> bool {
+    let mut parts = uri.splitn(3, ':');
+    parts.next() == Some("spotify") && parts.next().is_some_and(|kind| kinds.contains(&kind)) && parts.next().is_some_and(is_spotify_id)
+}
+
+/// A local file inside a Spotify playlist. Kept for reading; Spotify's API can't put it back.
+fn is_local_uri(uri: &str) -> bool {
+    uri.strip_prefix("spotify:local:").is_some_and(|rest| plain(rest, MAX_BACKUP_TEXT))
+}
+
+fn check_entries(entries: &[BackupEntry], max: usize, kinds: &[&str], local: bool, what: &str) -> Result<(), String> {
+    if entries.len() > max {
+        return Err(invalid(&format!("it lists more {what} than Carbon accepts")));
+    }
+    let valid = |e: &BackupEntry| {
+        (is_uri(&e.uri, kinds) || (local && is_local_uri(&e.uri)))
+            && plain(&e.name, MAX_BACKUP_TEXT)
+            && e.artists.len() <= MAX_ENTRY_ARTISTS
+            && e.artists.iter().all(|a| plain(a, MAX_BACKUP_TEXT))
+    };
+    if entries.iter().all(valid) { Ok(()) } else { Err(invalid(&format!("one of its {what} has a link or text Carbon doesn't recognise"))) }
+}
+
+fn check_playlists(playlists: &[BackupPlaylist]) -> Result<(), String> {
+    if playlists.len() > MAX_BACKUP_PLAYLISTS {
+        return Err(invalid("it lists more playlists than Carbon accepts"));
+    }
+    for p in playlists {
+        if !is_spotify_id(&p.id) || ![&p.name, &p.description, &p.owner].into_iter().all(|t| plain(t, MAX_BACKUP_TEXT)) {
+            return Err(invalid("one of its playlists has an id or text Carbon doesn't recognise"));
+        }
+        check_entries(&p.tracks, MAX_BACKUP_TRACKS, &["track", "episode"], true, "playlist songs")?;
+    }
+    Ok(())
+}
+
+fn check_carbon(playlists: &[carbon_playlists::Playlist]) -> Result<(), String> {
+    let valid = |p: &carbon_playlists::Playlist| {
+        let id_ok = !p.id.is_empty() && p.id.len() <= MAX_ID_LEN && p.id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+        id_ok && carbon_playlists::clean_name(&p.name).is_ok() && p.items.len() <= MAX_CARBON_ITEMS
+    };
+    if playlists.len() <= MAX_CARBON_PLAYLISTS && playlists.iter().all(valid) { Ok(()) } else { Err(invalid("its Carbon playlists aren't valid")) }
+}
+
+/// Size, shape, version, counts and the form of every link and id in a backup.
+pub fn check_backup(text: &str) -> Result<(), String> {
+    if text.len() > MAX_BACKUP_BYTES {
+        return Err(invalid("it's too large"));
+    }
+    let backup: Backup = serde_json::from_str(text).map_err(|_| NOT_A_BACKUP.to_string())?;
+    if backup.app != "Carbon" || backup.kind != "library-backup" || backup.version == 0 {
+        return Err(NOT_A_BACKUP.into());
+    }
+    if backup.version > BACKUP_VERSION {
+        return Err("That backup was made by a newer Carbon. Update Carbon, then restore it.".into());
+    }
+    if backup.created_at.is_empty() || !plain(&backup.created_at, MAX_ID_LEN) {
+        return Err(invalid("its date is missing"));
+    }
+    check_entries(&backup.liked, MAX_SAVED, &["track"], false, "liked songs")?;
+    check_entries(&backup.albums, MAX_SAVED, &["album"], false, "albums")?;
+    check_entries(&backup.artists, MAX_SAVED, &["artist"], false, "artists")?;
+    check_playlists(&backup.playlists)?;
+    check_carbon(&backup.carbon_playlists)?;
+    if backup.smart_playlists.len() > MAX_SMART {
+        return Err(invalid("it lists more smart playlists than Carbon accepts"));
+    }
+    backup.organizer.validate().map_err(|e| invalid(&e))
+}
+
+/// Reads a picked backup: a .json file within the size cap, in UTF-8, that passes `check_backup`.
+pub fn read_backup(path: &Path) -> Result<String, String> {
+    if !path.extension().is_some_and(|e| e.eq_ignore_ascii_case("json")) {
+        return Err("Carbon backups are .json files.".into());
+    }
+    let size = fs::metadata(path).map_err(|e| format!("Couldn't open the file: {e}"))?.len();
+    if size > MAX_BACKUP_BYTES as u64 {
+        return Err(invalid("it's too large"));
+    }
+    let bytes = fs::read(path).map_err(|e| format!("Couldn't open the file: {e}"))?;
+    let body = bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(&bytes);
+    let text = std::str::from_utf8(body).map_err(|_| NOT_A_BACKUP.to_string())?;
+    check_backup(text)?;
+    Ok(text.to_owned())
+}
+
+/// Opens the save dialog and writes a checked backup. Returns the file's name, or None if cancelled.
+#[tauri::command]
+pub async fn backup_save(app: AppHandle, name: String, contents: String) -> Result<Option<String>, String> {
+    check_backup(&contents)?;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Back up your library")
+        .set_file_name(format!("{}.json", safe_file_name(&name)))
+        .add_filter("Carbon backup", &["json"])
+        .blocking_save_file();
+    let Some(picked) = picked else { return Ok(None) };
+    let path = picked.into_path().map_err(|_| "That location can't be written.".to_string())?;
+    write_atomic(&path, contents.as_bytes())?;
+    Ok(path.file_name().map(|n| n.to_string_lossy().into_owned()))
+}
+
+/// Opens the file picker for a backup and returns its checked text. None if cancelled.
+#[tauri::command]
+pub async fn backup_open(app: AppHandle) -> Result<Option<String>, String> {
+    let picked = app.dialog().file().set_title("Restore from a backup").add_filter("Carbon backup", &["json"]).blocking_pick_file();
+    let Some(picked) = picked else { return Ok(None) };
+    let path = picked.into_path().map_err(|_| "That file can't be opened.".to_string())?;
+    read_backup(&path).map(Some)
 }
 
 fn smart_file(app: &AppHandle) -> Result<PathBuf, String> {
@@ -222,6 +405,97 @@ mod tests {
         assert_eq!(cache_read(&file, 50).as_deref(), Some("[1]"));
         assert_eq!(cache_read(&file, 150), None);
         assert!(!file.exists());
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    fn backup() -> serde_json::Value {
+        let track = "spotify:track:4uLU6hMCjMI75M1A2tKUQC";
+        serde_json::json!({
+            "app": "Carbon", "kind": "library-backup", "version": 1, "createdAt": "2026-11-13T10:00:00.000Z",
+            "liked": [{ "uri": track, "name": "Song", "artists": ["Artist"] }],
+            "albums": [{ "uri": "spotify:album:al1", "name": "Album", "artists": [] }],
+            "artists": [{ "uri": "spotify:artist:ar1", "name": "Artist" }],
+            "playlists": [{
+                "id": "p1", "name": "Mine", "description": "", "public": false, "collaborative": false, "owned": true, "owner": "Me", "tracksRead": true,
+                "tracks": [{ "uri": track, "name": "Song", "artists": [] }, { "uri": "spotify:local:Artist:Album:Song:120", "name": "File", "artists": [] }]
+            }],
+            "carbonPlaylists": [{ "id": "0123456789abcdef", "name": "Carbon mix", "items": [{ "kind": "local", "id": "0".repeat(32) }], "updatedMs": 5 }],
+            "smartPlaylists": [{ "id": "s1", "name": "Recent" }],
+            "organizer": { "folders": [{ "id": "f1", "name": "Rock", "playlists": ["p1"] }], "tags": { "p1": ["chill"] }, "pins": ["p1"] },
+            "somethingNewer": true
+        })
+    }
+
+    fn check(edit: impl FnOnce(&mut serde_json::Value)) -> Result<(), String> {
+        let mut value = backup();
+        edit(&mut value);
+        check_backup(&value.to_string())
+    }
+
+    #[test]
+    fn accepts_a_backup_and_ignores_fields_it_doesnt_know() {
+        assert_eq!(check(|_| {}), Ok(()));
+    }
+
+    #[test]
+    fn refuses_files_that_arent_backups() {
+        assert_eq!(check_backup("{ nope").unwrap_err(), NOT_A_BACKUP);
+        assert_eq!(check(|b| b["app"] = "Other".into()).unwrap_err(), NOT_A_BACKUP);
+        assert_eq!(check(|b| b["kind"] = "playlist".into()).unwrap_err(), NOT_A_BACKUP);
+        assert_eq!(check(|b| b["version"] = 0.into()).unwrap_err(), NOT_A_BACKUP);
+        assert_eq!(check(|b| b["liked"] = serde_json::Value::Null).unwrap_err(), NOT_A_BACKUP);
+        assert!(check(|b| b["version"] = 2.into()).unwrap_err().contains("newer Carbon"));
+        assert!(check(|b| b["createdAt"] = "".into()).is_err());
+        assert!(check_backup(&" ".repeat(MAX_BACKUP_BYTES + 1)).unwrap_err().contains("too large"));
+    }
+
+    #[test]
+    fn refuses_links_ids_and_text_it_doesnt_recognise() {
+        assert!(check(|b| b["liked"][0]["uri"] = "https://example.com/x".into()).is_err());
+        assert!(check(|b| b["liked"][0]["uri"] = "spotify:album:al1".into()).is_err());
+        assert!(check(|b| b["liked"][0]["uri"] = "spotify:local:a:b:c:1".into()).is_err());
+        assert!(check(|b| b["albums"][0]["uri"] = "spotify:album:../../x".into()).is_err());
+        assert!(check(|b| b["artists"][0]["uri"] = "spotify:artist:".into()).is_err());
+        assert!(check(|b| b["artists"][0]["name"] = "a\u{0007}b".into()).is_err());
+        assert!(check(|b| b["liked"][0]["name"] = "x".repeat(MAX_BACKUP_TEXT + 1).into()).is_err());
+        assert!(check(|b| b["playlists"][0]["id"] = "p/1".into()).is_err());
+        assert!(check(|b| b["playlists"][0]["tracks"][0]["uri"] = "spotify:artist:ar1".into()).is_err());
+        assert!(check(|b| b["carbonPlaylists"][0]["id"] = "../x".into()).is_err());
+        assert!(check(|b| b["carbonPlaylists"][0]["items"][0]["kind"] = "youtube".into()).is_err());
+        assert!(check(|b| b["organizer"]["folders"][0]["id"] = "has space".into()).is_err());
+        assert!(check(|b| b["organizer"]["pins"] = serde_json::json!(["p1", "p1"])).is_err());
+    }
+
+    #[test]
+    fn refuses_more_than_it_accepts() {
+        let many = |n: usize, item: serde_json::Value| serde_json::Value::Array(vec![item; n]);
+        let song = backup()["liked"][0].clone();
+        assert!(check(|b| b["playlists"][0]["tracks"] = many(MAX_BACKUP_TRACKS + 1, song.clone())).unwrap_err().contains("playlist songs"));
+        assert!(check(|b| b["playlists"] = many(MAX_BACKUP_PLAYLISTS + 1, backup()["playlists"][0].clone())).is_err());
+        assert!(check(|b| b["smartPlaylists"] = many(MAX_SMART + 1, serde_json::json!({}))).is_err());
+        assert!(check(|b| b["carbonPlaylists"] = many(MAX_CARBON_PLAYLISTS + 1, backup()["carbonPlaylists"][0].clone())).is_err());
+        assert!(check(|b| b["liked"][0]["artists"] = many(MAX_ENTRY_ARTISTS + 1, "A".into())).is_err());
+    }
+
+    #[test]
+    fn backup_files_are_written_whole_and_checked_when_read() {
+        let dir = temp("backup");
+        let file = dir.join("Carbon library.json");
+        let text = backup().to_string();
+        write_atomic(&file, format!("\u{feff}{text}").as_bytes()).unwrap();
+        assert_eq!(read_backup(&file).unwrap(), text);
+        assert!(!file.with_extension("tmp").exists());
+
+        let renamed = dir.join("Carbon library.txt");
+        fs::write(&renamed, &text).unwrap();
+        assert!(read_backup(&renamed).unwrap_err().contains(".json"));
+        let other = dir.join("other.json");
+        fs::write(&other, "[1, 2]").unwrap();
+        assert_eq!(read_backup(&other).unwrap_err(), NOT_A_BACKUP);
+        let binary = dir.join("binary.json");
+        fs::write(&binary, [0xff, 0xfe, 0x00]).unwrap();
+        assert_eq!(read_backup(&binary).unwrap_err(), NOT_A_BACKUP);
+        assert!(read_backup(&dir.join("missing.json")).is_err());
         let _ = fs::remove_dir_all(dir);
     }
 

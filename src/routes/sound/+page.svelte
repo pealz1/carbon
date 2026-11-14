@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Toggle from "$lib/components/Toggle.svelte";
+  import Visualizer from "$lib/components/Visualizer.svelte";
+  import type { TagGain } from "$lib/local/api";
   import { sound } from "$lib/local/sound.svelte";
   import type { SpotifyEqStatus } from "$lib/local/spotifyEq";
 
@@ -10,6 +12,13 @@
   const CURVE_H = 240;
   const SPAN = Math.log(1000); // 20 Hz to 20 kHz
   const CROSSFADE_MAX = 12;
+  const SPEED = { min: 0.5, max: 2, step: 0.05 };
+
+  const TAG_MODES: { id: TagGain; name: string; note: string }[] = [
+    { id: "off", name: "Ignore", note: "Carbon measures every file itself." },
+    { id: "track", name: "Track", note: "Every song plays at the same loudness." },
+    { id: "album", name: "Album", note: "An album keeps its own quiet and loud songs." },
+  ];
 
   const EQ_STATUS: Record<SpotifyEqStatus, string> = {
     off: "Off. Spotify plays exactly as Spotify sends it.",
@@ -29,12 +38,15 @@
   const area = $derived(line && `${line} L${CURVE_W} ${CURVE_H / 2} L0 ${CURVE_H / 2} Z`);
   const label = (hz: number) => (hz >= 1000 ? `${hz / 1000}k` : String(hz));
   const signed = (db: number) => `${db > 0 ? "+" : ""}${db.toFixed(db % 1 ? 1 : 0)}`;
+  const times = (rate: number) => `${rate.toFixed(2).replace(/0$/, "")}×`;
 
   onMount(() => void Promise.all([sound.boot(), sound.loadDevices()]));
 </script>
 
 <header class="page-head">
   <h1>Sound</h1>
+  <!-- The slot is always there, so the page doesn't jump when a local file starts or stops. -->
+  <div class="scope">{#if sound.playing}<Visualizer />{/if}</div>
   <p class="lede">Shapes local files played by Carbon's own engine. Spotify's audio is left as Spotify sends it.</p>
 </header>
 
@@ -106,11 +118,25 @@
     <section class="panel plate">
       <h2>Playback</h2>
       <Toggle
-        checked={s.normalize}
-        label="Even out loudness"
-        description="Uses ReplayGain tags when a file has them, otherwise measures the file once and remembers it. Local files only."
-        onchange={(v) => sound.update({ normalize: v })}
+        checked={s.skipSilence}
+        label="Skip silence"
+        description="Skips silence longer than a second at the start and end of a file. Shorter pauses stay, so albums remain gapless."
+        onchange={(v) => sound.update({ skipSilence: v })}
       />
+      <label class="range">
+        <span class="row"><span class="label">Speed</span><span class="tabular muted">{times(sound.rate)}</span></span>
+        <input
+          type="range"
+          min={SPEED.min}
+          max={SPEED.max}
+          step={SPEED.step}
+          value={sound.rate}
+          aria-valuetext={times(sound.rate)}
+          onchange={(e) => sound.setSpeed(Number(e.currentTarget.value))}
+          ondblclick={() => sound.setSpeed(1)}
+        />
+        <span class="muted">Pitch follows speed. Double-click to return to 1×; Carbon also starts there each time it opens.</span>
+      </label>
       <label class="range">
         <span class="row"><span class="label">Crossfade</span><span class="tabular muted">{s.crossfadeSecs ? `${s.crossfadeSecs} s` : "Off"}</span></span>
         <input type="range" min="0" max={CROSSFADE_MAX} step="1" value={s.crossfadeSecs} oninput={(e) => sound.update({ crossfadeSecs: Number(e.currentTarget.value) })} />
@@ -119,6 +145,43 @@
       <label class="range">
         <span class="row"><span class="label">Stereo width</span><span class="tabular muted">{Math.round(s.width * 100)}%</span></span>
         <input type="range" min="0" max="2" step="0.05" value={s.width} oninput={(e) => sound.update({ width: Number(e.currentTarget.value) })} />
+      </label>
+    </section>
+
+    <section class="panel plate">
+      <h2>Loudness</h2>
+      <Toggle
+        checked={s.normalize}
+        label="Even out loudness"
+        description="Uses a file's loudness tags when it has them, otherwise measures the file once and remembers it. Local files only."
+        onchange={(v) => sound.update({ normalize: v })}
+      />
+      <div class="range">
+        <span class="label" id="tag-gain">Loudness tags</span>
+        <div class="segmented" role="radiogroup" aria-labelledby="tag-gain">
+          {#each TAG_MODES as mode (mode.id)}
+            <button role="radio" aria-checked={s.tagGain === mode.id} disabled={!s.normalize} onclick={() => sound.update({ tagGain: mode.id })}>{mode.name}</button>
+          {/each}
+        </div>
+        <span class="muted">{TAG_MODES.find((mode) => mode.id === s.tagGain)?.note} Reads ReplayGain and R128 tags.</span>
+      </div>
+      <Toggle
+        checked={s.compressor}
+        label="Compressor"
+        description="Brings loud passages down and quiet ones up, for listening at low volume or over background noise."
+        onchange={(v) => sound.update({ compressor: v })}
+      />
+      <label class="range">
+        <span class="row"><span class="label">Amount</span><span class="tabular muted">{Math.round(s.compressorAmount * 100)}%</span></span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={s.compressorAmount}
+          disabled={!s.compressor}
+          oninput={(e) => sound.update({ compressorAmount: Number(e.currentTarget.value) })}
+        />
       </label>
     </section>
 
@@ -163,6 +226,14 @@
     margin: 0;
     color: var(--text-muted);
     line-height: 1.5;
+  }
+
+  /* Sits on the title's baseline, between the title and the lede. */
+  .scope {
+    --visualizer-h: var(--sp-6);
+    flex: 1 1 calc(var(--sp-7) * 2);
+    max-width: calc(var(--sp-7) * 6);
+    height: var(--visualizer-h);
   }
 
   .warn {
@@ -356,6 +427,15 @@
 
   .range input {
     accent-color: var(--accent);
+  }
+
+  .range input:disabled {
+    opacity: 0.4;
+  }
+
+  .range .segmented > button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .experimental {

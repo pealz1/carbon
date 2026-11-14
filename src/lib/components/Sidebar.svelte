@@ -2,6 +2,7 @@
   import { page } from "$app/state";
   import { dialogs } from "$lib/dialogs.svelte";
   import { isActive, sectionsFor } from "$lib/nav";
+  import { serverSession } from "$lib/servers/session.svelte";
   import { services } from "$lib/services.svelte";
   import { session } from "$lib/session.svelte";
   import { view } from "$lib/view.svelte";
@@ -20,7 +21,7 @@
   </button>
 
   <div class="scroll">
-    {#each sectionsFor(services.active) as section (section.id)}
+    {#each sectionsFor({ ...services.active, servers: serverSession.list.map((s) => s.kind) }) as section (section.id)}
       {@const open = view.rail || !view.closed.includes(section.id)}
       <section class="section">
         <button class="section-head" aria-expanded={open} onclick={() => view.toggleSection(section.id)}>

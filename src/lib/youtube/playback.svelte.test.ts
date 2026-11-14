@@ -104,6 +104,18 @@ describe("YouTube Music playback", () => {
     expect(h.log.at(-1)).toBe("halt");
   });
 
+  it("restarts the song on Previous once it has played a while, counting time since the last report", async () => {
+    vi.useFakeTimers({ toFake: ["performance"] });
+    const p = new YoutubePlayback(host());
+    p.play([yt("a"), yt("b")], 1);
+    h.emit({ state: "playing", timeS: 1 });
+    vi.advanceTimersByTime(2500);
+    await p.previous();
+    expect(p.index).toBe(1);
+    expect(h.log.at(-1)).toBe("seek 0");
+    vi.useRealTimers();
+  });
+
   it("shuffles around the current song and restores the order", () => {
     const fake = host();
     const p = new YoutubePlayback(fake);

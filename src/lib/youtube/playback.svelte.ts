@@ -5,9 +5,12 @@ import { shuffledFrom, step, type Repeat } from "$lib/local/queue";
 import type { Track } from "$lib/spotify/types";
 import * as api from "./api";
 import { embed, explainEmbedError, NO_PLAYER, type EmbedEvent } from "./embed";
+import { segmentsFor, skipTarget, type Segment } from "./sponsorblock";
 import { isYoutubeUri, parseYtmUri } from "./uri";
 
 const RESTART_AFTER_MS = 3000;
+/** A non-music stretch starting this early is an intro. */
+const INTRO_WITHIN_MS = 1000;
 /** Unplayable songs in a row before Carbon stops skipping (a whole region-locked playlist, say). */
 const MAX_FAILURES = 3;
 const NEXT_REPEAT: Record<Repeat, Repeat> = { off: "context", context: "track", track: "off" };
@@ -18,10 +21,13 @@ export interface Host {
   repeat(): Repeat;
   setModes(shuffle: boolean, repeat: Repeat): void;
   show(track: Track): void;
-  sync(paused: boolean, positionMs: number, durationMs?: number): void;
+  /** `stalled`: not paused, but the video isn't advancing (loading, buffering), so the clock holds. */
+  sync(paused: boolean, positionMs: number, durationMs?: number, stalled?: boolean): void;
   fail(message: string): void;
   /** The album/playlist/artist being played, for "playing" highlights. */
   setContext(uri: string | null): void;
+  /** Whether to skip the non-music parts SponsorBlock lists (off when the host doesn't say). */
+  skipsOffTopic?(): boolean;
 }
 
 /** The songs behind a YouTube Music album, playlist, artist or song (its radio). */
@@ -50,6 +56,12 @@ export class YoutubePlayback {
   #paused = true;
   #ended = false;
   #positionMs = 0;
+  /** When `#positionMs` was true, and whether the video has been advancing since. */
+  #positionAt = 0;
+  #moving = false;
+  #rate = 1;
+  /** The playing video's non-music stretches, once SponsorBlock has answered. */
+  #segments: Segment[] = [];
   #failures = 0;
   #extending = false;
 
@@ -98,13 +110,30 @@ export class YoutubePlayback {
   next = (): Promise<void> => this.#skip(true);
 
   async previous(): Promise<void> {
-    if (this.#positionMs > RESTART_AFTER_MS) return this.seek(0);
+    // A skipped spoken intro isn't "into the song": measure from where the music starts.
+    const intro = this.#segments.find(([start]) => start < INTRO_WITHIN_MS)?.[1] ?? 0;
+    if (this.#now() - intro > RESTART_AFTER_MS) return this.seek(0);
     await this.#skip(false);
   }
 
   seek(ms: number): void {
     this.#positionMs = ms;
+    this.#positionAt = performance.now();
     embed.seek(ms / 1000);
+  }
+
+  /** Where the video is now: its last reported time, carried forward while it plays. */
+  #now(at = performance.now()): number {
+    return this.#moving ? this.#positionMs + (at - this.#positionAt) * this.#rate : this.#positionMs;
+  }
+
+  /** Playback speed; kept for the songs that follow. */
+  setRate(rate: number): void {
+    const at = performance.now();
+    this.#positionMs = this.#now(at); // what played so far ran at the old speed
+    this.#positionAt = at;
+    this.#rate = rate;
+    if (this.queue) embed.setRate(rate);
   }
 
   setVolume(volume: number): void {
@@ -122,7 +151,7 @@ export class YoutubePlayback {
       this.queue = this.#unshuffled ?? queue;
       this.#unshuffled = null;
     }
-    this.index = Math.max(0, this.queue.indexOf(current));
+    this.index = Math.max(0, this.queue.findIndex((t) => t.uri === current.uri)); // by uri: the restored list holds the same songs as different objects
     this.#host.setModes(shuffle, this.#host.repeat());
   }
 
@@ -149,6 +178,7 @@ export class YoutubePlayback {
     this.queue = null;
     this.#unshuffled = null;
     this.#paused = true;
+    this.#moving = false;
     this.#host.setContext(null);
     await embed.halt();
   }
@@ -159,11 +189,15 @@ export class YoutubePlayback {
     this.index = index;
     this.#ended = false;
     this.#paused = false;
+    this.#moving = false; // not until YouTube says it plays: loading takes a moment
     this.#positionMs = positionMs;
     this.#host.show(track);
-    this.#host.sync(false, positionMs, track.durationMs || undefined);
+    this.#host.sync(false, positionMs, track.durationMs || undefined, true);
     embed.setVolume(this.#host.volume());
     embed.load(track.id, positionMs / 1000);
+    if (this.#rate !== 1) embed.setRate(this.#rate);
+    this.#segments = [];
+    if (this.#host.skipsOffTopic?.()) void segmentsFor(track.id).then((found) => this.queue?.[this.index] === track && (this.#segments = found));
   }
 
   async #skip(forward: boolean): Promise<void> {
@@ -202,6 +236,7 @@ export class YoutubePlayback {
   #finish(): void {
     this.#ended = true;
     this.#paused = true;
+    this.#moving = false;
     embed.pause();
     this.#host.sync(true, 0);
   }
@@ -209,11 +244,34 @@ export class YoutubePlayback {
   async #onEvent(e: EmbedEvent): Promise<void> {
     if (!this.queue) return; // stopped: whatever the frame still says isn't playing anymore
     if (e.error !== undefined) return this.#failed(e.error);
-    if (e.state === "ended") return this.#host.repeat() === "track" ? this.#goTo(this.index) : this.#skip(true);
-    if (e.state) this.#paused = e.state !== "playing" && e.state !== "buffering";
+    if (e.state === "ended") return this.#songEnded();
+    if (!e.state && e.timeS === undefined) return;
+    // A state change carries no time of its own: carry the clock forward rather than re-stamping a stale one.
+    const at = performance.now();
+    this.#positionMs = e.timeS !== undefined ? e.timeS * 1000 : this.#now(at);
+    this.#positionAt = at;
+    if (e.state) {
+      this.#paused = e.state !== "playing" && e.state !== "buffering";
+      this.#moving = e.state === "playing";
+    }
     if (e.state === "playing") this.#failures = 0;
-    if (e.timeS !== undefined) this.#positionMs = e.timeS * 1000;
-    if (e.state || e.timeS !== undefined) this.#host.sync(this.#paused, this.#positionMs, e.durationS ? e.durationS * 1000 : undefined);
+    if (this.#moving && e.timeS !== undefined && this.#skipOffTopic()) return;
+    this.#host.sync(this.#paused, this.#positionMs, e.durationS ? e.durationS * 1000 : undefined, !this.#paused && !this.#moving);
+  }
+
+  /** The song played out: again on repeat-one, else on to the next. */
+  #songEnded(): void | Promise<void> {
+    return this.#host.repeat() === "track" ? this.#goTo(this.index) : this.#skip(true);
+  }
+
+  /** Jumps past a non-music stretch the video is in (or on to the next song when it runs to the end). */
+  #skipOffTopic(): boolean {
+    const to = skipTarget(this.#segments, this.#positionMs);
+    if (to === null) return false;
+    const track = this.queue?.[this.index];
+    if (track?.durationMs && to >= track.durationMs - 1000) void this.#songEnded();
+    else this.seek(to);
+    return true;
   }
 
   async #failed(code: number): Promise<void> {

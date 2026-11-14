@@ -6,7 +6,9 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 const FILE: &str = "settings.json";
+const MAX_LYRICS_DELAY_MS: i32 = 1000;
 pub const ACCENTS: [&str; 7] = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"];
+const LYRICS_SOURCES: [&str; 4] = ["lrclib", "youtube", "netease", "musixmatch"];
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "lowercase")]
@@ -69,6 +71,9 @@ pub struct Settings {
     pub lyrics_scale: f32,
     /// Lines away from the sung one are softly blurred; off keeps every line sharp.
     pub lyrics_blur: bool,
+    /// Shows every song's lyrics this much later (negative: sooner), for outputs that play late
+    /// such as Bluetooth headphones. Songs keep their own nudge on top.
+    pub lyrics_delay_ms: i32,
     pub cinema_layout: CinemaLayout,
     /// Romanised Japanese, Chinese and Korean lyrics by default; each song can override it.
     pub lyrics_romanise: bool,
@@ -76,6 +81,11 @@ pub struct Settings {
     /// Readings over kanji while romanisation is on.
     pub lyrics_furigana: bool,
     pub lyrics_chinese: ChineseScript,
+    /// Where lyrics are looked up, in the order they're asked. NetEase and Musixmatch are
+    /// unofficial, so they're only here once the listener adds them (Settings → Lyrics).
+    pub lyrics_sources: Vec<String>,
+    /// The language lyrics are translated into ("en", "zh-CN"); empty = no translation.
+    pub lyrics_translate: String,
     /// The listener's own Spotify app (Spotify caps each Client ID at 5 users). Empty = built-in.
     pub spotify_client_id: String,
     /// Phone remote / SDK server (Settings → Remote). Off unless the listener turns it on.
@@ -96,6 +106,10 @@ pub struct Settings {
     pub brand_version: u8,
     /// A Windows notification when the song changes while Carbon isn't focused.
     pub track_notifications: bool,
+    /// Skip the non-music parts of YouTube Music videos that SponsorBlock's community has marked.
+    pub sponsor_block: bool,
+    /// What's playing as JSON and an overlay page for OBS, for programs on this PC (Settings → Remote).
+    pub streamer_widgets: bool,
     /// Shortcuts that work from any app (Settings → Global shortcuts).
     pub hotkeys: crate::hotkeys::Hotkeys,
 }
@@ -115,11 +129,14 @@ impl Default for Settings {
             accent: ACCENTS[0].into(),
             lyrics_scale: 1.0,
             lyrics_blur: true,
+            lyrics_delay_ms: 0,
             cinema_layout: CinemaLayout::Split,
             lyrics_romanise: false,
             lyrics_roman_place: RomanPlace::Below,
             lyrics_furigana: false,
             lyrics_chinese: ChineseScript::Original,
+            lyrics_sources: vec!["lrclib".into(), "youtube".into()],
+            lyrics_translate: String::new(),
             spotify_client_id: String::new(),
             remote_enabled: false,
             remote_port: crate::remote::DEFAULT_PORT,
@@ -131,6 +148,8 @@ impl Default for Settings {
             smart_shuffle: false,
             brand_version: BRAND_VERSION,
             track_notifications: false,
+            sponsor_block: true,
+            streamer_widgets: false,
             hotkeys: crate::hotkeys::Hotkeys::default(),
         }
     }
@@ -149,6 +168,16 @@ impl Settings {
         }
         if !(0.75..=1.5).contains(&self.lyrics_scale) {
             return Err("lyrics size must be between 75% and 150%".into());
+        }
+        if self.lyrics_delay_ms.abs() > MAX_LYRICS_DELAY_MS {
+            return Err("lyrics delay must be within one second either way".into());
+        }
+        let sources = &self.lyrics_sources;
+        if sources.iter().enumerate().any(|(i, s)| !LYRICS_SOURCES.contains(&s.as_str()) || sources[..i].contains(s)) {
+            return Err("lyric sources must each be one Carbon knows, listed once".into());
+        }
+        if !self.lyrics_translate.is_empty() && !crate::lyrics_sources::is_language(&self.lyrics_translate) {
+            return Err("that isn't a language Carbon can translate lyrics into".into());
         }
         if !self.spotify_client_id.is_empty() && !is_client_id(&self.spotify_client_id) {
             return Err("that doesn't look like a Spotify Client ID (32 letters and numbers)".into());
@@ -251,6 +280,10 @@ pub fn settings_set(app: AppHandle, state: State<SettingsState>, settings: Setti
     // Before saving, so a port that's in use doesn't get remembered as "on".
     if let Some(remote) = app.try_state::<crate::remote::Remote>() {
         remote.apply(settings.remote_enabled, settings.remote_port)?;
+        // Only when it changes: a port another program holds must not fail every later, unrelated save.
+        if settings.streamer_widgets != before.streamer_widgets {
+            remote.apply_widgets(settings.streamer_widgets)?;
+        }
     }
     save(&app, &settings)?;
     *state.0.lock().map_err(|e| e.to_string())? = settings.clone();
@@ -306,6 +339,18 @@ mod tests {
         assert!(bad_accent.validate().is_err());
         let bad_scale = Settings { lyrics_scale: 3.0, ..Settings::default() };
         assert!(bad_scale.validate().is_err());
+        let bad_delay = Settings { lyrics_delay_ms: -1500, ..Settings::default() };
+        assert!(bad_delay.validate().is_err());
+        let bluetooth = Settings { lyrics_delay_ms: 250, ..Settings::default() };
+        assert!(bluetooth.validate().is_ok());
+        let unknown_source = Settings { lyrics_sources: vec!["lrclib".into(), "genius".into()], ..Settings::default() };
+        assert!(unknown_source.validate().is_err());
+        let repeated_source = Settings { lyrics_sources: vec!["netease".into(), "netease".into()], ..Settings::default() };
+        assert!(repeated_source.validate().is_err());
+        let reordered = Settings { lyrics_sources: vec!["musixmatch".into(), "lrclib".into()], lyrics_translate: "zh-CN".into(), ..Settings::default() };
+        assert!(reordered.validate().is_ok());
+        let bad_language = Settings { lyrics_translate: "en&q=x".into(), ..Settings::default() };
+        assert!(bad_language.validate().is_err());
         let bad_id = Settings { spotify_client_id: "not-an-id".into(), ..Settings::default() };
         assert!(bad_id.validate().is_err());
         let bad_port = Settings { remote_port: 80, ..Settings::default() };
@@ -357,6 +402,7 @@ mod tests {
         assert!(clean.hotkeys.enabled);
         assert_eq!(clean.hotkeys.next, "");
         assert!(!Settings::default().track_notifications);
+        assert!(!Settings::default().streamer_widgets);
     }
 
     #[test]
@@ -388,6 +434,8 @@ mod tests {
         assert_eq!(parsed.ui_sound_volume, 0.5);
         assert!(!parsed.smart_shuffle);
         assert!(parsed.lyrics_blur);
+        assert_eq!(parsed.lyrics_delay_ms, 0);
+        assert_eq!((parsed.lyrics_sources.join(","), parsed.lyrics_translate.as_str()), ("lrclib,youtube".to_string(), "")); // nothing unofficial until asked
         assert_eq!(parsed.cinema_layout, CinemaLayout::Split);
     }
 

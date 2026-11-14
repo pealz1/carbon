@@ -4,9 +4,11 @@ import { goto } from "$app/navigation";
 import type { IconName } from "$lib/components/Icon.svelte";
 import type { RecentEntry } from "$lib/command-palette";
 import { joinNames } from "$lib/format";
+import { parseLink } from "$lib/links";
 import { carbonPlaylists } from "$lib/local/playlists.svelte";
 import { sectionsFor } from "$lib/nav";
 import { player } from "$lib/player.svelte";
+import { serverSession } from "$lib/servers/session.svelte";
 import { services } from "$lib/services.svelte";
 import { session } from "$lib/session.svelte";
 import type { SearchResults } from "$lib/spotify/endpoints";
@@ -39,7 +41,7 @@ const page = (id: string, label: string, detail: string, href: string, icon: Ico
 });
 
 export function pageEntries(): Entry[] {
-  const nav = sectionsFor(services.active).flatMap((section) =>
+  const nav = sectionsFor({ ...services.active, servers: serverSession.list.map((s) => s.kind) }).flatMap((section) =>
     section.items.map((item) => page(`p:${item.href}`, item.label, section.label, item.href, item.icon)),
   );
   return [
@@ -67,6 +69,18 @@ export function searchPageEntries(query: string): Entry[] {
   if (services.active.spotify) entries.push({ id: "s:spotify", label: `Search Spotify for \u201c${query}\u201d`, detail: "All results", icon: "search", run: () => goto(`/search?q=${q}`) });
   if (services.active.youtube) entries.push({ id: "s:youtube", label: `Search YouTube Music for \u201c${query}\u201d`, detail: "All results", icon: "search", run: () => goto(`/youtube/search?q=${q}`) });
   return entries;
+}
+
+const SERVICE_NAMES = { spotify: "Spotify", youtube: "YouTube Music" } as const;
+
+/** A pasted Spotify or YouTube Music link: open its page, or play it. Nothing for a service that isn't connected. */
+export function linkEntries(text: string): Entry[] {
+  const link = parseLink(text);
+  if (!link || !services.active[link.service]) return [];
+  const { href, playUri } = link;
+  const plays = link.what === "episode" ? () => player.playEpisode(playUri!) : () => player.playTracks([playUri!]);
+  const label = `${href ? "Open" : "Play"} this ${link.what}`;
+  return [{ id: `k:${href ?? playUri}`, label, detail: `${SERVICE_NAMES[link.service]} link`, icon: href ? "link" : "note", run: href ? () => goto(href) : plays }];
 }
 
 function cardEntry(card: Card, detail: string): Entry {

@@ -8,6 +8,8 @@ const MAX_AGE_MS = 10_000;
 /** Just after a local seek the SDK may still report the old spot; don't snap back to it. */
 const SEEK_SETTLE_MS = 1_000;
 const SEEK_TOLERANCE_MS = 2_000;
+/** A reading this close to Carbon's own clock is noise: snapping to it every second only makes the lyric fill twitch. */
+export const RESYNC_DEADBAND_MS = 40;
 
 export function positionFromState(
   state: { position: number; duration: number; paused: boolean; timestamp?: number },

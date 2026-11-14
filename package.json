@@ -21,6 +21,7 @@
     "@tauri-apps/plugin-process": "^2.4.0",
     "@tauri-apps/plugin-updater": "^2.14.1",
     "es-hangul": "^2.4.0",
+    "hls.js": "^1.7.4",
     "kuroshiro": "^1.2.1",
     "opencc-js": "^1.4.2",
     "pinyin-pro": "^3.29.5"

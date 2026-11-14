@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { prefs } from "$lib/preferences.svelte";
   import { youtube } from "$lib/youtube/session.svelte";
+  import Toggle from "./Toggle.svelte";
 
   // Settings → YouTube Music: sign in or out, and what using YouTube's private API means.
 </script>
@@ -33,6 +35,14 @@
     </div>
   {/if}
   {#if youtube.error}<p class="warn" role="alert">{youtube.error}</p>{/if}
+  {#if prefs.value}
+    <Toggle
+      checked={prefs.value.sponsorBlock}
+      label="Skip non-music parts"
+      description="Jumps over spoken intros, skits and credits in music videos, where SponsorBlock's community has marked them. Carbon sends SponsorBlock a short hash prefix, never the video itself."
+      onchange={(on) => prefs.update({ sponsorBlock: on })}
+    />
+  {/if}
   <p class="muted">Your YouTube session is stored in Carbon's browser profile, encrypted by Windows, so the player is signed in too.</p>
   <p class="note">
     Carbon talks to YouTube Music through its private web API, the one music.youtube.com uses. Google doesn't offer it to other apps and may change or block it

@@ -7,7 +7,7 @@
   import { carbonPlaylists } from "$lib/local/playlists.svelte";
   import { menu, type MenuEntry } from "$lib/menu.svelte";
   import { folderMenu, playlistMenu } from "$lib/menus";
-  import { buildTree, canMoveFolder, folderOf, moveFolder, movePlaylist, toggleCollapsed, type FolderNode } from "$lib/organizer";
+  import { buildTree, canMoveFolder, folderCovers, folderOf, moveFolder, movePlaylist, toggleCollapsed, type FolderNode } from "$lib/organizer";
   import { organizer } from "$lib/organizer.svelte";
   import { player } from "$lib/player.svelte";
   import { services } from "$lib/services.svelte";
@@ -105,6 +105,7 @@
 
 {#snippet folderNode(node: FolderNode, depth: number)}
   {@const f = node.folder}
+  {@const covers = folderCovers(node)}
   <div class="folder" class:drop={dropTarget === f.id}>
     <button
       class="row folder-row"
@@ -121,7 +122,14 @@
       oncontextmenu={(e) => menu.open(e, folderMenu(f))}
       use:hold={holdFor(() => folderMenu(f))}
     >
-      <span class="tile"><Icon name="folder" size={14} /></span>
+      {#if covers.length}
+        <!-- The folder wears the artwork of what's inside it: one cover, or a mosaic of up to four. -->
+        <span class="tile mosaic" class:single={covers.length < 4} aria-hidden="true">
+          {#each covers.length < 4 ? covers.slice(0, 1) : covers as src (src)}<img {src} alt="" width="24" height="24" loading="lazy" draggable="false" />{/each}
+        </span>
+      {:else}
+        <span class="tile"><Icon name="folder" size={14} /></span>
+      {/if}
       <span class="name">{f.name}</span>
       <span class="count tabular">{node.total}</span>
       <span class="chevron" class:open={!f.collapsed}><Icon name="forward" size={12} /></span>
@@ -283,6 +291,21 @@
     place-items: center;
     background: var(--chrome-field);
     color: var(--chrome-text-muted);
+  }
+
+  .tile.mosaic {
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+  }
+
+  .tile.mosaic.single {
+    grid-template-columns: 1fr;
+  }
+
+  .tile.mosaic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .tile.carbon {

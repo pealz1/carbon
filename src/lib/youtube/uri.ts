@@ -1,3 +1,7 @@
+import { bandcampHref } from "$lib/bandcamp/uri";
+import { serverHref } from "$lib/servers/uri";
+import { soundcloudHref } from "$lib/soundcloud/uri";
+
 // YouTube Music items carry "ytm:" URIs so every part of Carbon can tell them from Spotify's
 // (the two services never share a queue, a playlist or a list; see sources.ts).
 export const YTM_PREFIX = "ytm:";
@@ -14,7 +18,7 @@ export function parseYtmUri(uri: string): { kind: YtmKind; id: string } | null {
 
 /** Carbon's page for an album, artist or playlist, from either service. */
 export const pageHref = (kind: PageKind, ref: { id: string; uri: string }): string =>
-  isYoutubeUri(ref.uri) ? `/youtube/${kind}/${encodeURIComponent(ref.id)}` : `/${kind}/${ref.id}`;
+  serverHref(ref.uri) ?? soundcloudHref(ref.uri) ?? bandcampHref(ref.uri) ?? (isYoutubeUri(ref.uri) ? `/youtube/${kind}/${encodeURIComponent(ref.id)}` : `/${kind}/${ref.id}`);
 
 /** The music.youtube.com address of a song, album, playlist or artist. */
 export function ytmLink(uri: string): string | null {

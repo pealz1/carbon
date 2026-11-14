@@ -50,10 +50,16 @@ export const upNext = async (from: { videoId?: string; playlistId?: string }) =>
 /** A song's radio, starting with the song itself. */
 export const radio = (videoId: string) => upNext({ videoId, playlistId: `RDAMVM${videoId}` });
 
-/** YouTube Music's own (unsynced) lyrics for a song, if it has any. */
-export async function lyrics(videoId: string): Promise<string | null> {
+/** YouTube Music's own lyrics for a song: timed to this exact recording when it has that, else plain text. */
+export async function lyrics(videoId: string, wantText = true): Promise<{ lines: { timeMs: number; text: string }[]; text: string | null }> {
   const { lyricsId } = await upNext({ videoId });
-  return lyricsId ? map.lyricsText(await browse(lyricsId)) : null;
+  if (!lyricsId) return { lines: [], text: null };
+  const lines = await invoke<Json>("ytm_timed_lyrics", { id: lyricsId }).then(map.timedLyrics, (e) => {
+    console.warn("[youtube] timed lyrics unavailable", e);
+    return [];
+  });
+  if (lines.some((l) => l.text)) return { lines, text: null };
+  return { lines: [], text: wantText ? map.lyricsText(await browse(lyricsId)) : null };
 }
 
 export const playability = (videoId: string) => invoke<Playability>("ytm_playability", { videoId });

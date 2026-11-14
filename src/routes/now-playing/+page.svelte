@@ -4,8 +4,21 @@
   import YoutubeSlot from "$lib/components/YoutubeSlot.svelte";
   import Status from "$lib/components/Status.svelte";
   import { hasPage } from "$lib/local/tracks";
+  import { describeFeatures, featuresFor, type AudioFeatures } from "$lib/audio-features";
+  import Visualizer from "$lib/components/Visualizer.svelte";
   import { player } from "$lib/player.svelte";
   import { pageHref } from "$lib/youtube/uri";
+
+  // Tempo, key and energy, for Spotify songs the open catalogue knows.
+  let features = $state<AudioFeatures | null>(null);
+  $effect(() => {
+    const track = player.source === "spotify" ? player.track : null;
+    features = null;
+    if (!track) return;
+    let current = true;
+    void featuresFor(track.id).then((found) => current && (features = found));
+    return () => (current = false);
+  });
 </script>
 
 {#if player.track}
@@ -22,13 +35,16 @@
         <LikeButton uri={player.track.uri} label={player.track.name} size={22} />
       </div>
       <p class="by">
-        {#each player.track.artists as artist, i (artist.uri)}
+        {#each player.track.artists as artist, i (artist.uri || i)}
           {#if i > 0}{", "}{/if}{#if hasPage(artist)}<a href={pageHref("artist", artist)}>{artist.name}</a>{:else}{artist.name}{/if}
         {/each}
       </p>
       {#if album}
         <p class="album">{#if hasPage(album)}<a href={pageHref("album", album)}>{album.name}</a>{:else}{album.name}{/if}</p>
       {/if}
+      {#if features}<p class="features tabular">{describeFeatures(features)}</p>{/if}
+      <!-- Carbon's own engine is the only player that hands over its audio, so only local files get a spectrum. -->
+      {#if player.source === "local" && !player.paused}<div class="scope"><Visualizer /></div>{/if}
     </section>
 
     <Lyrics />
@@ -38,6 +54,19 @@
 {/if}
 
 <style>
+  .scope {
+    --visualizer-h: var(--sp-7);
+    margin-top: var(--sp-4);
+  }
+
+  .features {
+    margin: var(--sp-2) 0 0;
+    color: var(--text-faint);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
   .now {
     display: grid;
     grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.35fr);

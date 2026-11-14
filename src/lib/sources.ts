@@ -2,14 +2,20 @@
 // with another service's streams, so no queue, playlist or list holds both: switching service
 // replaces the queue, and the other player is stopped (and confirmed stopped) first. Spotify and
 // local files may share a Carbon queue (handed off run by run, see local/queue.ts).
+import { isRadioUri } from "$lib/radio/uri";
+import { isStreamUri } from "$lib/stream/uri";
 import { isYoutubeUri } from "$lib/youtube/uri";
 
-/** Who plays a list: YouTube's embedded player, or Carbon's Spotify/local-file queue. */
-export type Owner = "youtube" | "carbon";
+/**
+ * Who plays a list: YouTube's embedded player, Carbon's Spotify/local-file queue, a radio station
+ * on its own, or the listener's own server ("stream": songs that are plain audio addresses).
+ */
+export type Owner = "youtube" | "carbon" | "radio" | "stream";
 
-export const ownerOfUri = (uri: string): Owner => (isYoutubeUri(uri) ? "youtube" : "carbon");
+export const ownerOfUri = (uri: string): Owner => (isYoutubeUri(uri) ? "youtube" : isRadioUri(uri) ? "radio" : isStreamUri(uri) ? "stream" : "carbon");
 
-export const SEPARATE_SERVICES = "YouTube Music and Spotify play separately: a queue can't hold songs from both.";
+export const RADIO_ALONE = "A radio station plays on its own: it has no queue. Play a song to leave the radio.";
+export const SEPARATE_SERVICES = "Each music service plays separately: a queue can't hold songs from more than one.";
 
 /** The owner of a whole list, or null when it mixes YouTube Music with anything else. */
 export function ownerOf(uris: string[]): Owner | null {

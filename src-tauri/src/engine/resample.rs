@@ -1,6 +1,7 @@
 //! Converts decoded audio to the output device's rate (e.g. 44.1 kHz files on a 48 kHz device).
 //! Runs on the decode thread, never in the audio callback. The output length is exact
-//! (input frames × ratio), so resampled albums stay gapless.
+//! (input frames × ratio), so resampled albums stay gapless. Playback speed is part of the same
+//! ratio: a faster track is simply resampled to fewer frames, so its pitch rises with it.
 use rubato::audioadapter_buffers::direct::InterleavedSlice;
 use rubato::{Async, FixedAsync, Indexing, Resampler as _, SincInterpolationParameters};
 
@@ -22,9 +23,10 @@ pub struct Resampler {
 }
 
 impl Resampler {
-    pub fn new(from: u32, to: u32) -> Result<Resampler, String> {
-        let ratio = f64::from(to) / f64::from(from);
-        let inner = if from == to {
+    /// `speed` > 1 plays faster (and higher); 1 leaves the track as it is.
+    pub fn new(from: u32, to: u32, speed: f64) -> Result<Resampler, String> {
+        let ratio = f64::from(to) / (f64::from(from) * speed);
+        let inner = if ratio == 1.0 {
             None
         } else {
             let params = SincInterpolationParameters::default();
@@ -101,7 +103,7 @@ mod tests {
 
     #[test]
     fn passes_through_when_rates_match() {
-        let mut r = Resampler::new(48_000, 48_000).unwrap();
+        let mut r = Resampler::new(48_000, 48_000, 1.0).unwrap();
         let mut out = Vec::new();
         r.process(&[0.1, 0.2, 0.3, 0.4], true, &mut out).unwrap();
         assert_eq!(out, vec![0.1, 0.2, 0.3, 0.4]);
@@ -111,7 +113,7 @@ mod tests {
     #[test]
     fn output_length_is_exact_for_any_input_length() {
         for (from, to, frames) in [(44_100, 48_000, 44_100), (44_100, 48_000, 1_000), (48_000, 44_100, 12_345), (96_000, 48_000, 70_001)] {
-            let mut r = Resampler::new(from, to).unwrap();
+            let mut r = Resampler::new(from, to, 1.0).unwrap();
             let mut out = Vec::new();
             for chunk in sine(frames).chunks(3000) {
                 r.process(chunk, false, &mut out).unwrap();
@@ -124,8 +126,20 @@ mod tests {
     }
 
     #[test]
+    fn speed_changes_the_length_even_when_the_rates_match() {
+        for (from, to, speed) in [(48_000, 48_000, 2.0), (48_000, 48_000, 0.5), (44_100, 48_000, 1.25), (48_000, 44_100, 0.85)] {
+            let mut r = Resampler::new(from, to, speed).unwrap();
+            let mut out = Vec::new();
+            r.process(&sine(24_000), true, &mut out).unwrap();
+            let expected = (24_000.0 * f64::from(to) / (f64::from(from) * speed)).round() as i64;
+            assert!((out.len() as i64 / 2 - expected).abs() <= 2, "{from}->{to} at {speed}x: {} vs {expected}", out.len() / 2);
+            assert!(out.iter().all(|s| s.abs() < 0.6));
+        }
+    }
+
+    #[test]
     fn keeps_the_signal_aligned_after_the_start_up_delay() {
-        let mut r = Resampler::new(44_100, 48_000).unwrap();
+        let mut r = Resampler::new(44_100, 48_000, 1.0).unwrap();
         let mut input = vec![0.0; 44_100 * 2];
         input[..2].copy_from_slice(&[1.0, 1.0]); // an impulse at t = 0
         let mut out = Vec::new();

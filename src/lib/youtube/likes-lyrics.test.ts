@@ -19,14 +19,14 @@ afterEach(() => vi.unstubAllGlobals());
 describe("YouTube Music lyrics", () => {
   it("falls back to YouTube Music's own lyrics when LRCLIB has none", async () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) => (url.includes("/get") ? ({ ok: false, status: 404 } as Response) : await empty()())));
-    vi.mocked(api.lyrics).mockResolvedValue("line one\nline two");
+    vi.mocked(api.lyrics).mockResolvedValue({ lines: [], text: "line one\nline two" });
     expect(await lyricsFor(song("aaaaaaaaaaa"))).toEqual({ kind: "plain", text: "line one\nline two" });
-    expect(api.lyrics).toHaveBeenCalledWith("aaaaaaaaaaa");
+    expect(api.lyrics).toHaveBeenCalledWith("aaaaaaaaaaa", true);
   });
 
   it("still tries YouTube Music when LRCLIB is down", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 503 }) as Response));
-    vi.mocked(api.lyrics).mockResolvedValue(null);
+    vi.mocked(api.lyrics).mockResolvedValue({ lines: [], text: null });
     expect(await lyricsFor(song("bbbbbbbbbbb"))).toEqual({ kind: "none" });
   });
 });

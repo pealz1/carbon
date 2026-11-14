@@ -21,6 +21,8 @@ declare namespace Spotify {
   interface PlaybackState {
     context: { uri: string | null } | null;
     paused: boolean;
+    /** The track is still loading or buffering: `position` isn't advancing yet (not in Spotify's docs; present in practice). */
+    loading?: boolean;
     position: number;
     duration: number;
     /** Epoch ms when this state was produced (not in Spotify's docs; present in practice). */

@@ -11,6 +11,7 @@
   import LyricsSettings from "$lib/components/LyricsSettings.svelte";
   import PlaybackPanel from "$lib/components/PlaybackPanel.svelte";
   import RemotePanel from "$lib/components/RemotePanel.svelte";
+  import ServersPanel from "$lib/components/ServersPanel.svelte";
   import ServicesPanel from "$lib/components/ServicesPanel.svelte";
   import YoutubePanel from "$lib/components/YoutubePanel.svelte";
   import { services } from "$lib/services.svelte";
@@ -34,6 +35,7 @@
     type Settings,
   } from "$lib/native";
   import { organizer } from "$lib/organizer.svelte";
+  import BackupPanel from "$lib/playlist-tools/BackupPanel.svelte";
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
   import { playSound } from "$lib/sfx";
@@ -269,7 +271,11 @@
 
     {#if services.active.youtube}<YoutubePanel />{/if}
 
+    <ServersPanel />
+
     <PlaybackPanel />
+
+    <BackupPanel />
 
     <section class="panel plate">
       <h2>Sound</h2>

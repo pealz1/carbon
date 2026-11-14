@@ -34,7 +34,10 @@ function countKeys<T>(items: T[], keysOf: (item: T) => string[]): Map<string, nu
 function pick<T>(rest: T[], keysOf: (item: T) => string[], counts: Map<string, number>, previous: Set<string>): number {
   const after = rest.length - 1;
   // Only an artist on more than half of what's left can run out of room.
-  const crowded = [...counts].filter(([, n]) => n > Math.floor(after / 2)).sort((x, y) => y[1] - x[1]);
+  const half = Math.floor(after / 2);
+  const crowded: [string, number][] = [];
+  for (const entry of counts) if (entry[1] > half) crowded.push(entry); // at most two artists can be over half
+  crowded.sort((x, y) => y[1] - x[1]);
   const clashes = (item: T) => keysOf(item).some((k) => previous.has(k));
   const leavesRoom = (item: T) => {
     const own = keysOf(item);

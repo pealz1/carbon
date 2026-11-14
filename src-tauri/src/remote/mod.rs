@@ -2,9 +2,11 @@
 //! Remotes see what's playing and send the few commands in `protocol`; nothing else.
 mod assets;
 mod guard;
+pub(crate) use guard::is_lan;
 mod http;
 pub mod protocol;
 mod server;
+mod widgets;
 
 use crate::media_controls;
 use crate::playback::PlaybackInfo;
@@ -15,6 +17,7 @@ use serde::Serialize;
 use server::{Context, Device, Server};
 use std::net::{IpAddr, Ipv4Addr, TcpListener, UdpSocket};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::Instant;
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::watch;
 
@@ -41,6 +44,9 @@ pub struct Remote {
     state: watch::Sender<Option<RemoteState>>,
     server: Mutex<Option<Server>>,
     error: Mutex<Option<String>>,
+    /// What the streamer widgets show; kept whether or not they're on.
+    playing: widgets::Playing,
+    widgets: Mutex<Option<widgets::Widgets>>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -90,14 +96,45 @@ fn bind(port: u16) -> Result<TcpListener, String> {
     })
 }
 
+/// This PC only: nothing off the machine can reach a listener bound to 127.0.0.1.
+fn bind_widgets() -> Result<TcpListener, String> {
+    let port = widgets::PORT;
+    TcpListener::bind((Ipv4Addr::LOCALHOST, port)).map_err(|e| match e.kind() {
+        std::io::ErrorKind::AddrInUse => format!("the streamer widgets need port {port}, and another program is using it"),
+        _ => format!("couldn't start the streamer widgets on port {port}: {e}"),
+    })
+}
+
 impl Remote {
     pub fn new(app: &AppHandle) -> Self {
-        Self { app: app.clone(), state: watch::Sender::new(None), server: Mutex::default(), error: Mutex::default() }
+        Self {
+            app: app.clone(),
+            state: watch::Sender::new(None),
+            server: Mutex::default(),
+            error: Mutex::default(),
+            playing: widgets::Playing::default(),
+            widgets: Mutex::default(),
+        }
     }
 
     /// Called for every playback report; the server decides what to send and when.
     pub fn publish(&self, info: Option<&PlaybackInfo>) {
-        self.state.send_replace(info.map(RemoteState::from));
+        let state = info.map(RemoteState::from);
+        *lock(&self.playing) = state.clone().map(|state| (state, Instant::now()));
+        self.state.send_replace(state);
+    }
+
+    /// Starts or stops the streamer widgets (remote/widgets.rs) to match settings.
+    pub fn apply_widgets(&self, enabled: bool) -> Result<(), String> {
+        let mut slot = lock(&self.widgets);
+        if slot.is_some() == enabled {
+            return Ok(());
+        }
+        match slot.take() {
+            Some(running) => block_on(running.stop()),
+            None => *slot = Some(block_on(widgets::start(bind_widgets()?, self.playing.clone()))?),
+        }
+        Ok(())
     }
 
     /// Starts, stops or moves the server to match settings.

@@ -11,12 +11,16 @@ export const OPEN_EVENT = "popouts-changed";
 export const HOTKEY_EVENT = "global-hotkey";
 const ROUTE_PREFIX = "/popout/";
 
-export type Source = "spotify" | "local" | "youtube";
+export type Source = "spotify" | "local" | "youtube" | "radio" | "server";
 export type PopoutKind = "mini" | "lyrics";
 
 export interface NowState {
   track: Track | null;
   paused: boolean;
+  /** Playing but not advancing yet (loading, buffering): the position holds. Missing means false. */
+  stalled?: boolean;
+  /** Playback speed; missing means 1. */
+  rate?: number;
   positionMs: number;
   durationMs: number;
   source: Source;
@@ -40,11 +44,13 @@ export type PopoutCommand = { kind: "toggle" | "next" | "previous" | "showMain" 
 
 export const isPopoutPath = (path: string): boolean => path.startsWith(ROUTE_PREFIX);
 
-export function snapshot(source: Pick<NowSource, "track" | "paused" | "durationMs" | "source" | "position">): NowState {
+export function snapshot(source: Pick<NowSource, "track" | "paused" | "durationMs" | "source" | "position"> & { stalled?: boolean; clockRate?: number }): NowState {
   const durationMs = Math.max(0, source.durationMs);
   return {
     track: source.track,
     paused: source.paused,
+    stalled: source.stalled ?? false,
+    rate: source.clockRate ?? 1,
     positionMs: Math.round(Math.min(Math.max(0, source.position()), durationMs)),
     durationMs,
     source: source.source,
@@ -52,7 +58,7 @@ export function snapshot(source: Pick<NowSource, "track" | "paused" | "durationM
 }
 
 /** Where a published position is now, given when it arrived (each window has its own clock). */
-export function positionAt(state: Pick<NowState, "paused" | "positionMs" | "durationMs">, arrivedAt: number, now: number): number {
-  if (state.paused) return state.positionMs;
-  return Math.min(state.durationMs, state.positionMs + Math.max(0, now - arrivedAt));
+export function positionAt(state: Pick<NowState, "paused" | "stalled" | "rate" | "positionMs" | "durationMs">, arrivedAt: number, now: number): number {
+  if (state.paused || state.stalled) return state.positionMs;
+  return Math.min(state.durationMs, state.positionMs + Math.max(0, now - arrivedAt) * (state.rate ?? 1));
 }

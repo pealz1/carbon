@@ -9,7 +9,7 @@
   import { player } from "$lib/player.svelte";
   import { prefs } from "$lib/preferences.svelte";
   import { view } from "$lib/view.svelte";
-  import { LYRICS_LEAD_MS } from "$lib/words";
+  import { lyricShift } from "$lib/words";
   import Ambient from "./Ambient.svelte";
   import CinemaBar from "./CinemaBar.svelte";
   import Lyrics from "./Lyrics.svelte";
@@ -75,7 +75,7 @@
 >
   <Ambient image={player.artwork} playing={!player.paused} />
   <!-- First in the DOM so Tab reaches the controls before the lyric lines; it still sits at the bottom. -->
-  <CinemaBar hidden={idle} {lines} shiftMs={LYRICS_LEAD_MS + offset} bind:offset bind:height={barHeight} onhold={hold} />
+  <CinemaBar hidden={idle} {lines} shiftMs={lyricShift(offset, prefs.value?.lyricsDelayMs)} bind:offset bind:height={barHeight} onhold={hold} />
   <div class="notices"><Toasts /></div>
 
   {#if player.track}

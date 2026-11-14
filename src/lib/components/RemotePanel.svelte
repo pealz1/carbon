@@ -33,7 +33,7 @@
     return () => void stop.then((unlisten) => unlisten());
   });
 
-  async function apply(patch: { remoteEnabled?: boolean; remotePort?: number }) {
+  async function apply(patch: { remoteEnabled?: boolean; remotePort?: number; streamerWidgets?: boolean }) {
     notice = null;
     if (!(await prefs.update(patch))) toggleKey++;
     await refresh();
@@ -93,6 +93,14 @@
       <span class="eyebrow">Port</span>
       <input type="number" inputmode="numeric" min={MIN_PORT} max={MAX_PORT} value={s.remotePort} onchange={(e) => setPort(e.currentTarget.value)} />
     </label>
+    {#key toggleKey}
+      <Toggle
+        checked={s.streamerWidgets}
+        label="Streamer widgets"
+        description="For OBS on this PC, with no pairing: add http://127.0.0.1:10768/widgets/overlay as a browser source, or read http://127.0.0.1:10768/widgets/now-playing.json. Nothing outside this PC can reach them, and the phone remote can stay off."
+        onchange={(on) => apply({ streamerWidgets: on })}
+      />
+    {/key}
   {/if}
 
   {#if status?.running}

@@ -17,7 +17,12 @@ export type CacheKey = "new-releases";
 export const exportFile = (name: string, format: ExportFormat, contents: string) => invoke<string | null>("tools_export", { name, format, contents });
 export const importFile = () => invoke<ImportedFile | null>("tools_import");
 
-export const smartGet = () => invoke<string | null>("smart_playlists_get");
+/** Resolves with the saved file's name, or null when cancelled. Rust checks the backup before writing it. */
+export const backupSave = (name: string, contents: string) => invoke<string | null>("backup_save", { name, contents });
+/** A picked backup's text, already checked by Rust; null when cancelled. */
+export const backupOpen = () => invoke<string | null>("backup_open");
+
+export const smartGet =() => invoke<string | null>("smart_playlists_get");
 export const smartSet = (json: string) => invoke("smart_playlists_set", { json });
 
 export const cacheGet = (key: CacheKey) => invoke<string | null>("tools_cache_get", { key });

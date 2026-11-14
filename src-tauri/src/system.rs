@@ -53,8 +53,11 @@ pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     engine::delete_data(&app)?;
     app.state::<local_library::LocalLibrary>().delete_data()?;
     app.state::<carbon_playlists::Store>().delete_data()?;
+    app.state::<crate::history::History>().delete_data()?;
+    app.state::<crate::yours::Yours>().delete_data()?;
     library_tools::delete(&app)?;
     youtube::forget(&app)?;
+    crate::servers::clear_all()?;
     forget_window_state(&app)?;
     settings::delete(&app)
 }

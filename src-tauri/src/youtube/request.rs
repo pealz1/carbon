@@ -19,10 +19,12 @@ const BROWSE_PREFIXES: [&str; 6] = ["FEmusic_", "VL", "MPRE", "UC", "MPLY", "MPA
 pub struct Call {
     pub endpoint: &'static str,
     pub body: Value,
+    /// Sent as YouTube Music's phone app, signed out: the only client that gets line-timed lyrics.
+    pub mobile: bool,
 }
 
 const fn call(endpoint: &'static str, body: Value) -> Call {
-    Call { endpoint, body }
+    Call { endpoint, body, mobile: false }
 }
 
 #[derive(Deserialize, Clone, Copy, Debug, PartialEq)]
@@ -135,6 +137,14 @@ pub fn browse(id: &str, params: Option<&str>) -> Result<Call, String> {
         body["params"] = opaque(params, MAX_PARAMS)?.into();
     }
     Ok(call("browse", body))
+}
+
+/// A song's lyrics page as the phone app sees it: each line with when it starts and ends.
+pub fn timed_lyrics(id: &str) -> Result<Call, String> {
+    if !id.starts_with("MPLY") {
+        return Err("Carbon can't open that YouTube Music page.".into());
+    }
+    Ok(Call { mobile: true, ..call("browse", json!({ "browseId": browse_id(id)? })) })
 }
 
 /// The next page of a browse result (long playlists, library lists).
@@ -272,6 +282,16 @@ mod tests {
         assert_eq!(browse("UCabc", Some("ggMIegYIARoCAQI%3D")).unwrap().body["params"], "ggMIegYIARoCAQI%3D");
         assert!(browse("UCabc", Some("<script>")).is_err());
         assert!(browse_more(&"t".repeat(MAX_TOKEN + 1)).is_err());
+    }
+
+    #[test]
+    fn timed_lyrics_only_opens_lyrics_pages_as_the_phone_app() {
+        let lyrics = timed_lyrics("MPLYt_4U7yfKKFZLv-1").unwrap();
+        assert!(lyrics.mobile);
+        assert_eq!((lyrics.endpoint, &lyrics.body["browseId"]), ("browse", &json!("MPLYt_4U7yfKKFZLv-1")));
+        assert!(timed_lyrics("FEmusic_home").is_err());
+        assert!(timed_lyrics("MPLY").is_err());
+        assert!(!browse("MPLYt_4U7yfKKFZLv-1", None).unwrap().mobile);
     }
 
     #[test]

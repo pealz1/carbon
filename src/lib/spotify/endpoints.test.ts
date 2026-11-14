@@ -69,6 +69,8 @@ describe("endpoints", () => {
     expect(Number(url.searchParams.get("limit"))).toBeLessThanOrEqual(10);
     expect(url.searchParams.get("include_groups")).toBe("album,single");
     expect(page).toMatchObject({ total: 31, nextOffset: 11 });
+    await sp.artistAlbums("a2", 0, ["appears_on"]);
+    expect(new URL(String(fetchMock.mock.calls[1][0])).searchParams.get("include_groups")).toBe("appears_on");
   });
 
   it("loads artist details without depending on albums or songs", async () => {

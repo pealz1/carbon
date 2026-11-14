@@ -1,5 +1,6 @@
 // The command palette's actions: playback, layout and windows, the sleep timer, Spotify Connect
 // devices and the playlist tools. Each shows only when it can do something right now.
+import { goto } from "$app/navigation";
 import { page } from "$app/state";
 import { abLoop } from "$lib/ab-loop.svelte";
 import type { Entry } from "$lib/command-entries";
@@ -107,6 +108,8 @@ function toolEntries(): Entry[] {
       run: () => tools.open({ kind: "liked", name: "Liked Songs" }, "export"),
     },
     { id: "a:import", label: "Import a playlist", detail: "Playlist tools", icon: "import", run: tools.openImport },
+    services.active.spotify && { id: "a:combine", label: "Combine playlists", detail: "Playlist tools", icon: "layouts", run: () => tools.openCombine() },
+    { id: "a:backup", label: "Back up or restore your library", detail: "Settings", icon: "restore", run: () => goto("/settings#backup") },
   ]);
 }
 

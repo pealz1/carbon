@@ -21,6 +21,7 @@
     "core:window:allow-unmaximize",
     "core:window:allow-unminimize",
     "core:window:allow-show",
+    "core:window:allow-hide",
     "autostart:default",
     "process:default",
     "updater:default"

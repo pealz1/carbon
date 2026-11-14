@@ -191,6 +191,17 @@ export interface FolderNode {
   total: number;
 }
 
+/** Up to four covers for a folder: its own playlists' artwork first, then its subfolders', each once. */
+export function folderCovers(node: FolderNode, limit = 4): string[] {
+  const found: string[] = [];
+  const visit = (n: FolderNode) => {
+    for (const p of n.playlists) if (p.image && !found.includes(p.image) && found.length < limit) found.push(p.image);
+    for (const child of n.children) if (found.length < limit) visit(child);
+  };
+  visit(node);
+  return found;
+}
+
 export interface SidebarTree {
   pinned: PlaylistSummary[];
   folders: FolderNode[];

@@ -21,8 +21,7 @@ import {
   setTags,
   toggleCollapsed,
   togglePin,
-  type LibraryData,
-} from "./organizer";
+  type LibraryData, folderCovers, type FolderNode } from "./organizer";
 import type { PlaylistSummary } from "./spotify/types";
 
 const playlist = (id: string): PlaylistSummary => ({
@@ -188,5 +187,17 @@ describe("buildTree", () => {
       ["indie", 1],
       ["jazz", 0],
     ]);
+  });
+});
+
+describe("folder covers", () => {
+  const playlist = (id: string, image: string | null) => ({ id, uri: `spotify:playlist:${id}`, name: id, description: "", image, ownerId: "", ownerName: "", trackCount: null, public: null, collaborative: false });
+  const node = (playlists: ReturnType<typeof playlist>[], children: FolderNode[] = []): FolderNode => ({ folder: { id: "f", name: "F", collapsed: false, folders: [], playlists: [] }, playlists, children, total: playlists.length });
+
+  it("take the artwork of what's inside, own playlists first, each cover once", () => {
+    const inner = node([playlist("c", "c.jpg"), playlist("d", "a.jpg"), playlist("e", "e.jpg"), playlist("g", "g.jpg")]);
+    expect(folderCovers(node([playlist("a", "a.jpg"), playlist("b", null)], [inner]))).toEqual(["a.jpg", "c.jpg", "e.jpg", "g.jpg"]);
+    expect(folderCovers(node([playlist("a", "a.jpg")]))).toEqual(["a.jpg"]);
+    expect(folderCovers(node([]))).toEqual([]);
   });
 });

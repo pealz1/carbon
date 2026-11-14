@@ -15,7 +15,7 @@ import searchPlaylists from "./fixtures/search-playlists.json";
 import searchSongs from "./fixtures/search-songs.json";
 import searchVideos from "./fixtures/search-videos.json";
 import searchAll from "./fixtures/search.json";
-import { accountOf, albumPage, artistPage, homeMore, homePage, libraryCards, lyricsText, playlistMore, playlistPage, searchResults, upNext } from "./mappers";
+import { accountOf, albumPage, artistPage, homeMore, homePage, libraryCards, lyricsText, playlistMore, playlistPage, searchResults, timedLyrics, upNext } from "./mappers";
 import { durationOf, imageOf } from "./parse";
 
 const RADIOHEAD = { id: "UCr_iyUANcn9OX_yy9piYoLw", name: "Radiohead", uri: "ytm:artist:UCr_iyUANcn9OX_yy9piYoLw" };
@@ -137,6 +137,24 @@ describe("pages", () => {
     expect(n.lyricsId).toBe("MPLYt_b9Yfli6Cg79-10");
     expect(lyricsText(lyrics)).toMatch(/^First placeholder line\n/);
     expect(lyricsText({})).toBeNull();
+  });
+});
+
+describe("timed lyrics", () => {
+  const cue = (lyricLine: string, start: string) => ({ lyricLine, cueRange: { startTimeMilliseconds: start, endTimeMilliseconds: "0" } });
+  const page = (timedLyricsData: unknown[]) => ({ contents: { elementRenderer: { newElement: { type: { componentType: { model: { timedLyricsModel: { lyricsData: { timedLyricsData } } } } } } } } });
+
+  it("reads each line's start and turns note-only lines into breaks", () => {
+    expect(timedLyrics(page([cue("♪", "0"), cue("Yeah", "13520"), cue(" ♪ ", "16240")]))).toEqual([
+      { timeMs: 0, text: "" },
+      { timeMs: 13520, text: "Yeah" },
+      { timeMs: 16240, text: "" },
+    ]);
+  });
+
+  it("sorts, and drops lines without a usable time", () => {
+    expect(timedLyrics(page([cue("b", "2000"), cue("lost", "soon"), cue("a", "1000")])).map((l) => l.text)).toEqual(["a", "b"]);
+    expect(timedLyrics({})).toEqual([]);
   });
 });
 

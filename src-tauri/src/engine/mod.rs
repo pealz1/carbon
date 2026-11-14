@@ -1,5 +1,5 @@
 //! Carbon's own audio engine for local files: Symphonia decode, rubato resampling, a real-time
-//! DSP chain (preamp, 10-band EQ, width, limiter) and cpal output. Spotify audio never passes
+//! DSP chain (preamp, 10-band EQ, width, compressor, limiter) and cpal output. Spotify audio never passes
 //! through here; the webview hands off between the two strictly one after the other.
 pub mod contain;
 pub mod crossfade;
@@ -10,8 +10,10 @@ mod output;
 mod player;
 pub mod queue;
 mod resample;
+mod silence;
 pub mod sound;
 mod source;
+mod spectrum;
 pub mod spotify_eq;
 mod timeline;
 
@@ -19,9 +21,10 @@ use crate::local_library::LocalLibrary;
 use dsp::Params;
 use dsp::eq::{self, Bands, Preset};
 use output::Shared;
-use player::{Command, EngineState, Events, Player};
+use player::{Command, EngineState, Events, InUse, Player};
 use queue::Repeat;
 use sound::SoundSettings;
+use std::path::Path;
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -29,12 +32,18 @@ use tauri::{AppHandle, Emitter, Manager, State};
 const MAX_QUEUE: usize = 10_000;
 const MAX_POSITION_MS: u64 = 24 * 60 * 60 * 1000;
 const MAX_CURVE_POINTS: usize = 512;
+const MIN_SPEED: f64 = 0.5;
+const MAX_SPEED: f64 = 2.0;
+/// Speeds snap to twentieths (0.05×).
+const SPEED_STEPS: f64 = 20.0;
+const BAD_SPEED: &str = "Speed must be between 0.5× and 2×.";
 const STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 const STOPPED: &str = "Carbon's audio engine stopped. Restart Carbon to play local files.";
 
 pub struct Engine {
     commands: Sender<Command>,
     sound: Mutex<SoundSettings>,
+    in_use: InUse,
 }
 
 struct AppEvents(AppHandle);
@@ -47,6 +56,10 @@ impl Events for AppEvents {
     fn error(&self, message: &str) {
         eprintln!("[engine] {message}");
         let _ = self.0.emit("engine-error", message);
+    }
+
+    fn spectrum(&self, bands: &[f32]) {
+        let _ = self.0.emit("engine-spectrum", bands);
     }
 }
 
@@ -66,14 +79,20 @@ impl Engine {
         }
         let shared = Arc::new(Shared::new(Params::new(sound.dsp(1.0))));
         let player = Player::new(AppEvents(app.clone()), shared, sound.clone(), analyze);
+        let in_use = player.in_use();
         if let Err(e) = std::thread::Builder::new().name("carbon-audio".into()).spawn(move || player.run(inbox)) {
             eprintln!("[engine] couldn't start: {e}");
         }
-        Engine { commands, sound: Mutex::new(sound) }
+        Engine { commands, sound: Mutex::new(sound), in_use }
     }
 
     fn send(&self, command: Command) -> Result<(), String> {
         self.commands.send(command).map_err(|_| STOPPED.to_string())
+    }
+
+    /// Whether `path` is open in the engine or is the song it is paused on.
+    pub fn is_using(&self, path: &Path) -> bool {
+        self.in_use.lock().is_ok_and(|paths| paths.iter().any(|p| p == path))
     }
 
     pub fn sound(&self) -> SoundSettings {
@@ -138,6 +157,29 @@ pub fn engine_repeat(engine: State<Engine>, repeat: Repeat) -> Result<(), String
     engine.send(Command::Repeat(repeat))
 }
 
+/// 0.5 to 2, snapped to the nearest 0.05.
+fn snap_speed(rate: f64) -> Result<f64, String> {
+    if !rate.is_finite() || !(MIN_SPEED..=MAX_SPEED).contains(&rate) {
+        return Err(BAD_SPEED.into());
+    }
+    Ok((rate * SPEED_STEPS).round() / SPEED_STEPS)
+}
+
+/// Playback speed for local files; pitch rises and falls with it. Not saved: every session
+/// starts at 1×. The engine's state carries the speed in force as `rate`.
+#[tauri::command]
+pub fn engine_speed(engine: State<Engine>, rate: f64) -> Result<(), String> {
+    engine.send(Command::Speed(snap_speed(rate)?))
+}
+
+/// Asks for "engine-spectrum" events (32 bands, 0 to 1, about 30 a second while a local file
+/// plays). A request lasts a few seconds, so a visualizer on screen keeps asking; `on: false`
+/// stops at once.
+#[tauri::command]
+pub fn engine_spectrum(engine: State<Engine>, on: bool) -> Result<(), String> {
+    engine.send(Command::Spectrum(on))
+}
+
 #[tauri::command]
 pub fn sound_get(engine: State<Engine>) -> SoundSettings {
     engine.sound()
@@ -184,4 +226,21 @@ pub fn delete_data(app: &AppHandle) -> Result<(), String> {
     engine.send(Command::Sound(Box::new(defaults.clone())))?;
     let _ = app.emit("sound-reset", &defaults);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn speed_snaps_to_steps_and_rejects_everything_else() {
+        assert_eq!(snap_speed(1.0), Ok(1.0));
+        assert_eq!(snap_speed(1.151), Ok(1.15));
+        assert_eq!(snap_speed(0.5), Ok(0.5));
+        assert_eq!(snap_speed(2.0), Ok(2.0));
+        assert_eq!(snap_speed(0.524), Ok(0.5));
+        for bad in [0.49, 2.01, 0.0, -1.0, f64::NAN, f64::INFINITY] {
+            assert!(snap_speed(bad).is_err(), "{bad}");
+        }
+    }
 }

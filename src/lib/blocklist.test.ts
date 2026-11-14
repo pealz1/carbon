@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { artistEntry, describeReason, sameItem, skipReason, songEntry } from "./blocklist";
+import { artistEntry, describeReason, needsFacts, parseVersions, ruleReason, sameItem, skippedVersion, skipReason, songEntry, versionNotes } from "./blocklist";
 import type { Blocked, BlocklistData } from "./native";
 import type { Track } from "./spotify/types";
 
@@ -15,6 +15,66 @@ const song = (uri: string, artists: { name: string; uri: string }[], explicit = 
 
 const blocked = (kind: Blocked["kind"], uri: string, name = "Name"): Blocked => ({ kind, uri, name, by: "" });
 const list = (items: Blocked[], skipExplicit = false): BlocklistData => ({ items, skipExplicit });
+
+describe("standing rules", () => {
+  it("skip by likes only when the like is known", () => {
+    expect(ruleReason({ ...list([]), skipByLike: "liked" }, { liked: true })?.name).toBe("already in your likes");
+    expect(ruleReason({ ...list([]), skipByLike: "liked" }, { liked: false })).toBeNull();
+    expect(ruleReason({ ...list([]), skipByLike: "unliked" }, { liked: false })?.name).toBe("not in your likes");
+    expect(ruleReason({ ...list([]), skipByLike: "unliked" }, {})).toBeNull();
+  });
+
+  it("skip a song the listener keeps skipping", () => {
+    const rules = { ...list([]), skipAfter: 3 };
+    expect(ruleReason(rules, { skips: 2 })).toBeNull();
+    expect(describeReason(ruleReason(rules, { skips: 3 })!)).toBe("you've skipped it 3 times");
+    expect(ruleReason({ ...list([]), skipAfter: 0 }, { skips: 50 })).toBeNull();
+  });
+
+  it("skip by an artist's genre, whole words only", () => {
+    const rules = { ...list([]), skipGenres: ["Country", "metal"] };
+    expect(ruleReason(rules, { genres: ["contemporary country"] })?.name).toBe("contemporary country is a genre you skip");
+    expect(ruleReason(rules, { genres: ["metalcore"] })).toBeNull();
+    expect(ruleReason(rules, { genres: [] })).toBeNull();
+  });
+
+  it("only look up what a rule that is on needs", () => {
+    expect(needsFacts(list([]))).toEqual({ liked: false, skips: false, genres: false });
+    expect(needsFacts({ ...list([]), skipByLike: "liked", skipAfter: 2, skipGenres: ["jazz"] })).toEqual({ liked: true, skips: true, genres: true });
+  });
+});
+
+describe("skipping versions", () => {
+  it("reads a title's version notes from its brackets and after its dash", () => {
+    expect(versionNotes("Song (Live at Wembley) [2011 Remaster]")).toContain("live at wembley");
+    expect(versionNotes("Song - Acoustic Version")).toContain("acoustic version");
+    expect(versionNotes("Live and Let Die").trim()).toBe("");
+  });
+
+  it("matches whole words in the notes only", () => {
+    expect(skippedVersion("Song (Live at Wembley)", ["remix", "live"])).toBe("live");
+    expect(skippedVersion("Song - Sped Up", ["sped up"])).toBe("sped up");
+    expect(skippedVersion("Live and Let Die", ["live"])).toBeNull();
+    expect(skippedVersion("Song (Alive Mix)", ["live"])).toBeNull();
+    expect(skippedVersion("Song (feat. C++ Crew)", ["c++"])).toBe("c++");
+    expect(skippedVersion("Song (Live)", [])).toBeNull();
+  });
+
+  it("skips a matching song, after blocks and explicit, and says why", () => {
+    const live = { ...song("spotify:track:t9", [{ name: "Lead", uri: "spotify:artist:a1" }]), name: "Anthem (Live)" };
+    const rules = { ...list([]), skipVersions: ["live"] };
+    expect(skipReason(live, rules)).toEqual({ kind: "version", name: "live" });
+    expect(describeReason({ kind: "version", name: "live" })).toBe("live version");
+    expect(skipReason(live, list([]))).toBeNull(); // lists saved before versions existed
+    expect(skipReason({ ...live, explicit: true }, { ...rules, skipExplicit: true })).toBe("explicit");
+  });
+
+  it("tidies what the listener types", () => {
+    expect(parseVersions(" Live, remix ,, LIVE , sped  up ")).toEqual(["live", "remix", "sped  up"]);
+    expect(parseVersions("")).toEqual([]);
+    expect(parseVersions(Array.from({ length: 40 }, (_, i) => `w${i}`).join(","))).toHaveLength(30);
+  });
+});
 
 describe("skipReason", () => {
   const spotify = song("spotify:track:t1", [

@@ -132,6 +132,7 @@ class SmartPlaylists {
       await this.refresh(p.id, { quiet: true, reuse: !first });
       first = false;
     }
+    if (!first) forgetLibrary(); // thousands of rows, only needed while the refreshes ran
   }
 }
 

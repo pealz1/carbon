@@ -3,8 +3,10 @@
   import { DEFAULT_VOLUME } from "$lib/config";
   import { formatDuration } from "$lib/format";
   import { hasPage } from "$lib/local/tracks";
+  import { onScreen } from "$lib/on-screen.svelte";
   import { pageHref } from "$lib/youtube/uri";
   import { player } from "$lib/player.svelte";
+  import Stars from "$lib/ratings/Stars.svelte";
   import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
@@ -20,8 +22,11 @@
   let position = $state(0);
   const onNowPlaying = $derived(page.url.pathname === "/now-playing");
   const remaining = $derived(Math.max(0, player.durationMs - position));
+  // A radio station is live: no position to show or seek, nothing before or after it.
+  const live = $derived(player.source === "radio");
 
   $effect(() => {
+    if (!onScreen.current) return; // nothing to draw in the tray
     const timer = setInterval(() => (position = player.position()), TICK_MS);
     return () => clearInterval(timer);
   });
@@ -45,7 +50,7 @@
           <span class="title">{player.track.name}</span>
         {/if}
         <span class="sub">
-          {#each player.track.artists as artist, i (artist.uri)}
+          {#each player.track.artists as artist, i (artist.uri || i)}
             {#if i > 0}{", "}{/if}{#if hasPage(artist)}<a href={pageHref("artist", artist)}>{artist.name}</a>{:else}{artist.name}{/if}
           {/each}
           {#if album?.name}<span class="dash">–</span>{album.name}{/if}
@@ -53,6 +58,7 @@
         <PlayingElsewhere />
       </div>
       <LikeButton uri={player.track.uri} label={player.track.name} size={17} />
+      <Stars track={player.track} bar />
     {:else}
       <span class="blank idle"><Logo size={24} /></span>
       <div class="meta">
@@ -63,26 +69,31 @@
   </div>
 
   <div class="center">
-    <div class="seek">
-      <span class="time tabular">{formatDuration(position)}</span>
-      <LoopZone max={player.durationMs}>
-        <Slider value={position} max={player.durationMs} step={1000} tone="accent" label="Seek" valuetext="{formatDuration(position)} of {formatDuration(player.durationMs)}" oncommit={player.seek} />
-      </LoopZone>
-      <span class="time tabular">−{formatDuration(remaining)}</span>
-    </div>
+    {#if live}
+      <p class="live" class:off={player.paused}><span class="dot" aria-hidden="true"></span>{player.paused ? "Radio paused" : "Live radio"}</p>
+    {:else}
+      <div class="seek">
+        <span class="time tabular">{formatDuration(position)}</span>
+        <LoopZone max={player.durationMs}>
+          <Slider value={position} max={player.durationMs} step={1000} tone="accent" label="Seek" valuetext="{formatDuration(position)} of {formatDuration(player.durationMs)}" oncommit={player.seek} />
+        </LoopZone>
+        <span class="time tabular">−{formatDuration(remaining)}</span>
+      </div>
+    {/if}
     <div class="transport">
-      <button class="ctl" class:on={player.shuffle} onclick={player.toggleShuffle} aria-label="Shuffle" aria-pressed={player.shuffle} title="Shuffle">
+      <button class="ctl" class:on={player.shuffle} onclick={player.toggleShuffle} disabled={live} aria-label="Shuffle" aria-pressed={player.shuffle} title="Shuffle">
         <Icon name="shuffle" size={18} />
       </button>
-      <button class="ctl" onclick={player.previous} aria-label="Previous" title="Previous"><Icon name="prev" size={20} /></button>
+      <button class="ctl" onclick={player.previous} disabled={live} aria-label="Previous" title="Previous"><Icon name="prev" size={20} /></button>
       <button class="ctl play" onclick={player.togglePlay} aria-label={player.paused ? "Play" : "Pause"}>
         <Icon name={player.paused ? "play" : "pause"} size={26} />
       </button>
-      <button class="ctl" onclick={player.next} aria-label="Next" title="Next"><Icon name="next" size={20} /></button>
+      <button class="ctl" onclick={player.next} disabled={live} aria-label="Next" title="Next"><Icon name="next" size={20} /></button>
       <button
         class="ctl repeat"
         class:on={player.repeat !== "off"}
         onclick={player.cycleRepeat}
+        disabled={live}
         aria-label="Repeat: {player.repeat}"
         aria-pressed={player.repeat !== "off"}
         title="Repeat"
@@ -111,6 +122,40 @@
 </section>
 
 <style>
+  /* Takes the seek row's place for a station, at the same height so the transport doesn't move. */
+  .live {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2);
+    margin: 0;
+    color: var(--chrome-text-muted);
+    font-size: var(--fs-micro);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .live .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+  }
+
+  .live.off .dot {
+    background: currentColor;
+    box-shadow: none;
+    opacity: 0.5;
+  }
+
+  .ctl:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
   .player {
     grid-area: player;
     display: grid;

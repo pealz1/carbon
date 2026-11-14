@@ -1,4 +1,5 @@
 // Menus for shows and episodes.
+import { bookmarkThisPageItem } from "$lib/bookmarks/bookmarks.svelte";
 import type { MenuEntry } from "$lib/menu.svelte";
 import { copyLink } from "$lib/menus";
 import { player } from "$lib/player.svelte";
@@ -17,6 +18,7 @@ export function showMenu(show: Pick<Show, "uri">): MenuEntry[] {
       action: () => saved.toggle(show.uri),
     },
     "separator",
+    bookmarkThisPageItem(),
     { label: "Copy Spotify link", icon: "link", action: () => copyLink(show.uri) },
   ];
 }

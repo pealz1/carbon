@@ -3,6 +3,8 @@
 // Spotify or Carbon playlists.
 import { goto } from "$app/navigation";
 import { blockArtistMenuItem, blockItems } from "$lib/blocklist.svelte";
+import { bookmarkPageItem, bookmarkSongItems } from "$lib/bookmarks/bookmarks.svelte";
+import { collectItem } from "$lib/collections/collections.svelte";
 import { describeError } from "$lib/errors";
 import type { MenuEntry, MenuItem } from "$lib/menu.svelte";
 import { player } from "$lib/player.svelte";
@@ -14,6 +16,8 @@ import * as api from "./api";
 import type { YtTrack } from "./mappers";
 import { youtube } from "./session.svelte";
 import { pageHref, ytmLink, type PageKind } from "./uri";
+
+const PAGE_NAMES: Record<PageKind, string> = { album: "Album", artist: "Artist", playlist: "Playlist" };
 
 async function copyLink(uri: string): Promise<void> {
   const link = ytmLink(uri);
@@ -108,6 +112,7 @@ export function ytTrackMenu(track: YtTrack, options: YtTrackMenuOptions = {}): M
     ...goToArtists(track.artists),
     "separator",
     ...blockItems(track),
+    ...bookmarkSongItems(track),
     copyItem(track.uri),
   ];
 }
@@ -140,6 +145,8 @@ export function ytCardMenu(card: Card): MenuEntry[] {
       : []),
     ...(card.kind === "artist" ? [blockArtistMenuItem({ id: card.id, name: card.title, uri: card.uri })] : []),
     ...(card.kind === "playlist" ? [exportItem({ kind: "youtube", id: card.id, name: card.title })] : []),
+    ...(card.kind === "album" ? [collectItem(card)] : []),
+    bookmarkPageItem({ path: pageHref(card.kind as PageKind, card), title: card.title, subtitle: PAGE_NAMES[card.kind as PageKind], image: card.image }),
     copyItem(card.uri),
   ];
 }

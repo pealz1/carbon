@@ -99,6 +99,11 @@ export class MixedPlayback {
     engine.volume(volume).catch((e) => console.error("[engine] volume", e));
   }
 
+  /** Playback speed for local files; the engine keeps it for the files that follow. */
+  setRate(rate: number): void {
+    engine.speed(rate).catch((e) => console.error("[engine] speed", e));
+  }
+
   /** Reorders around the current track and re-hands-off so the backend follows the new order. */
   async toggleShuffle(shuffle: boolean): Promise<void> {
     const queue = this.queue;
@@ -111,7 +116,7 @@ export class MixedPlayback {
       this.queue = this.#unshuffled ?? queue;
       this.#unshuffled = null;
     }
-    this.index = Math.max(0, this.queue.indexOf(current));
+    this.index = Math.max(0, this.queue.findIndex((t) => t.uri === current.uri)); // by uri: the restored list holds the same songs as different objects
     this.#host.setModes(shuffle, this.#host.repeat());
     await this.#goTo(this.index, this.#host.position());
   }
@@ -122,7 +127,10 @@ export class MixedPlayback {
 
   async setRepeat(repeat: Repeat): Promise<void> {
     this.#host.setModes(Boolean(this.#unshuffled), repeat);
-    if (this.backend === "local" && this.#run && this.queue) await engine.repeat(engineRepeat(repeat, this.#run, this.queue.length));
+    if (!this.#run || !this.queue) return;
+    if (this.backend === "local") await engine.repeat(engineRepeat(repeat, this.#run, this.queue.length));
+    // Spotify holds the run it was given; hand it over again so repeat-one loops this song and the others carry on.
+    else await this.#goTo(this.index, this.#host.position());
   }
 
   /** Puts `track` right after the current one. Resolves false, changing nothing, if Spotify refused it. */
@@ -214,8 +222,10 @@ export class MixedPlayback {
     const repeat = this.#host.repeat() === "off" ? "off" : "context"; // a skip moves on even on repeat-one
     const target = step(queue.length, this.index, repeat, forward);
     if (target !== null) return this.#goTo(target);
-    if (forward) return this.#finish();
-    return this.seek(0);
+    if (!forward) return this.seek(0);
+    // The queue is over: the audio stops too, or the next press of Play would restart it over the old song.
+    await this.#halt(this.backend).catch((e) => console.warn("[mixed] couldn't stop at the end of the queue", e));
+    this.#finish();
   }
 
   /** The active backend played through its run: move to whatever comes after it. */

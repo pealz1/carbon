@@ -3,6 +3,7 @@
   import {
     pageEntries,
     playlistEntries,
+    linkEntries,
     recentEntry,
     searchPageEntries,
     spotifyResultEntries,
@@ -74,7 +75,8 @@
   $effect(() => {
     const term = query.trim();
     const mine = ++generation;
-    if (term.length < MIN_SEARCH) {
+    // A pasted link is opened, not searched for.
+    if (term.length < MIN_SEARCH || linkEntries(term).length) {
       found = { term: "", spotify: [], youtube: [], errors: [] };
       searching = false;
       return;
@@ -107,6 +109,8 @@
         { id: "pages", label: "Go to", entries: [...searchPageEntries(""), ...pageEntries()] },
       ].filter((g) => g.entries.length);
     }
+    const link = linkEntries(term);
+    if (link.length) return [{ id: "link", label: "Link", entries: link }];
     const local = rank([...actionEntries(), ...pageEntries()], term, label, LIMIT.local);
     const playlists = rank(playlistEntries(), term, label, LIMIT.playlists);
     const live = found.term === term ? found : { spotify: [], youtube: [], errors: [] };

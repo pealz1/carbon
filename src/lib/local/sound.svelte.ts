@@ -1,7 +1,7 @@
 // Reactive sound settings (EQ, normalization, crossfade, output), saved by the Rust core.
 // Slider drags apply instantly here and reach the engine at most every SAVE_MS.
 import { describeError } from "$lib/errors";
-import { sound as api, type Preset, type SoundSettings } from "./api";
+import { engine, sound as api, type Preset, type SoundSettings } from "./api";
 import { listenToFrame, pushToFrame, type SpotifyEqStatus } from "./spotifyEq";
 
 const SAVE_MS = 60;
@@ -24,6 +24,10 @@ class Sound {
   error = $state<string | null>(null);
   spotifyEq = $state<SpotifyEqStatus>("off");
   bypassNote = $state<string | null>(null);
+  /** Speed of local files. Never saved: the engine starts every session at 1. */
+  rate = $state(1);
+  /** A local file is playing right now. */
+  playing = $state(false);
   #injected = false;
   #saveTimer: ReturnType<typeof setTimeout> | null = null;
   #curveRequest = 0;
@@ -40,6 +44,10 @@ class Sound {
       [this.value, this.presets, this.#injected] = await Promise.all([api.get(), api.presets(), api.spotifyEqInjected()]);
       this.bypassNote = takeNote();
       await api.onReset((defaults) => (this.value = defaults));
+      await engine.onState((state) => {
+        this.rate = state.rate ?? 1;
+        this.playing = state.status === "playing";
+      });
       this.#refreshEqStatus();
       if (this.#injected) {
         listenToFrame((state) => void this.#onFrame(state));
@@ -65,6 +73,12 @@ class Sound {
     this.#refreshEqStatus();
     void this.#refreshCurve();
     this.#scheduleSave();
+  }
+
+  /** Pitch follows speed. The engine answers with a state that carries the speed it settled on. */
+  setSpeed(rate: number): void {
+    this.rate = rate;
+    engine.speed(rate).catch((e) => this.#fail(e));
   }
 
   setBand(band: number, gain: number): void {

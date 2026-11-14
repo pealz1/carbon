@@ -1,0 +1,44 @@
+{
+  "name": "@getcarbon/mcp",
+  "version": "0.1.0",
+  "description": "A Model Context Protocol server that lets an AI assistant see and control what's playing in Carbon.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "carbon-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pealz1/carbon.git",
+    "directory": "packages/carbon-mcp"
+  },
+  "homepage": "https://getcarbon.cc",
+  "keywords": [
+    "carbon",
+    "mcp",
+    "model-context-protocol",
+    "spotify",
+    "remote"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@getcarbon/sdk": "file:../carbon-sdk",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0"
+  }
+}
