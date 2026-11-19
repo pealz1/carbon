@@ -1,3 +1,7 @@
+- Added automatic updates that install while Carbon rests in the tray
+- Added open at startup
+- Added a show/hide shortcut (Ctrl+Alt+C)
+- Added Mini player to the tray menu
 - Added Play next and Play later to song menus
 - Added Start radio for songs and artists
 - Added a warning before replacing a queue you built

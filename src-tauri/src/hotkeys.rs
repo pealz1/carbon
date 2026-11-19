@@ -1,5 +1,5 @@
-//! Global shortcuts: play/pause, next, previous, the mini player, the A-B loop and the sleep timer
-//! from any app. Off until the listener turns them on (Settings → Desktop); each can be changed or
+//! Global shortcuts: play/pause, next, previous, the mini player, the A-B loop, the sleep timer
+//! and showing or hiding Carbon, from any app. Off until the listener turns them on (Settings → Desktop); each can be changed or
 //! cleared. The loop and the sleep timer start unbound.
 use crate::media_controls::{emit, MediaCommand};
 use serde::{Deserialize, Serialize};
@@ -20,6 +20,7 @@ pub struct Hotkeys {
     pub mini_player: String,
     pub ab_loop: String,
     pub sleep_timer: String,
+    pub show_hide: String,
 }
 
 impl Default for Hotkeys {
@@ -32,6 +33,7 @@ impl Default for Hotkeys {
             mini_player: "Ctrl+Alt+M".into(),
             ab_loop: String::new(),
             sleep_timer: String::new(),
+            show_hide: "Ctrl+Alt+C".into(),
         }
     }
 }
@@ -45,6 +47,7 @@ pub enum Action {
     MiniPlayer,
     AbLoop,
     SleepTimer,
+    ShowHide,
 }
 
 const LONE_KEYS: [Code; 12] = [
@@ -74,7 +77,7 @@ pub fn parse(combo: &str) -> Result<Shortcut, String> {
 }
 
 impl Hotkeys {
-    fn bindings(&self) -> [(Action, &str); 6] {
+    fn bindings(&self) -> [(Action, &str); 7] {
         [
             (Action::PlayPause, &self.play_pause),
             (Action::Next, &self.next),
@@ -82,6 +85,7 @@ impl Hotkeys {
             (Action::MiniPlayer, &self.mini_player),
             (Action::AbLoop, &self.ab_loop),
             (Action::SleepTimer, &self.sleep_timer),
+            (Action::ShowHide, &self.show_hide),
         ]
     }
 
@@ -99,7 +103,7 @@ impl Hotkeys {
     /// binding in a saved file doesn't reset every other setting.
     pub fn sanitized(mut self) -> Self {
         let mut seen = HashSet::new();
-        let slots = [&mut self.play_pause, &mut self.next, &mut self.previous, &mut self.mini_player, &mut self.ab_loop, &mut self.sleep_timer];
+        let slots = [&mut self.play_pause, &mut self.next, &mut self.previous, &mut self.mini_player, &mut self.ab_loop, &mut self.sleep_timer, &mut self.show_hide];
         for slot in slots {
             if !slot.is_empty() && !parse(slot).is_ok_and(|s| seen.insert(s.id())) {
                 slot.clear();
@@ -174,6 +178,7 @@ pub fn handle(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
         Some(Action::PlayPause) => emit(app, MediaCommand::Toggle),
         Some(Action::Next) => emit(app, MediaCommand::Next),
         Some(Action::Previous) => emit(app, MediaCommand::Previous),
+        Some(Action::ShowHide) => crate::tray::toggle_main(app),
         // The rest live in the main window's interface.
         Some(action) => {
             if let Err(e) = app.emit_to("main", "global-hotkey", action) {
@@ -259,5 +264,16 @@ mod tests {
         assert!(parsed.enabled);
         assert_eq!(parsed.mini_player, "");
         assert_eq!(parsed.play_pause, "Ctrl+Alt+Space");
+    }
+
+    #[test]
+    fn older_files_get_the_show_hide_shortcut() {
+        let old: Hotkeys = serde_json::from_str(r#"{"enabled":true,"sleepTimer":"Ctrl+Alt+S"}"#).unwrap();
+        assert_eq!(old.show_hide, "Ctrl+Alt+C");
+        assert!(old.validate().is_ok());
+        let clash = Hotkeys { show_hide: "Ctrl+Alt+M".into(), ..Hotkeys::default() };
+        assert!(clash.clone().validate().is_err());
+        assert_eq!(clash.sanitized().show_hide, "");
+        assert_eq!(serde_json::to_string(&Action::ShowHide).unwrap(), r#""showHide""#);
     }
 }

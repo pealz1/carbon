@@ -68,6 +68,10 @@ export interface Settings {
   sponsorBlock: boolean;
   /** What's playing as JSON and an overlay page for OBS, for programs on this PC. */
   streamerWidgets: boolean;
+  /** Download new versions in the background and install them while Carbon is in the tray and quiet. */
+  autoUpdate: boolean;
+  /** Carbon has turned on "Open at startup" once; after that the Settings toggle owns it. */
+  startupSetUp: boolean;
   hotkeys: Hotkeys;
   /** Heavier text everywhere. */
   boldText: boolean;
@@ -113,6 +117,7 @@ export interface Hotkeys {
   miniPlayer: string;
   abLoop: string;
   sleepTimer: string;
+  showHide: string;
 }
 
 export type HotkeyAction = Exclude<keyof Hotkeys, "enabled">;

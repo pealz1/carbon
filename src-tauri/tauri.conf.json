@@ -67,7 +67,8 @@
       "nsis": {
         "installMode": "currentUser",
         "installerIcon": "icons/icon.ico",
-        "startMenuFolder": "Carbon"
+        "startMenuFolder": "Carbon",
+        "installerHooks": "./windows/hooks.nsh"
       }
     }
   },

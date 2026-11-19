@@ -10,6 +10,7 @@ export const HOTKEY_ACTIONS: { action: HotkeyAction; label: string }[] = [
   { action: "miniPlayer", label: "Mini player" },
   { action: "abLoop", label: "Loop part of the song" },
   { action: "sleepTimer", label: "Sleep timer (30 minutes, or off)" },
+  { action: "showHide", label: "Show or hide Carbon" },
 ];
 
 /** The suggested bindings (hotkeys.rs has the same); the loop and sleep timer start unbound. */
@@ -20,6 +21,7 @@ export const DEFAULT_BINDINGS: Omit<Hotkeys, "enabled"> = {
   miniPlayer: "Ctrl+Alt+M",
   abLoop: "",
   sleepTimer: "",
+  showHide: "Ctrl+Alt+C",
 };
 
 const MODIFIERS = ["Ctrl", "Alt", "Shift", "Super"];
