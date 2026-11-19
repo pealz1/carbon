@@ -14,9 +14,7 @@
   import { prefs } from "$lib/preferences.svelte";
   import { resource } from "$lib/resource.svelte";
   import { services } from "$lib/services.svelte";
-  import { sleepTimer } from "$lib/sleep-timer.svelte";
   import * as sp from "$lib/spotify/endpoints";
-  import { together } from "$lib/together/room.svelte";
   import { view } from "$lib/view.svelte";
   import { css } from "$lib/wallpaper";
   import { addToPlaylistItems as youtubePlaylistItems } from "$lib/youtube/menus";
@@ -186,7 +184,7 @@
       {#if upNext.length}<UpNext tracks={upNext} exact={exactQueue} />{/if}
       <LyricsControls bind:offset synced={lines.length > 0} />
       <VolumeControl />
-      <!-- Kept mounted while folded; "More" shows the on-dot for a running sleep timer or session in here. -->
+      <!-- Kept mounted while folded; anything on in here (sleep timer, session, device, speed) dots "More". -->
       <div id="cinema-extras" class="extras" class:open={extras} inert={!extras}>
         {#if player.track && !isLocalUri(player.track.uri) && player.source !== "radio"}
           <button class="ctl" onclick={addToPlaylist} aria-label="Add {player.track.name} to a playlist" title="Add to playlist"><Icon name="listAdd" size={18} /></button>
@@ -198,7 +196,7 @@
         <PlaybackTools />
         <button class="ctl" onclick={toMiniPlayer} aria-label="Mini player" title="Mini player"><Icon name="pip" size={18} /></button>
       </div>
-      <button class="ctl more" class:open={extras} class:on={!extras && (sleepTimer.current !== null || together.role !== null)} onclick={() => (extras = !extras)} aria-expanded={extras} aria-controls="cinema-extras" aria-label="More" title="More">
+      <button class="ctl more" class:open={extras} onclick={() => (extras = !extras)} aria-expanded={extras} aria-controls="cinema-extras" aria-label="More" title="More">
         <Icon name="more" size={18} />
       </button>
       <span class="rule" aria-hidden="true"></span>
@@ -473,7 +471,8 @@
     color: var(--text);
   }
 
-  .bar :global(.ctl.on)::after {
+  .bar :global(.ctl.on)::after,
+  .tools:has(.extras:not(.open) :global(.ctl.on)) .more::after {
     content: "";
     position: absolute;
     bottom: 3px;
