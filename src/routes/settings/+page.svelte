@@ -5,6 +5,8 @@
   import { languages,activeLocale,selectLocale,type Locale } from "$lib/i18n/locale.svelte";
   import { onMount } from "svelte";
   import { account } from "$lib/account.svelte";
+  import AccessibilityPanel from "$lib/components/AccessibilityPanel.svelte";
+  import GeneralPanel from "$lib/components/GeneralPanel.svelte";
   import CinemaSettings from "$lib/components/CinemaSettings.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import DesktopPanel from "$lib/components/DesktopPanel.svelte";
@@ -183,6 +185,8 @@
       {/if}
     </section>
 
+    <GeneralPanel />
+
     <section class="panel plate">
       <h2>Appearance</h2>
       <label>Language <select class="input" value={activeLocale()} onchange={e=>selectLocale(e.currentTarget.value as Locale)}>{#each Object.entries(languages) as [code,name]}<option value={code}>{name}</option>{/each}</select></label>
@@ -222,6 +226,8 @@
         />
       {/each}
     </section>
+
+    <AccessibilityPanel />
 
     <LyricsSettings settings={s} />
     <CinemaSettings />

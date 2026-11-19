@@ -77,9 +77,11 @@ fn playback_update(
     app.state::<cli::StateFile>().update(info.as_ref());
     #[cfg(target_os="macos")]
     touchbar::update(info.as_ref());
-    discord.send(discord::Msg::Playback(info.clone()));
+    // A private session shares nothing: Discord clears and the scrobblers hear "stopped".
+    let shared = info.filter(|_| !settings::current(&app).private_session);
+    discord.send(discord::Msg::Playback(shared.clone()));
     // A radio station isn't a song: nothing to scrobble, and no "now playing" in its name.
-    let song = info.filter(|i| i.source != Some(playback::Source::Radio));
+    let song = shared.filter(|i| i.source != Some(playback::Source::Radio));
     app.state::<Listenbrainz>().send(listenbrainz::Msg::Playback(song.clone()));
     lastfm.send(lastfm::Msg::Playback(song));
     Ok(())
@@ -88,7 +90,7 @@ fn playback_update(
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let handle = app.handle().clone();
     let prefs = settings::load(&handle);
-    app.manage(Discord::spawn(prefs.discord_presence,discord::Options::from(&prefs)));
+    app.manage(Discord::spawn(prefs.discord_presence && !prefs.private_session,discord::Options::from(&prefs)));
     app.manage(Lastfm::spawn(prefs.lastfm_scrobbling));
     app.manage(Listenbrainz::spawn(prefs.listenbrainz_scrobbling, listenbrainz::queue_path(&handle)));
     let remote = remote::Remote::new(&handle);

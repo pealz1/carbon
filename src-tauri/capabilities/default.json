@@ -20,6 +20,8 @@
     "core:window:allow-maximize",
     "core:window:allow-unmaximize",
     "core:window:allow-unminimize",
+    "core:window:allow-destroy",
+    "core:webview:allow-set-webview-zoom",
     "core:window:allow-show",
     "core:window:allow-hide",
     "autostart:default",

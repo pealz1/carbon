@@ -1,10 +1,8 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { isMac } from "$lib/platform";
-  import { dialogs } from "$lib/dialogs.svelte";
-  import { menu, type MenuEntry } from "$lib/menu.svelte";
-  import { popouts } from "$lib/popout/host.svelte";
+  import { appMenu } from "$lib/app-menu";
+  import { menu } from "$lib/menu.svelte";
   import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
   import Logo from "./Logo.svelte";
@@ -20,17 +18,6 @@
       (e) => console.warn("[titlebar] couldn't read the window state", e),
     );
   $effect(() => void syncMaximized());
-
-  const moreItems = (): MenuEntry[] => [
-    { label: "Now playing", icon: "album", action: () => goto("/now-playing") },
-    { label: "Cinema mode", icon: "screen", action: view.enterCinema },
-    { label: popouts.miniShown ? "Close mini player" : "Mini player", icon: "collapse", action: popouts.toggleMini },
-    { label: popouts.lyrics ? "Close lyrics window" : "Lyrics in a window", icon: "lyrics", action: popouts.toggleLyrics },
-    { label: view.fullscreen ? "Leave full screen" : "Full screen", icon: view.fullscreen ? "collapse" : "expand", action: view.toggleFullscreen },
-    "separator",
-    { label: "Keyboard shortcuts", icon: "keyboard", action: () => (dialogs.shortcuts = true) },
-    { label: "Settings", icon: "settings", action: () => goto("/settings") },
-  ];
 </script>
 
 <svelte:window onresize={syncMaximized} />
@@ -55,7 +42,7 @@
       <button class="tb" class:on={view.queue} onclick={view.toggleQueue} aria-pressed={view.queue} aria-label="Queue" title="Queue">
         <Icon name="queue" size={18} />
       </button>
-      <button class="tb" onclick={(e) => menu.open(e, moreItems())} aria-label="More" aria-haspopup="menu" title="More"><Icon name="more" size={18} /></button>
+      <button class="tb" onclick={(e) => menu.open(e, appMenu())} aria-label="More" aria-haspopup="menu" title="More"><Icon name="more" size={18} /></button>
     </div>
     {#if !isMac}<span class="rule" aria-hidden="true"></span>{/if}
   {/if}

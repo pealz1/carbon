@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { untrack } from "svelte";
 import { describeError } from "$lib/errors";
 import { player } from "$lib/player.svelte";
+import { prefs } from "$lib/preferences.svelte";
 import { toasts } from "$lib/toast.svelte";
 import type { Entry } from "./entries";
 import { advance, begin, count, due, waitFor, type Listening } from "./rule";
@@ -71,7 +72,7 @@ class History {
 
   #record(at: number): void {
     const playing = this.#now;
-    if (!playing || this.paused) return;
+    if (!playing || this.paused || prefs.value?.privateSession) return;
     const entry: Entry = { at, source: playing.source, ...playing.song };
     invoke<boolean>("history_add", { entry }).then(
       (saved) => void (saved && this.#show(entry)),
