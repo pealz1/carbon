@@ -59,12 +59,15 @@ fn to_command(event: MediaControlEvent) -> Option<MediaCommand> {
 }
 
 impl MediaState {
-    pub fn attach(&self, app: &AppHandle, window: &WebviewWindow) {
-        let hwnd = match window.hwnd() {
-            Ok(hwnd) => hwnd.0,
+    pub fn attach(&self, app: &AppHandle, _window: &WebviewWindow) {
+        #[cfg(windows)]
+        let hwnd = match _window.hwnd() {
+            Ok(hwnd) => Some(hwnd.0),
             Err(e) => return eprintln!("[media] no window handle: {e}"),
         };
-        let config = PlatformConfig { display_name: "Carbon", dbus_name: "carbon", hwnd: Some(hwnd) };
+        #[cfg(not(windows))]
+        let hwnd = None;
+        let config = PlatformConfig { display_name: "Carbon", dbus_name: "carbon", hwnd };
         let mut controls = match MediaControls::new(config) {
             Ok(c) => c,
             Err(e) => return eprintln!("[media] media controls unavailable: {e:?}"),
