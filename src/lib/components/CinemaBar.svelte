@@ -5,7 +5,6 @@
   import { hold } from "$lib/hold";
   import { hasPage, isLocalUri } from "$lib/local/tracks";
   import { onScreen } from "$lib/on-screen.svelte";
-  import { streamName } from "$lib/stream/uri";
   import type { LyricLine } from "$lib/lrc";
   import { menu } from "$lib/menu.svelte";
   import { addToPlaylistItems, trackMenu } from "$lib/menus";
@@ -15,7 +14,9 @@
   import { prefs } from "$lib/preferences.svelte";
   import { resource } from "$lib/resource.svelte";
   import { services } from "$lib/services.svelte";
+  import { sleepTimer } from "$lib/sleep-timer.svelte";
   import * as sp from "$lib/spotify/endpoints";
+  import { together } from "$lib/together/room.svelte";
   import { view } from "$lib/view.svelte";
   import { css } from "$lib/wallpaper";
   import { addToPlaylistItems as youtubePlaylistItems } from "$lib/youtube/menus";
@@ -30,8 +31,9 @@
   import UpNext from "./UpNext.svelte";
   import VolumeControl from "./VolumeControl.svelte";
 
-  // Cinema's floating bar: the song (with its source), progress that knows the lyrics, transport,
-  // and the room's controls. It steps aside when idle; `onhold` keeps it up while it's in use.
+  // Cinema's floating bar: the song, progress that knows the lyrics, transport, and the room's
+  // controls, the less used of them folded behind "More". It steps aside when idle; `onhold` keeps
+  // it up while it's in use.
   let {
     hidden,
     lines,
@@ -49,12 +51,20 @@
   } = $props();
 
   const TICK_MS = 250;
-  const SOURCES = { spotify: "Spotify", youtube: "YouTube Music", local: "On this PC", radio: "Radio", server: "Your server" } as const;
-  const OPEN_POPOVER = "[aria-expanded='true']";
+  // "More" only reveals buttons in the bar, so it alone doesn't hold the bar up the way a popover does.
+  const OPEN_POPOVER = "[aria-expanded='true']:not(.more)";
+  /** The time after the scrubber: what's left of the song, then when it ends, then when the queue does. */
+  const CLOCKS = ["left", "song", "queue"] as const;
   let bar = $state<HTMLElement>();
   let position = $state(player.position());
   let now = $state(Date.now());
-  let queueMode = $state(false);
+  let clock = $state<(typeof CLOCKS)[number]>("left");
+  let extras = $state(false);
+
+  // Fold the extras away whenever the bar steps aside, so it comes back tidy.
+  $effect(() => {
+    if (hidden) extras = false;
+  });
 
   $effect(() => {
     if (!onScreen.current) return;
@@ -77,9 +87,15 @@
   });
   const upNext = $derived(player.upNext ?? spotifyQueue.data ?? []);
   const exactQueue = $derived(player.upNext !== null && upNext.length > 0);
-  const showQueueEnd = $derived(queueMode && exactQueue);
+  const showQueueEnd = $derived(clock === "queue" && exactQueue);
+  const showLeft = $derived(clock === "left" || (clock === "queue" && !exactQueue) || player.durationMs <= 0);
   const ends = $derived(showQueueEnd ? queueEndsAt(now, position, player.durationMs, upNext) : endsAt(now, position, player.durationMs));
   const remaining = $derived(Math.max(0, player.durationMs - position));
+
+  function nextClock() {
+    const next = CLOCKS[(CLOCKS.indexOf(clock) + 1) % CLOCKS.length];
+    clock = next === "queue" && !exactQueue ? "left" : next;
+  }
 
   const tones = artTones(() => player.artwork);
   const tint = $derived(tones.current ? `--tint-a: ${css(tones.current.wash, 0.4)}; --tint-b: ${css(tones.current.wash2, 0.26)}` : "");
@@ -117,19 +133,14 @@
   <div class="seek">
     <span class="time tabular">{formatDuration(position)}</span>
     <LyricScrubber {position} durationMs={player.durationMs} {lines} {shiftMs} onseek={player.seek} />
-    <span class="time tabular">−{formatDuration(remaining)}</span>
-    {#if player.track && player.durationMs > 0}
-      <button
-        class="ends tabular"
-        onclick={() => (queueMode = !queueMode)}
-        disabled={!exactQueue}
-        aria-pressed={showQueueEnd}
-        title={exactQueue ? (showQueueEnd ? "Show when this song ends" : "Show when the queue ends") : undefined}
-      >
-        <Icon name="clock" size={14} />{showQueueEnd ? "Queue ends" : "Ends"}
-        {clockTime(ends)}
-      </button>
-    {/if}
+    <button
+      class="time clock tabular"
+      onclick={nextClock}
+      disabled={!player.track || player.durationMs <= 0}
+      title={clock === "left" ? "Show when this song ends" : clock === "song" && exactQueue ? "Show when the queue ends" : undefined}
+    >
+      {#if showLeft}−{formatDuration(remaining)}{:else}{showQueueEnd ? "Queue ends" : "Ends"} {clockTime(ends)}{/if}
+    </button>
   </div>
 
   <div class="row">
@@ -143,21 +154,14 @@
           <span class="thumb blank"><Icon name="note" size={20} /></span>
         {/if}
         <div class="meta">
-          <span class="line">
-            {#if hasPage(album)}<a class="title" href={pageHref("album", album!)}>{track.name}</a>{:else}<span class="title">{track.name}</span>{/if}
-            <span class="badge {player.source}">{player.source === "server" ? streamName(player.track?.uri) : SOURCES[player.source]}</span>
-          </span>
+          {#if hasPage(album)}<a class="title" href={pageHref("album", album!)}>{track.name}</a>{:else}<span class="title">{track.name}</span>{/if}
           <span class="sub">
             {#each track.artists as artist, i (artist.uri + i)}
               {#if i > 0}{", "}{/if}{#if hasPage(artist)}<a href={pageHref("artist", artist)}>{artist.name}</a>{:else}{artist.name}{/if}
             {/each}
-            {#if album?.name}<span class="dash">—</span>{#if hasPage(album)}<a href={pageHref("album", album!)}>{album.name}</a>{:else}{album.name}{/if}{/if}
           </span>
         </div>
         <LikeButton uri={track.uri} label={track.name} size={18} />
-        {#if !isLocalUri(track.uri) && player.source !== "radio"}
-          <button class="ctl" onclick={addToPlaylist} aria-label="Add {track.name} to a playlist" title="Add to playlist"><Icon name="listAdd" size={18} /></button>
-        {/if}
       {:else}
         <span class="sub">Nothing playing</span>
       {/if}
@@ -168,7 +172,7 @@
         <Icon name="shuffle" size={18} />
       </button>
       <button class="ctl" onclick={player.previous} aria-label="Previous" title="Previous"><Icon name="prev" size={20} /></button>
-      <button class="play" onclick={player.togglePlay} aria-label={player.paused ? "Play" : "Pause"} title={player.paused ? "Play" : "Pause"}>
+      <button class="play" class:playing={!player.paused} onclick={player.togglePlay} aria-label={player.paused ? "Play" : "Pause"} title={player.paused ? "Play" : "Pause"}>
         <Icon name={player.paused ? "play" : "pause"} size={22} />
       </button>
       <button class="ctl" onclick={player.next} aria-label="Next" title="Next"><Icon name="next" size={20} /></button>
@@ -181,13 +185,22 @@
     <div class="tools">
       {#if upNext.length}<UpNext tracks={upNext} exact={exactQueue} />{/if}
       <LyricsControls bind:offset synced={lines.length > 0} />
-      <BarPopover label="Layout">
-        {#snippet button()}<Icon name="layouts" size={18} />{/snippet}
-        <div class="layouts"><CinemaLayouts value={prefs.value?.cinemaLayout ?? "split"} onpick={(cinemaLayout: CinemaLayout) => prefs.update({ cinemaLayout })} /></div>
-      </BarPopover>
-      <PlaybackTools />
-      <button class="ctl" onclick={toMiniPlayer} aria-label="Mini player" title="Mini player"><Icon name="pip" size={18} /></button>
       <VolumeControl />
+      <!-- Kept mounted while folded; "More" shows the on-dot for a running sleep timer or session in here. -->
+      <div id="cinema-extras" class="extras" class:open={extras} inert={!extras}>
+        {#if player.track && !isLocalUri(player.track.uri) && player.source !== "radio"}
+          <button class="ctl" onclick={addToPlaylist} aria-label="Add {player.track.name} to a playlist" title="Add to playlist"><Icon name="listAdd" size={18} /></button>
+        {/if}
+        <BarPopover label="Layout">
+          {#snippet button()}<Icon name="layouts" size={18} />{/snippet}
+          <div class="layouts"><CinemaLayouts value={prefs.value?.cinemaLayout ?? "split"} onpick={(cinemaLayout: CinemaLayout) => prefs.update({ cinemaLayout })} /></div>
+        </BarPopover>
+        <PlaybackTools />
+        <button class="ctl" onclick={toMiniPlayer} aria-label="Mini player" title="Mini player"><Icon name="pip" size={18} /></button>
+      </div>
+      <button class="ctl more" class:open={extras} class:on={!extras && (sleepTimer.current !== null || together.role !== null)} onclick={() => (extras = !extras)} aria-expanded={extras} aria-controls="cinema-extras" aria-label="More" title="More">
+        <Icon name="more" size={18} />
+      </button>
       <span class="rule" aria-hidden="true"></span>
       <button class="ctl full" onclick={view.toggleFullscreen} aria-label={view.fullscreen ? "Leave full screen" : "Full screen"} title="Full screen (F11)">
         <Icon name={view.fullscreen ? "collapse" : "expand"} size={18} />
@@ -210,7 +223,7 @@
     bottom: var(--sp-4);
     z-index: 2;
     isolation: isolate;
-    width: min(1360px, calc(100% - 2 * var(--sp-5)));
+    width: min(1280px, calc(100% - 2 * var(--sp-5)));
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -235,9 +248,21 @@
     pointer-events: none;
   }
 
+  /* The artwork's colour pooling under the bar, as if the glass were lit from the song. */
+  .bar::after {
+    content: "";
+    position: absolute;
+    inset: 40% 12% -28px;
+    z-index: -2;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--tint-a), transparent);
+    opacity: 0.9;
+    pointer-events: none;
+  }
+
   .bar.hidden {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(24px) scale(0.98);
     pointer-events: none;
     transition-duration: var(--dur-slow);
   }
@@ -252,42 +277,38 @@
 
   .time {
     min-width: 40px;
-    font-size: var(--fs-caption);
+    font-size: var(--fs-micro);
+    font-weight: 600;
+    letter-spacing: 0.02em;
     color: var(--text-muted);
+    opacity: 0.75;
   }
 
   .time:first-child {
     text-align: right;
   }
 
-  .ends {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 24px;
-    padding: 0 var(--sp-2);
+  /* Time left; a click turns it into when the song, then the queue, ends. */
+  .clock {
+    height: 22px;
+    padding: 0 6px;
     border-radius: var(--r-pill);
-    font-size: var(--fs-caption);
-    font-weight: 600;
-    color: var(--text-muted);
+    text-align: left;
     white-space: nowrap;
     transition:
-      background var(--dur-fast),
       color var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      opacity var(--dur-fast),
+      background var(--dur-fast);
   }
 
-  .ends:hover:not(:disabled) {
+  .clock:hover:not(:disabled) {
     color: var(--text);
+    opacity: 1;
     background: var(--glass-hover);
   }
 
-  .ends:disabled {
+  .clock:disabled {
     cursor: default;
-  }
-
-  .ends[aria-pressed="true"] {
-    color: var(--accent);
   }
 
   .row {
@@ -315,7 +336,14 @@
     height: 48px;
     border-radius: var(--r-art-sm);
     object-fit: cover;
-    box-shadow: 0 6px 18px -8px rgb(0 0 0 / 0.8);
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.08),
+      0 8px 22px -8px rgb(0 0 0 / 0.85);
+    transition: transform var(--dur-med) var(--ease-spring);
+  }
+
+  .now:hover .thumb {
+    transform: scale(calc(2 - var(--press)));
   }
 
   .blank {
@@ -328,14 +356,7 @@
   .meta {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  .line {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
+    gap: 1px;
     min-width: 0;
   }
 
@@ -349,26 +370,12 @@
   .title {
     font-size: var(--fs-lead);
     font-weight: 650;
+    letter-spacing: -0.01em;
   }
 
   .sub {
     font-size: var(--fs-small);
     color: var(--text-muted);
-  }
-
-  .dash {
-    margin: 0 0.4em;
-  }
-
-  .badge {
-    flex: none;
-    padding: 1px 7px;
-    border-radius: var(--r-pill);
-    font-size: var(--fs-micro);
-    font-weight: 650;
-    color: var(--text-muted);
-    box-shadow: inset 0 0 0 1px var(--glass-edge-top);
-    white-space: nowrap;
   }
 
   .transport {
@@ -385,6 +392,48 @@
     min-width: 0;
   }
 
+  /* Folded away until "More" opens them; they then slide out of it one after another. */
+  .extras {
+    display: none;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .extras.open {
+    display: flex;
+  }
+
+  .extras.open > :global(*) {
+    animation: unfold var(--dur-med) var(--ease-spring) backwards;
+  }
+
+  .extras.open > :global(*:nth-last-child(2)) {
+    animation-delay: 30ms;
+  }
+
+  .extras.open > :global(*:nth-last-child(3)) {
+    animation-delay: 60ms;
+  }
+
+  .extras.open > :global(*:nth-last-child(n + 4)) {
+    animation-delay: 90ms;
+  }
+
+  @keyframes unfold {
+    from {
+      opacity: 0;
+      transform: translateX(14px) scale(0.85);
+    }
+  }
+
+  .more :global(svg) {
+    transition: transform var(--dur-med) var(--ease-spring);
+  }
+
+  .more.open :global(svg) {
+    transform: rotate(90deg);
+  }
+
   /* Popover panels size to their content; four 84 px layout tiles. */
   .layouts {
     width: 360px;
@@ -392,9 +441,9 @@
 
   .rule {
     width: 1px;
-    height: 20px;
+    height: 18px;
     margin: 0 var(--sp-2);
-    background: var(--glass-edge-top);
+    background: linear-gradient(transparent, var(--glass-edge-top), transparent);
   }
 
   /* Shared by the bar's own buttons and the ones its popovers and volume put in it. */
@@ -419,32 +468,51 @@
     background: var(--glass-hover);
   }
 
+  /* On (shuffle, repeat, a running sleep timer): bright, with a small dot beneath, not a colour. */
   .bar :global(.ctl.on) {
-    color: var(--accent);
+    color: var(--text);
   }
 
-  .bar :global(.chip) {
-    height: 40px;
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-    margin-right: var(--sp-2);
-    padding: 0 var(--sp-3) 0 var(--sp-3);
+  .bar :global(.ctl.on)::after {
+    content: "";
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
     border-radius: var(--r-pill);
-    background: var(--glass);
-    box-shadow: inset 0 0 0 1px var(--glass-edge);
-    color: var(--text);
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  /* Up next is the queue icon alone here; its popover names the songs. */
+  .bar :global(.chip) {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border-radius: var(--r-pill);
+    color: var(--text-muted);
     transition:
+      color var(--dur-fast),
       background var(--dur-fast),
       transform var(--dur-med) var(--ease-spring);
   }
 
+  .bar :global(.chip .chip-text) {
+    display: none;
+  }
+
   .bar :global(.chip:hover),
   .bar :global(.chip.open) {
-    background: var(--glass-active);
+    color: var(--text);
+    background: var(--glass-hover);
   }
 
   .play {
+    position: relative;
     width: 48px;
     height: 48px;
     display: grid;
@@ -454,12 +522,33 @@
     color: var(--ink);
     box-shadow: 0 8px 22px -10px rgb(0 0 0 / 0.9);
     transition:
-      background var(--dur-fast),
+      box-shadow var(--dur-med),
       transform var(--dur-med) var(--ease-spring);
   }
 
-  .play:hover {
-    background: var(--accent);
+  /* A soft light around the button while music plays. */
+  .play::before {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    z-index: -1;
+    border-radius: inherit;
+    background: radial-gradient(closest-side, rgb(255 255 255 / 0.28), transparent);
+    opacity: 0;
+    transition: opacity var(--dur-slow) var(--ease-out);
+    pointer-events: none;
+  }
+
+  .play.playing::before {
+    opacity: 1;
+  }
+
+  /* Grows as much as a press shrinks (none with motion off); the app's press feedback takes over on click. */
+  .play:hover:not(:active) {
+    transform: scale(calc(2 - var(--press)));
+    box-shadow:
+      0 0 0 4px rgb(255 255 255 / 0.12),
+      0 10px 26px -10px rgb(0 0 0 / 0.9);
   }
 
   .one {
@@ -470,16 +559,8 @@
     font-weight: 800;
   }
 
-  /* Narrower windows (cinema fills the window, so its width sets the bar's) shed the extras in
-     steps, so the room's controls never run into the transport: first the chip's song name... */
-  @media (max-width: 1440px) {
-    .bar :global(.chip .chip-text) {
-      display: none;
-    }
-  }
-
-  /* ...then the source badge, full screen (F11 still works) and the centring of the transport,
-     so the song's name gives up room instead. */
+  /* Narrower windows (cinema fills the window, so its width sets the bar's) give up full screen
+     (F11 still works) and the centring of the transport, so the song's name gives up room instead. */
   @media (max-width: 1240px) {
     .bar {
       padding-inline: var(--sp-4);
@@ -489,15 +570,8 @@
       grid-template-columns: minmax(0, 1fr) auto auto;
     }
 
-    .badge,
     .rule,
     .full {
-      display: none;
-    }
-  }
-
-  @media (max-width: 1040px) {
-    .ends {
       display: none;
     }
   }
