@@ -164,7 +164,6 @@ pub fn run() {
                 .with_state_flags(StateFlags::POSITION | StateFlags::SIZE)
                 .build(),
         )
-        .register_uri_scheme_protocol("carbon-widget", |_,request| provider_widget::response(&request))
         .setup(setup)
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. } if window.label() == "main" && settings::current(window.app_handle()).close_to_tray => {
@@ -200,6 +199,7 @@ pub fn run() {
             providers::provider_connections,
             providers::provider_credentials,
             providers::provider_open,
+            provider_widget::provider_widget_url,
             offline::offline_storage, offline::offline_available, offline::offline_save, offline::offline_remove,
             providers::soundcloud_client_id,
             providers::soundcloud_authorize,

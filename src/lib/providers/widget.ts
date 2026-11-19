@@ -1,7 +1,8 @@
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import type { Collection } from "./catalog";
 
-export function soundcloudWidget(address: string, signal?: AbortSignal): Promise<Collection> {
+export async function soundcloudWidget(address: string, signal?: AbortSignal): Promise<Collection> {
+  const src=await invoke<string>("provider_widget_url");
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(signal.reason);
@@ -45,8 +46,8 @@ export function soundcloudWidget(address: string, signal?: AbortSignal): Promise
       resolve({ title: slug.replaceAll("-", " "), songs });
     };
     frame.onload = () =>
-      frame.contentWindow?.postMessage({ type: "read-public-soundcloud", url: address }, "*", [channel.port2]);
-    frame.src = convertFileSrc("soundcloud.html", "carbon-widget");
+      frame.contentWindow?.postMessage({ type: "read-public-soundcloud", url: address }, new URL(src).origin, [channel.port2]);
+    frame.src = src;
     (document.getElementById("provider-import-preview") || document.body).append(frame);
   });
 }
