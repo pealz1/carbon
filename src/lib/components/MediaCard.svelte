@@ -99,6 +99,15 @@
     background: var(--glass-active);
   }
 
+  /* Settings → Accessibility → Card hover motion: the whole tile swells, then presses in. */
+  :global([data-card-hover]) .card:hover {
+    transform: scale(1.03);
+  }
+
+  :global([data-card-hover]) .card:active:not(:has(.act:active)) {
+    transform: scale(var(--press));
+  }
+
   .art {
     aspect-ratio: 1;
   }

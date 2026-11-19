@@ -106,6 +106,7 @@ describe("trackMenu", () => {
   it("offers queue, playlists you can edit, like, navigation and link", async () => {
     const menu = trackMenu(track);
     expect(items(menu).map((i) => i.label)).toEqual([
+      "Play",
       "Add to queue",
       "Add to playlist",
       "Save to Liked Songs",
@@ -114,7 +115,7 @@ describe("trackMenu", () => {
       "Block song",
       "Block artist",
       "Bookmark song",
-      "Copy Spotify link",
+      "Share",
     ]);
     const targets = items(find(menu, "Add to playlist")!.items!).map((i) => i.label);
     expect(targets).toEqual(["New playlist…", "List mine", "List shared"]);
@@ -173,7 +174,7 @@ describe("playlistMenu", () => {
       "Tags…",
       "Playlist tools",
       "Bookmark",
-      "Copy Spotify link",
+      "Share",
       "Delete…",
     ]);
     expect(find(menu, "Playlist tools")!.items!.map((i) => (i === "separator" ? i : i.label))).toEqual(["Sort…", "Find duplicates…", "Save a copy…", "Combine with…", "Export…"]);
@@ -207,7 +208,7 @@ describe("playlistMenu", () => {
     expect(find(playlistMenu(shared), "Playlist tools")!.items).toBeDefined();
     expect(find(playlistMenu(shared), "Edit details…")).toBeUndefined();
     const outside = playlistMenu(playlist("elsewhere", "friend"));
-    expect(items(outside).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Save to library", "Bookmark", "Copy Spotify link"]);
+    expect(items(outside).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Save to library", "Bookmark", "Share"]);
   });
 });
 
@@ -237,7 +238,7 @@ describe("album, artist and folder menus", () => {
     const { albumMenu, artistMenu } = await import("./menus");
     const album = { kind: "album" as const, id: "al1", uri: "spotify:album:al1", title: "OK", subtitle: "", image: null, playUri: "spotify:album:al1" };
     const menu = albumMenu(album, [track]);
-    expect(items(menu).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Add to queue", "Add to playlist", "Save to library", "Add to collection", "Bookmark", "Export…", "Copy Spotify link"]);
+    expect(items(menu).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Add to queue", "Add to playlist", "Save to library", "Add to collection", "Bookmark", "Go to artist", "Export…", "Share"]);
     find(menu, "Play")!.action!();
     expect(player.playContext).toHaveBeenCalledWith("spotify:album:al1");
     find(menu, "Shuffle play")!.action!();

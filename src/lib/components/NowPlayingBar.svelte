@@ -15,6 +15,7 @@
   import PlaybackTools from "./PlaybackTools.svelte";
   import PlayingElsewhere from "./PlayingElsewhere.svelte";
   import Slider from "./Slider.svelte";
+  import { wheelVolume } from "$lib/volume-wheel";
 
   // The player bar: part of the chrome, no card. Track on the left, progress over transport in
   // the middle, the room's controls on the right.
@@ -112,10 +113,10 @@
     <button class="ctl" onclick={view.enterCinema} aria-label="Cinema mode" title="Cinema mode (Ctrl+Shift+C)">
       <Icon name="screen" size={18} />
     </button>
-    <button class="ctl" onclick={() => player.setVolume(player.volume > 0 ? 0 : DEFAULT_VOLUME)} aria-label={player.volume > 0 ? "Mute" : "Unmute"} title={player.volume > 0 ? "Mute" : "Unmute"}>
+    <button class="ctl" onwheel={wheelVolume} onclick={() => player.setVolume(player.volume > 0 ? 0 : DEFAULT_VOLUME)} aria-label={player.volume > 0 ? "Mute" : "Unmute"} title={player.volume > 0 ? "Mute" : "Unmute"}>
       <Icon name={player.volume > 0 ? "volume" : "mute"} size={18} />
     </button>
-    <div class="volume">
+    <div class="volume" onwheel={wheelVolume}>
       <Slider value={player.volume} max={1} step={0.01} label="Volume" valuetext="{Math.round(player.volume * 100)}%" oncommit={player.setVolume} onpreview={player.setVolume} />
     </div>
   </div>

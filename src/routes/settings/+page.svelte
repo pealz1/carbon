@@ -3,6 +3,8 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { onMount } from "svelte";
   import { account } from "$lib/account.svelte";
+  import AccessibilityPanel from "$lib/components/AccessibilityPanel.svelte";
+  import GeneralPanel from "$lib/components/GeneralPanel.svelte";
   import CinemaSettings from "$lib/components/CinemaSettings.svelte";
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import DesktopPanel from "$lib/components/DesktopPanel.svelte";
@@ -170,6 +172,8 @@
       {/if}
     </section>
 
+    <GeneralPanel />
+
     <section class="panel plate">
       <h2>Appearance</h2>
       <p class="eyebrow">Effects</p>
@@ -208,6 +212,8 @@
         />
       {/each}
     </section>
+
+    <AccessibilityPanel />
 
     <LyricsSettings settings={s} />
     <CinemaSettings />
