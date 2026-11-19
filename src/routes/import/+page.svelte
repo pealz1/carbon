@@ -5,7 +5,7 @@
   import { describeError } from "$lib/errors";
   import { carbonPlaylists } from "$lib/local/playlists.svelte";
   import { toItem } from "$lib/local/tracks";
-  import { parseProviderLink, type Collection } from "$lib/providers/catalog";
+  import { resolveProviderLink, type Collection } from "$lib/providers/catalog";
   import { appleExport, matchSongs, readCollection, readTrackFile, type Match } from "$lib/providers/import";
   import * as yt from "$lib/youtube/api";
   import type { Track } from "$lib/spotify/types";
@@ -25,8 +25,8 @@
     } catch(e){if(!current.signal.aborted){error=describeError(e);status="";}}
     finally {if(controller===current){busy=false;status="";}}
   }
-  function fromLink() {
-    const link=parseProviderLink(url);
+  async function fromLink() {
+    let link;try{link=await resolveProviderLink(url);}catch(e){error=describeError(e);return;}
     if(!link){error="Paste a full playlist, album, or track link from a supported provider.";return;}
     void load((signal)=>readCollection(link,signal));
   }

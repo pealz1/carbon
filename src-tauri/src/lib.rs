@@ -21,6 +21,9 @@ mod playback;
 mod popouts;
 mod providers;
 mod provider_widget;
+#[cfg(target_os="macos")]
+mod touchbar;
+mod offline;
 mod radio;
 mod remote;
 mod servers;
@@ -72,6 +75,8 @@ fn playback_update(
     tray.update(&app, info.as_ref());
     remote.publish(info.as_ref());
     app.state::<cli::StateFile>().update(info.as_ref());
+    #[cfg(target_os="macos")]
+    touchbar::update(info.as_ref());
     discord.send(discord::Msg::Playback(info.clone()));
     // A radio station isn't a song: nothing to scrobble, and no "now playing" in its name.
     let song = info.filter(|i| i.source != Some(playback::Source::Radio));
@@ -83,7 +88,7 @@ fn playback_update(
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let handle = app.handle().clone();
     let prefs = settings::load(&handle);
-    app.manage(Discord::spawn(prefs.discord_presence));
+    app.manage(Discord::spawn(prefs.discord_presence,discord::Options::from(&prefs)));
     app.manage(Lastfm::spawn(prefs.lastfm_scrobbling));
     app.manage(Listenbrainz::spawn(prefs.listenbrainz_scrobbling, listenbrainz::queue_path(&handle)));
     let remote = remote::Remote::new(&handle);
@@ -112,6 +117,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(youtube::Youtube::new());
     app.manage(radio::Radio::new(&app.package_info().version.to_string()));
     app.manage(providers::Catalog::new());
+    app.manage(offline::Downloads::default());
     app.manage(lyrics_sources::LyricsSources::new());
     app.manage(servers::Servers::new(&app.package_info().version.to_string()));
     app.manage(bandcamp::Bandcamp::new(&app.package_info().version.to_string()));
@@ -121,6 +127,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     let media = MediaState::default();
     media.attach(&handle, &window);
+    #[cfg(target_os="macos")]
+    touchbar::install(&handle,&window);
     app.manage(media);
     #[cfg(windows)]
     taskbar::attach(&handle, &window);
@@ -170,6 +178,10 @@ pub fn run() {
             {
                 visibility::hand_over(window, "minimize");
             }
+            WindowEvent::Resized(_) if window.label()=="main" && window.is_minimized().unwrap_or(false) && settings::current(window.app_handle()).mini_on_minimize => {
+                let app=window.app_handle().clone();
+                tauri::async_runtime::spawn(async move { if app.get_webview_window("mini").is_none(){let _=popouts::popout_open(app,popouts::Popout::Mini).await;} });
+            }
             // Closing Carbon (close-to-tray off) closes the pop-outs too; they'd have no player to follow.
             WindowEvent::Destroyed if window.label() == "main" => window.app_handle().exit(0),
             WindowEvent::Destroyed if popouts::Popout::is_label(window.label()) => popouts::changed(window.app_handle(), Some(window.label())),
@@ -182,9 +194,11 @@ pub fn run() {
             token_store::token_load,
             providers::provider_catalog,
             providers::provider_page,
+            providers::provider_expand_link, providers::provider_diagnostics,
             providers::provider_connections,
             providers::provider_credentials,
             providers::provider_open,
+            offline::offline_storage, offline::offline_available, offline::offline_save, offline::offline_remove,
             providers::soundcloud_client_id,
             providers::soundcloud_authorize,
             oauth::wait_for_soundcloud_redirect,
@@ -236,6 +250,7 @@ pub fn run() {
             carbon_playlists::carbon_playlists,
             carbon_playlists::carbon_playlist_create,
             carbon_playlists::carbon_playlist_rename,
+            carbon_playlists::carbon_playlist_restore,
             carbon_playlists::carbon_playlist_delete,
             carbon_playlists::carbon_playlist_add,
             carbon_playlists::carbon_playlist_remove,

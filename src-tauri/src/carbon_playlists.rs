@@ -254,6 +254,25 @@ pub fn carbon_playlist_create(app: AppHandle, store: State<Store>, name: String,
     })
 }
 
+/// Restore a user-selected cloud playlist. Refuse to overwrite local edits made since the preview.
+#[tauri::command]
+pub fn carbon_playlist_restore(app:AppHandle, store:State<Store>, id:String, name:String, items:Vec<Item>, expected:Option<u64>) -> Result<Vec<Playlist>,String> {
+    if id.len()!=16 || !id.bytes().all(|b| b.is_ascii_hexdigit()) {return Err("Invalid playlist identifier.".into());}
+    if items.iter().any(|i| matches!(i,Item::Local{..})){return Err("Local files stay on their original device.".into());}
+    let name=clean_name(&name)?;
+    store.update(&app,|all|{
+        let existing=all.iter().find(|p| p.id==id);
+        if existing.map(|p|p.updated_ms)!=expected { return Err("This local playlist changed. Review it again.".into()); }
+        if existing.is_none() {
+            if all.len()>=MAX_PLAYLISTS{return Err("Your Carbon library is full.".into());}
+            all.push(Playlist{id:id.clone(),name:name.clone(),items:Vec::new(),updated_ms:0});
+        }
+        replace(all,&id,items)?;
+        find(all,&id)?.name=name;
+        Ok(())
+    })
+}
+
 #[tauri::command]
 pub fn carbon_playlist_rename(app: AppHandle, store: State<Store>, id: String, name: String) -> Result<Vec<Playlist>, String> {
     let name = clean_name(&name)?;

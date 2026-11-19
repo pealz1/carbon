@@ -83,6 +83,7 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "pc",
     label: "On this PC",
     items: [
+      { href: "/offline", label: "Offline music", icon: "folder" },
       { href: "/local", label: "Local files", icon: "folder" },
       { href: "/sound", label: "Sound", icon: "equalizer" },
     ],
@@ -92,6 +93,8 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "yours",
     label: "Yours",
     items: [
+      { href: "/profile", label: "Profile and sync", icon: "artist" },
+      { href: "/mixes", label: "Daily mixes", icon: "spark" },
       { href: "/history", label: "History", icon: "clock" },
       { href: "/recap", label: "Recap", icon: "calendar" },
       { href: "/bookmarks", label: "Bookmarks", icon: "bookmark" },

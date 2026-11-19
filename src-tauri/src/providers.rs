@@ -230,6 +230,7 @@ pub enum Request {
     Artist,
     Liked,
     MyPlaylists,
+    PlaylistTracks,
     Resolve,
 }
 #[derive(Deserialize)]
@@ -329,7 +330,7 @@ pub async fn provider_catalog(catalog: State<'_, Catalog>, query: Query) -> Resu
             let path = match action {
                 Search if !id.is_empty() => "tracks".to_owned(),
                 Resolve if Url::parse(id).is_ok_and(|u| allowed(&u, Provider::Soundcloud.hosts())) => "resolve".into(),
-                Playlist | Album if numeric(id) && offset > 0 => format!("playlists/soundcloud:playlists:{id}/tracks"),
+                PlaylistTracks if numeric(id) => format!("playlists/soundcloud:playlists:{id}/tracks"),
                 Playlist | Album if numeric(id) => format!("playlists/soundcloud:playlists:{id}"),
                 Track if numeric(id) => format!("tracks/soundcloud:tracks:{id}"),
                 Artist if numeric(id) => format!("users/soundcloud:users:{id}/tracks"),
@@ -407,6 +408,58 @@ async fn catalog_page(catalog: &Catalog, provider: Provider, address: &str) -> R
 pub async fn provider_page(catalog: State<'_, Catalog>, provider: Provider, address: String) -> Result<Value, String> {
     catalog_page(&catalog, provider, &address).await
 }
+#[tauri::command]
+pub async fn provider_expand_link(catalog: State<'_, Catalog>, address: String) -> Result<String, String> {
+    const SHORT: &[&str] =
+        &["spotify.link", "spotify.app.link", "on.soundcloud.com", "link.deezer.com", "deezer.page.link", "deezer.lnk.to"];
+    const DEST: &[&str] = &["open.spotify.com", "soundcloud.com", "www.soundcloud.com", "www.deezer.com", "deezer.com"];
+    let mut url = Url::parse(&address).map_err(|_| "Invalid share link.")?;
+    if address.len() > 2048 || !allowed(&url, SHORT) {
+        return Err("Choose a supported provider share link.".into());
+    }
+    for _ in 0..5 {
+        let res = catalog.http.get(url.clone()).send().await.map_err(|_| "Could not open this share link.")?;
+        let location = res
+            .headers()
+            .get(reqwest::header::LOCATION)
+            .and_then(|h| h.to_str().ok())
+            .ok_or("Paste the full playlist URL from the provider's address bar.")?;
+        url = url.join(location).map_err(|_| "Invalid redirect.")?;
+        if allowed(&url, DEST) {
+            return Ok(url.to_string());
+        }
+        if !res.status().is_redirection() || !allowed(&url, SHORT) {
+            break;
+        }
+    }
+    Err("Paste the full playlist URL from the provider's address bar.".into())
+}
+
+#[derive(Serialize)]
+pub struct Diagnostic {
+    name: &'static str,
+    status: Option<u16>,
+    elapsed: u64,
+}
+#[tauri::command]
+pub async fn provider_diagnostics(catalog: State<'_, Catalog>) -> Result<Vec<Diagnostic>, String> {
+    async fn check(client: &Client, name: &'static str, url: &'static str) -> Diagnostic {
+        let start = Instant::now();
+        let status = client.get(url).timeout(Duration::from_secs(6)).send().await.ok().map(|r| r.status().as_u16());
+        Diagnostic { name, status, elapsed: start.elapsed().as_millis() as u64 }
+    }
+    let c = &catalog.http;
+    let (carbon, apple, deezer, sc, mix, archive) = tokio::join!(
+        check(c, "Carbon", "https://api.getcarbon.cc/v1/health"),
+        check(c, "Apple Music", "https://itunes.apple.com/lookup?id=909253"),
+        check(c, "Deezer", "https://api.deezer.com/genre/0"),
+        check(c, "SoundCloud", "https://w.soundcloud.com/player/api.js"),
+        check(c, "Mixcloud", "https://api.mixcloud.com/"),
+        check(c, "Internet Archive", "https://archive.org/metadata/etree?output=json")
+    );
+    Ok(vec![carbon, apple, deezer, sc, mix, archive])
+}
+
 /// Compatibility with saved Carbon artist and playlist links, using SoundCloud's documented resources.
 #[tauri::command]
 pub async fn soundcloud_get(catalog: State<'_, Catalog>, path: String, params: Vec<(String, String)>) -> Result<Value, String> {

@@ -62,6 +62,12 @@ pub struct Settings {
     /// None until the listener has chosen.
     pub services: Option<Services>,
     pub close_to_tray: bool,
+    pub mini_on_minimize: bool,
+    pub mini_click_through: bool,
+    pub mini_pinned: bool,
+    pub discord_artwork: bool,
+    pub discord_timestamps: bool,
+    pub discord_paused: bool,
     pub discord_presence: bool,
     pub lastfm_scrobbling: bool,
     /// Sends listens to ListenBrainz once a token is saved; independent of Last.fm.
@@ -122,6 +128,8 @@ impl Default for Settings {
         Self {
             services: None,
             close_to_tray: true,
+            mini_on_minimize: false, mini_click_through: false, mini_pinned: true,
+            discord_artwork: true, discord_timestamps: true, discord_paused: false,
             discord_presence: true,
             lastfm_scrobbling: true,
             listenbrainz_scrobbling: true,
@@ -289,7 +297,10 @@ pub fn settings_set(app: AppHandle, state: State<SettingsState>, settings: Setti
         crate::hotkeys::apply(&app, &settings.hotkeys);
     }
     if let Some(discord) = app.try_state::<crate::discord::Discord>() {
-        discord.send(crate::discord::Msg::Enabled(settings.discord_presence));
+        discord.send(crate::discord::Msg::Preferences(settings.discord_presence,crate::discord::Options::from(&settings)));
+    }
+    if settings.mini_pinned!=before.mini_pinned || settings.mini_click_through!=before.mini_click_through {
+        crate::popouts::configure_mini(&app, &settings)?;
     }
     if let Some(lastfm) = app.try_state::<crate::lastfm::Lastfm>() {
         lastfm.send(crate::lastfm::Msg::Enabled(settings.lastfm_scrobbling));

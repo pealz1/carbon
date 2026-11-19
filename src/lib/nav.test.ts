@@ -13,7 +13,7 @@ describe("sidebar sections", () => {
 
   it("keeps history, recap, bookmarks and collections whatever is connected", () => {
     const yours = sectionsFor({ spotify: false, youtube: false }).find((s) => s.id === "yours");
-    expect(yours?.items.map((i) => i.href)).toEqual(["/history", "/recap", "/bookmarks", "/collections"]);
+    expect(yours?.items.map((i) => i.href)).toEqual(["/profile", "/mixes", "/history", "/recap", "/bookmarks", "/collections"]);
     expect(isActive("/collections", "/collections/abc")).toBe(true);
     expect(isActive("/history", "/recap")).toBe(false);
   });

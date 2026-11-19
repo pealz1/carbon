@@ -19,7 +19,7 @@ fn explain_status(status: u16, name: &str) -> String {
 
 /// A successful answer's body, refused when it is larger than `max`.
 pub(crate) async fn body(res: Result<reqwest::Response, reqwest::Error>, name: &str, max: usize) -> Result<Vec<u8>, String> {
-    let res = res.map_err(|e| offline(e, name))?;
+    let mut res = res.map_err(|e| offline(e, name))?;
     let status = res.status().as_u16();
     if !(200..300).contains(&status) {
         eprintln!("[{}] answered {status}", name.to_lowercase());
@@ -29,11 +29,12 @@ pub(crate) async fn body(res: Result<reqwest::Response, reqwest::Error>, name: &
     if res.content_length().is_some_and(|n| n as usize > max) {
         return Err(too_big());
     }
-    let bytes = res.bytes().await.map_err(|e| {
-        eprintln!("[{}] body failed: {}", name.to_lowercase(), e.without_url());
-        format!("{name} stopped answering. Try again.")
-    })?;
-    if bytes.len() > max { Err(too_big()) } else { Ok(bytes.to_vec()) }
+    let mut bytes=Vec::new();
+    while let Some(chunk)=res.chunk().await.map_err(|e|offline(e,name))? {
+        if chunk.len()>max.saturating_sub(bytes.len()){return Err(too_big());}
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
 }
 
 pub(crate) fn parse(bytes: &[u8], name: &str) -> Result<Value, String> {
@@ -60,4 +61,3 @@ pub(crate) fn check_id(id: &str) -> Result<(), String> {
     let ok = !id.is_empty() && id.len() <= MAX_ID && id.bytes().all(|b| b.is_ascii_digit());
     ok.then_some(()).ok_or_else(|| "That isn't an id Carbon knows.".to_string())
 }
-

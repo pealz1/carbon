@@ -23,6 +23,8 @@ class CarbonPlaylists {
     return id;
   }
 
+  restore=(id:string,name:string,items:PlaylistItem[],expected:number|null)=>this.#apply(api.restore(id,name,items,expected));
+
   rename = (id: string, name: string) => this.#apply(api.rename(id, name));
   remove = (id: string) => this.#apply(api.remove(id));
   add = (id: string, tracks: Track[]) => this.#apply(api.add(id, tracks.map(toItem)));

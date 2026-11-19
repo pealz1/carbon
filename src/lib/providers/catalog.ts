@@ -55,6 +55,12 @@ export function parseProviderLink(text: string): Link | null {
   return null;
 }
 
+export async function resolveProviderLink(address:string):Promise<Link|null>{
+  const found=parseProviderLink(address);if(found)return found;
+  if(!/^https:\/\/(?:spotify\.(?:app\.)?link|on\.soundcloud\.com|link\.deezer\.com|deezer\.page\.link|deezer\.lnk\.to)\//i.test(address.trim()))return null;
+  return parseProviderLink(await invoke<string>("provider_expand_link",{address:address.trim()}));
+}
+
 export function embedUrl(link: Link): string {
   const u = new URL(link.url);
   switch (link.source) {
@@ -80,7 +86,7 @@ export async function connectSoundCloud() {
   if (result.get("state")!==state || !result.get("code")) throw new Error("SoundCloud sign-in was cancelled or expired.");
   await invoke("soundcloud_authorize",{code:result.get("code"),verifier});
 }
-type Action = Kind | "search" | "resolve" | "liked" | "myPlaylists";
+type Action = Kind | "playlistTracks" | "search" | "resolve" | "liked" | "myPlaylists";
 const api = (provider:Provider,action:Action,value:string,country="us",offset=0) =>
   invoke<Raw>("provider_catalog",{query:{provider,action,value,country,offset}});
 export const fromTrack = (track:Track): Song => ({title:track.name,artist:track.artists.map((a)=>a.name).join(", "),durationMs:track.durationMs,image:track.album?.image ?? undefined,track});
@@ -127,11 +133,17 @@ export async function providerCollection(link:Link,signal?:AbortSignal):Promise<
     }
     return {title:String(raw.metadata?.title || link.id),songs:[...tracks.values()]};
   }
-  const base=provider==="apple" && raw.data ? raw.data[0] : raw;
+  const base=raw;
   if (!base) throw new Error("This collection is unavailable.");
-  const title=base.attributes?.name || base.title || raw.results?.[0]?.collectionName || names[provider];
+  let title=base.name || base.title || raw.results?.[0]?.collectionName || names[provider];
+  if (provider==="mixcloud" && link.kind==="playlist") title=link.id.split("/").at(-1)?.replaceAll("-"," ") || title;
+  if (provider==="soundcloud" && link.kind==="playlist" && base.id){
+    const trackPage=await api(provider,"playlistTracks",String(base.id),link.country,0);
+    // The playlist's track endpoint returns complete records instead of ID-only stubs.
+    if(trackPage.collection || Array.isArray(trackPage))base.tracks=trackPage;
+  }
   if (link.kind==="track") return {title,songs:songsOf(provider,raw.results || [base])};
-  let page=base.relationships?.tracks || base.tracks || base;
+  let page=base.tracks || base;
   let items=raw.results || page.data || page.collection || (Array.isArray(page) ? page : []);
   const songs=songsOf(provider,items);
   let next=page.next || page.next_href || page.paging?.next, count=items.length;
@@ -141,11 +153,12 @@ export async function providerCollection(link:Link,signal?:AbortSignal):Promise<
     if (seen.has(next) || count>=10_000) throw new Error("This collection is too large or its page repeated. Import a smaller selection.");
     seen.add(next);
     page=await invoke<Raw>("provider_page",{provider,address:next,country:link.country});
-    items=page.data || page.collection || [];
+    items=page.data || page.collection || (Array.isArray(page)?page:[]);
     count+=items.length;
     songs.push(...songsOf(provider,items));
     next=page.next || page.next_href || page.paging?.next;
   }
   if (count>10_000) throw new Error("Carbon playlists hold up to 10,000 songs.");
+  if(provider==="soundcloud" && count && songs.length<count) throw new Error("SoundCloud did not share the full set. Open its public player or import an exported list.");
   return {title,songs};
 }

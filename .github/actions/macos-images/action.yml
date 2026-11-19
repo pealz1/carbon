@@ -8,11 +8,17 @@ runs:
         for target in aarch64-apple-darwin x86_64-apple-darwin; do
           npm run tauri -- bundle --ci --target "$target" --bundles dmg --config '{"bundle":{"createUpdaterArtifacts":false}}'
           bundle="src-tauri/target/$target/release/bundle"
-          app="$bundle/macos/Carbon.app"
+          image=( "$bundle"/dmg/*.dmg )
+          hdiutil verify "${image[0]}"
+          mount=$(mktemp -d "$RUNNER_TEMP/carbon-image.XXXXXX")
+          hdiutil attach -readonly -nobrowse -mountpoint "$mount" "${image[0]}"
+          trap 'hdiutil detach "$mount" >/dev/null' EXIT
+          app="$mount/Carbon.app"
           binary="$app/Contents/MacOS/$(plutil -extract CFBundleExecutable raw "$app/Contents/Info.plist")"
           expected=${target%%-*}
           if [[ "$expected" == aarch64 ]]; then expected=arm64; fi
           test "$(lipo -archs "$binary")" = "$expected"
           codesign --verify --strict --deep "$app"
-          hdiutil verify "$bundle"/dmg/*.dmg
+          hdiutil detach "$mount"
+          trap - EXIT
         done

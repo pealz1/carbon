@@ -111,8 +111,20 @@ pub async fn popout_open(app: AppHandle, kind: Popout) -> Result<(), String> {
     }
     // The window-state plugin has put it back where it was (if that's still on a screen) by now.
     let window = builder.build().map_err(|e| format!("couldn't open the window: {e}"))?;
+    if kind==Popout::Mini {
+        let prefs=crate::settings::current(&app);
+        if prefs.mini_click_through || !prefs.mini_pinned {configure_mini(&app,&prefs)?;}
+    }
     window.show().map_err(|e| e.to_string())?;
     changed(&app, None);
+    Ok(())
+}
+
+pub fn configure_mini(app:&AppHandle,prefs:&crate::settings::Settings)->Result<(),String>{
+    if let Some(mini)=app.get_webview_window("mini"){
+        mini.set_always_on_top(prefs.mini_pinned).map_err(|e|e.to_string())?;
+        mini.set_ignore_cursor_events(prefs.mini_click_through).map_err(|e|e.to_string())?;
+    }
     Ok(())
 }
 

@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { describeError } from "$lib/errors";
-  import { connectSoundCloud, connections, credentials, embedUrl, homes, names, openPlayer, parseProviderLink, scLikes, scPlaylists, searchCatalog, type Link, type Provider, type Song } from "./catalog";
+  import { connectSoundCloud, connections, credentials, embedUrl, homes, names, openPlayer, resolveProviderLink, scLikes, scPlaylists, searchCatalog, type Link, type Provider, type Song } from "./catalog";
   import Icon from "$lib/components/Icon.svelte";
   let { provider }: { provider:Provider }=$props();
   let query=$state(""), country=$state("us"), rows=$state<Song[]>([]), sets=$state<{title:string;url?:string}[]>([]);
@@ -15,8 +16,10 @@
     if(busy)return;busy=true;problem="";
     try {await task();} catch(e){problem=describeError(e);} finally{busy=false;}
   }
-  function choose(url:string) {
-    const link=parseProviderLink(url);
+  let downloads=$state<string[]|null>(null),filename=$state(""),saved=$state("");
+  async function choose(url:string) {
+    downloads=null;filename="";saved="";
+    const link=await resolveProviderLink(url).catch(e=>{problem=describeError(e);return null;});
     if(link && link.source===provider){selected=link;problem="";} else problem="Choose a link from "+names[provider]+".";
   }
   function search() {
@@ -50,6 +53,13 @@
   </form>
   {#if selected}
     <iframe title={names[provider]+" player"} src={embedUrl(selected)} height={selected.kind==="track" ? 180 : 380} allow="autoplay; encrypted-media; fullscreen"></iframe>
+    {#if provider==="archive"}
+      <div class="actions"><button class="pill" disabled={busy} onclick={()=>run(async()=>{downloads=await invoke<string[]>("offline_available",{id:selected!.id});filename=downloads[0] || "";})}>Show downloadable audio</button>
+      {#if downloads?.length}<select class="input" aria-label="Audio file" bind:value={filename}>{#each downloads as f}<option value={f}>{f}</option>{/each}</select>
+      <button class="pill" disabled={busy||!filename} onclick={()=>run(async()=>{await invoke("offline_save",{id:selected!.id,name:filename});saved="Saved to your local library.";})}>Save offline</button>
+      {:else if downloads}<span>No openly licensed downloads available.</span>{/if}<a href="/offline">Offline music</a></div>
+      {#if saved}<p role="status">{saved}</p>{/if}
+    {/if}
     <div class="actions">
       <button class="pill" onclick={()=>run(()=>openPlayer(provider,selected!.url))}>Play in {names[provider]}</button>
       <a class="pill" href={"/import?url="+encodeURIComponent(selected.url)}>Import this selection</a>

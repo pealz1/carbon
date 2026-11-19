@@ -130,6 +130,7 @@ export const library = {
 };
 
 export const playlists = {
+  restore:(id:string,name:string,items:PlaylistItem[],expected:number|null)=>invoke<CarbonPlaylist[]>("carbon_playlist_restore",{id,name,items,expected}),
   list: () => invoke<CarbonPlaylist[]>("carbon_playlists"),
   create: (name: string, items?: PlaylistItem[]) => invoke<CarbonPlaylist[]>("carbon_playlist_create", { name, items }),
   rename: (id: string, name: string) => invoke<CarbonPlaylist[]>("carbon_playlist_rename", { id, name }),

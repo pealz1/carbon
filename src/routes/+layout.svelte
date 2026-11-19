@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css";
+  import { initLocale } from "$lib/i18n/locale.svelte";
   import { afterNavigate, goto, onNavigate } from "$app/navigation";
   import { page } from "$app/state";
   import { onMount, tick, type Snippet } from "svelte";
@@ -55,6 +56,7 @@
   onMount(() => onScreen.start());
 
   onMount(() => {
+    void initLocale().catch(e=>console.error("[language]",e));
     if (popout) return;
     void account.boot();
     void serverSession.load();

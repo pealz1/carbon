@@ -21,6 +21,8 @@ export interface Settings {
   /** Null until chosen on first run. */
   services?: Services | null;
   closeToTray: boolean;
+  miniOnMinimize:boolean; miniClickThrough:boolean; miniPinned:boolean;
+  discordArtwork:boolean; discordTimestamps:boolean; discordPaused:boolean;
   discordPresence: boolean;
   lastfmScrobbling: boolean;
   /** Independent of Last.fm; only sends once a token is saved. */

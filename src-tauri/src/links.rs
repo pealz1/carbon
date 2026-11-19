@@ -14,7 +14,8 @@ const YOUTUBE_VIDEO_LEN: usize = 11;
 const YOUTUBE_ID_LEN: std::ops::RangeInclusive<usize> = 2..=128;
 const YOUTUBE_HOSTS: [&str; 4] = ["music.youtube.com", "www.youtube.com", "youtube.com", "m.youtube.com"];
 /// Carbon's own pages without an id (src/routes).
-const PAGES: [&str; 20] = [
+const PAGES: &[&str] = &[
+    "/profile","/mixes","/offline","/import","/apple","/deezer","/soundcloud","/archive","/mixcloud",
     "/",
     "/bookmarks",
     "/collections",
@@ -159,6 +160,12 @@ pub fn from_url(text: &str) -> Option<Target> {
             // Some browsers escape the colons of the URI inside the link.
             let uri = url.path().strip_prefix('/')?.replace("%3A", ":").replace("%3a", ":");
             if uri.starts_with("spotify:") || uri.starts_with("ytm:") { resolve(&uri, true) } else { None }
+        }
+        "music" => {
+            let parts:Vec<_>=url.path().trim_matches('/').split('/').collect();
+            if let [kind @ ("people"|"shared"),key]=parts.as_slice() && key.len()==36 && key.bytes().all(|b|b.is_ascii_hexdigit()||b==b'-') {
+                open(format!("/profile?link=https%3A%2F%2Fgetcarbon.cc%2Fmusic%3F{kind}%3D{key}"))
+            } else {None}
         }
         "open" if url.query().is_none() => page(url.path()),
         "link" => resolve(&query(&url, "u")?, false),
