@@ -77,6 +77,26 @@ describe("YouTube Music playback", () => {
     expect(p.index).toBe(2);
   });
 
+  it("stops at the end instead when autoplay is off", async () => {
+    const p = new YoutubePlayback({ ...host(), autoplay: () => false });
+    p.play([yt("a")]);
+    await p.next();
+    expect(api.radio).not.toHaveBeenCalled();
+    expect(p.queue?.map((t) => t.id)).toEqual(["a"]);
+  });
+
+  it("keeps songs queued next in order, and puts later ones at the end", () => {
+    const p = new YoutubePlayback(host());
+    p.play([yt("a"), yt("b"), yt("c")]);
+    p.add(yt("x"));
+    p.add(yt("y"));
+    p.add(yt("z"), "end");
+    expect(p.queue?.map((t) => t.id)).toEqual(["a", "x", "y", "b", "c", "z"]);
+    h.emit({ state: "ended" }); // now on x: the next one queued goes right after it
+    p.add(yt("w"));
+    expect(p.queue?.map((t) => t.id)).toEqual(["a", "x", "w", "y", "b", "c", "z"]);
+  });
+
   it("explains an unplayable song and skips it, but gives up after a few in a row", async () => {
     vi.mocked(api.playability).mockResolvedValue({ status: "UNPLAYABLE", reason: "Not available in your country", playableInEmbed: true });
     vi.mocked(api.radio).mockResolvedValue({ tracks: [], lyricsId: null });

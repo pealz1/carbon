@@ -13,6 +13,7 @@
   import Cinema from "$lib/components/Cinema.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
   import CompactPlayer from "$lib/components/CompactPlayer.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
   import LibraryTools from "$lib/components/LibraryTools.svelte";
@@ -33,6 +34,7 @@
   import { youtube } from "$lib/youtube/session.svelte";
   import Toasts from "$lib/components/Toasts.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
+  import { confirmations } from "$lib/confirm.svelte";
   import { dialogs } from "$lib/dialogs.svelte";
   import { handleKey } from "$lib/keyboard";
   import { sound } from "$lib/local/sound.svelte";
@@ -45,6 +47,7 @@
   import { isPopoutPath } from "$lib/popout/now";
   import { prefs } from "$lib/preferences.svelte";
   import { session } from "$lib/session.svelte";
+  import { updates } from "$lib/updates.svelte";
   import { installSoundFeedback, setSoundGate } from "$lib/sfx";
   import { useSmartShuffle } from "$lib/smart-shuffle-play";
   import { lastPage, rememberPage, startupPath } from "$lib/startup-page";
@@ -78,11 +81,19 @@
       paused: player.paused,
       trackUri: player.track?.uri ?? null,
     }));
+    player.confirmReplace = () =>
+      confirmations.ask({
+        title: "Replace your queue?",
+        body: "Playing this drops the songs you queued.",
+        ok: "Play it",
+        cancel: "Keep my queue",
+      });
+    const stopUpdates = updates.start(); // looks for new versions in the background
     const stopSync=musicSync.start();
     const stopPopouts = popouts.start();
     const stopSounds = installSoundFeedback(document);
     const onScreen = keepYoutubeOnScreen(async () => void (player.paused || (await player.togglePlay())));
-    return () => (stopSync(),stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
+    return () => (stopUpdates(), stopSync(), stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
   });
 
   // Music services start once the Carbon account gate (if this build has one) is passed.
@@ -177,6 +188,7 @@
   <YoutubeStage />
   <ContextMenu />
   <QuitGuard />
+  <ConfirmDialog />
   {#if dialogs.playlist}
     {#key dialogs.playlist}<PlaylistDialog request={dialogs.playlist} />{/key}
   {/if}

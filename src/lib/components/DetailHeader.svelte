@@ -32,7 +32,7 @@
     round = false,
     shuffleCount,
     menuItems,
-    placeholder = "note",
+    placeholderIcon = "note",
     children,
   }: {
     title: string;
@@ -54,7 +54,7 @@
     /** Items for the "…" menu. */
     menuItems?: () => MenuEntry[];
     /** Icon shown when there's no artwork. */
-    placeholder?: IconName;
+    placeholderIcon?: IconName;
     /** Extra actions after Play. */
     children?: Snippet;
   } = $props();
@@ -84,7 +84,7 @@
     {:else if image}
       <img src={image} alt="" width="350" height="350" />
     {:else}
-      <div class="placeholder" class:liked={placeholder === "heart"}><Icon name={placeholder} size={72} filled={placeholder === "heart"} /></div>
+      <div class="placeholder" class:liked={placeholderIcon === "heart"}><Icon name={placeholderIcon} size={72} filled={placeholderIcon === "heart"} /></div>
     {/if}
   </div>
   <div class="info">

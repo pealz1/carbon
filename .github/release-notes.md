@@ -1,10 +1,15 @@
-- Added Linux desktop installers
-- Added separate Mac installers
-- Added four music catalogs
-- Added SoundCloud account connections
-- Added playlist imports and match review
-- Added offline recording downloads
-- Added playlist sync and sharing
-- Added daily mixes
-- Added ten interface translations
-- Added Mac Touch Bar playback controls
+- Added automatic updates that install while Carbon rests in the tray
+- Added open at startup
+- Added a show/hide shortcut (Ctrl+Alt+C)
+- Added Mini player to the tray menu
+- Added Play next and Play later to song menus
+- Added Start radio for songs and artists
+- Added a warning before replacing a queue you built
+- Added an autoplay switch for YouTube Music
+- Added game mode
+- Added Near you stations in Radio
+- Added cache size and clearing in Settings
+- Added source tags and a Sound button in the player bar
+- Added a Developer menu with copyable diagnostics
+- Fixed header icons missing in translated languages
+- Fixed wording in all ten interface translations

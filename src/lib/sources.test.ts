@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canJoinQueue, ownerOf, planSwitch } from "./sources";
+import { canJoinQueue, ownerOf, planSwitch, sourceLabel } from "./sources";
 
 const SPOTIFY = "spotify:track:6rqhFgbbKwnb9MLmUQDhG6";
 const LOCAL = `local:${"a".repeat(32)}`;
@@ -33,5 +33,14 @@ describe("keeping YouTube Music and Spotify apart", () => {
     ]);
     expect(planSwitch("youtube", "youtube")).toEqual([{ op: "start", owner: "youtube" }]);
     expect(planSwitch(null, "youtube")).toEqual([{ op: "start", owner: "youtube" }]);
+  });
+});
+
+describe("sourceLabel", () => {
+  it("names the service, and which kind of server song", () => {
+    expect(sourceLabel("spotify", "spotify:track:x")).toBe("Spotify");
+    expect(sourceLabel("youtube", "ytm:video:x")).toBe("YouTube Music");
+    expect(sourceLabel("server", "soundcloud:track:1")).toBe("SoundCloud");
+    expect(sourceLabel("server", "server:abc")).toBe("Your server");
   });
 });

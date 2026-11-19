@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Carbon",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "identifier": "com.pealz.carbon",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -67,7 +67,8 @@
       "nsis": {
         "installMode": "currentUser",
         "installerIcon": "icons/icon.ico",
-        "startMenuFolder": "Carbon"
+        "startMenuFolder": "Carbon",
+        "installerHooks": "./windows/hooks.nsh"
       }
     }
   },

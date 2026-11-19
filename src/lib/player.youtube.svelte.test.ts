@@ -2,6 +2,7 @@
 // Hand-offs between Spotify and YouTube Music in the Player facade: strictly one at a time, and
 // never one queue for both.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Settings } from "$lib/native";
 import type { Track } from "$lib/spotify/types";
 
 const h = vi.hoisted(() => ({ log: [] as string[] }));
@@ -114,5 +115,26 @@ describe("Spotify and YouTube Music hand-offs", () => {
     await player.playTracks([spotifyUri]);
     expect(h.log).toEqual(["youtube.halt:start", "youtube.halt:done", "spotify.play"]);
     expect(player.source).toBe("spotify");
+  });
+
+  it("asks before a new start drops songs you queued, and keeps them if you say so", async () => {
+    const { prefs } = await import("./preferences.svelte");
+    prefs.value = { warnQueue: true } as Settings;
+    vi.spyOn(document, "hasFocus").mockReturnValue(true);
+    const ask = vi.fn(async () => false);
+    player.confirmReplace = ask;
+    await player.playTracks(["ytm:video:ccccccccccc"], 0, [yt("ccccccccccc")]);
+    expect(ask).not.toHaveBeenCalled(); // nothing queued by hand yet
+    expect(await player.addToQueue("ytm:video:ddddddddddd", yt("ddddddddddd"))).toBe(true);
+    h.log = [];
+    await player.playTracks([spotifyUri]);
+    expect(ask).toHaveBeenCalledOnce();
+    expect(h.log).toEqual([]);
+    expect(player.source).toBe("youtube");
+    ask.mockResolvedValue(true);
+    await player.playTracks([spotifyUri]);
+    expect(player.source).toBe("spotify");
+    player.confirmReplace = null;
+    prefs.value = null;
   });
 });

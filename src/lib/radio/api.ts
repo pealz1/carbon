@@ -21,7 +21,8 @@ export interface Station {
 }
 
 /** Stations by name and/or tag; the most listened-to when both are empty. */
-export const stations = (name = "", tag = ""): Promise<Station[]> => invoke<Station[]>("radio_stations", { name, tag });
+/** `country`: a two-letter code for stations in one country; "" = anywhere. */
+export const stations = (name = "", tag = "", country = ""): Promise<Station[]> => invoke<Station[]>("radio_stations", { name, tag, country });
 
 /** Counts a play in the directory, as its API asks. Never worth interrupting the listener over. */
 export const played = (id: string): Promise<void> => invoke<void>("radio_played", { id }).catch((e) => console.warn("[radio] play count", e));

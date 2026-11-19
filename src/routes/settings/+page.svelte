@@ -27,6 +27,8 @@
   import {
     ACCENTS,
     appInfo,
+    cacheClear,
+    cacheSize,
     installedFonts,
     lastfmConnect,
     lastfmDisconnect,
@@ -67,10 +69,35 @@
   let notice = $state<string | null>(null);
   let confirmRemove = $state(false);
   let fonts = $state<string[] | null>(null);
+  let cache = $state<number | null>(null);
+  let clearing = $state(false);
+
+  const formatBytes = (bytes: number) =>
+    bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+  const measureCache = () =>
+    cacheSize().then(
+      (bytes) => (cache = bytes),
+      (e) => ((cache = 0), (notice = `Couldn't measure the cache: ${describeError(e)}`)),
+    );
+
+  async function clearCache() {
+    clearing = true;
+    try {
+      await cacheClear();
+      notice = "Cache cleared.";
+    } catch (e) {
+      notice = `Couldn't clear the cache: ${describeError(e)}`;
+    } finally {
+      clearing = false;
+      void measureCache();
+    }
+  }
   const s = $derived(prefs.value);
   const customId = $derived(s?.spotifyClientId ?? "");
 
   onMount(async () => {
+    void measureCache();
     installedFonts().then(
       (list) => (fonts = list),
       (e) => {
@@ -306,6 +333,13 @@
       <h2>Sound</h2>
       <p class="muted">EQ, loudness, crossfade and output device for local files played by Carbon's own engine.</p>
       <a class="pill" href="/sound">Open Sound settings</a>
+      <Toggle checked={s.soundButton} label="Sound button in the player bar" description="One click to EQ and the rest of Sound settings." onchange={(v) => prefs.update({ soundButton: v })} />
+      <Toggle
+        checked={s.sourceBadges}
+        label="Show where songs come from"
+        description="A small tag under the playing song: Spotify, YouTube Music, local file, your server or radio."
+        onchange={(v) => prefs.update({ sourceBadges: v })}
+      />
     </section>
 
     <section class="panel plate">
@@ -316,15 +350,24 @@
       <Toggle checked={s.miniOnMinimize} label="Open mini player on minimize" onchange={v=>prefs.update({miniOnMinimize:v})}/>
       <Toggle checked={s.miniPinned} label="Keep mini player on top" onchange={v=>prefs.update({miniPinned:v})}/>
       <Toggle checked={s.miniClickThrough} label="Click through the mini player" description="Turn this off here to use the mini player buttons again." onchange={v=>prefs.update({miniClickThrough:v})}/>
-      <Toggle checked={startup} label="Open at startup" description="Starts in the background when you sign in to your computer." onchange={toggleStartup} />
+      <Toggle checked={startup} label="Open at startup" description="Starts in the background when you sign in to your computer. Click the tray icon, or press the show/hide shortcut, to open it." onchange={toggleStartup} />
       <Toggle checked={s.closeToTray} label="Keep playing when closed" description="Closing the window keeps Carbon in the tray. Quit from the tray icon." onchange={(v) => prefs.update({ closeToTray: v })} />
     </section>
 
     <section class="panel plate">
       <h2>Updates</h2>
       <p class="muted">Carbon {info?.version ?? ""}</p>
-      {#if updates.state === "available"}
-        <p>Version {updates.version} is ready.</p>
+      <Toggle
+        checked={s.autoUpdate}
+        label="Install updates automatically"
+        description="Downloads new versions in the background and installs them while Carbon is in the tray with nothing playing. Off: Carbon only tells you."
+        onchange={(v) => prefs.update({ autoUpdate: v })}
+      />
+      {#if updates.state === "ready"}
+        <p>Version {updates.version} is downloaded and ready.</p>
+        <button class="pill accent" onclick={() => updates.install()}>Restart to update</button>
+      {:else if updates.state === "available"}
+        <p>Version {updates.version} is out.</p>
         <button class="pill accent" onclick={() => updates.install()}>Update and restart</button>
       {:else if updates.state === "downloading"}
         <div class="bar"><span style="transform: scaleX({updates.progress})"></span></div>
@@ -344,6 +387,12 @@
         <button class="link" onclick={() => openUrl("https://getcarbon.cc")}>getcarbon.cc</button>
         <button class="link" onclick={() => openUrl("https://github.com/pealz1/carbon")}>Source on GitHub</button>
         <button class="link" onclick={() => openUrl("https://getcarbon.cc/privacy")}>Privacy</button>
+      </div>
+      <div class="cache">
+        <p class="muted">
+          Cache: {cache === null ? "measuring…" : formatBytes(cache)} of notification artwork and library details. Clearing it is safe; Carbon fetches them again when needed.
+        </p>
+        <button class="pill" disabled={!cache || clearing} onclick={clearCache}>{clearing ? "Clearing…" : "Clear cache"}</button>
       </div>
       {#if confirmRemove}
         <p class="warn">This signs you out of Spotify, Last.fm and ListenBrainz, resets every setting and forgets your local library and Carbon playlists. Your music files stay where they are.</p>
@@ -497,6 +546,13 @@
     background: var(--accent);
     transform-origin: left;
     transition: transform var(--dur-med) var(--ease-out);
+  }
+
+  .cache {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
   }
 
   .link {

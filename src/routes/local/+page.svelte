@@ -56,7 +56,7 @@
   <DetailHeader
     title={a.name}
     image={a.image}
-    placeholder="album"
+    placeholderIcon="album"
     onplay={() => playAll(a.tracks)}
     onshuffle={() => playAll(a.tracks, true)}
     chips={[

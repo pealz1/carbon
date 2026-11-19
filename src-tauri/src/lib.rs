@@ -108,6 +108,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(hotkeys::HotkeyState::default());
     hotkeys::apply(&handle, &prefs.hotkeys);
     app.manage(SettingsState(Mutex::new(prefs)));
+    system::start_with_windows_once(&handle);
     app.manage(LibraryState(Mutex::new(library::load(&handle))));
     app.manage(BlocklistState(Mutex::new(blocklist::load(&handle))));
     app.manage(tray::build(&handle)?);
@@ -229,6 +230,8 @@ pub fn run() {
             system::app_info,
             system::uninstall,
             system::remove_saved_data,
+            system::cache_size,
+            system::cache_clear,
             engine::engine_play,
             engine::engine_pause,
             engine::engine_resume,

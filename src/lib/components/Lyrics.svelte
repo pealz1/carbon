@@ -186,7 +186,7 @@
   const shift = $derived(lyricShift(offset, prefs.value?.lyricsDelayMs));
   const position = $derived(clock + shift);
   const lines = $derived(shown?.kind === "synced" ? withInterludes(shown.lines) : []);
-  const still = $derived(prefersReducedMotion.current || prefs.value?.effects === "minimal");
+  const still = $derived(prefersReducedMotion.current || prefs.effects === "minimal" || prefs.motion === "none");
   const active = $derived(activeLineIndex(lines, position));
   const scroll = $derived.by(() => {
     const el = lineEls[Math.max(0, active)];

@@ -28,6 +28,8 @@ export interface Host {
   setContext(uri: string | null): void;
   /** Whether to skip the non-music parts SponsorBlock lists (off when the host doesn't say). */
   skipsOffTopic?(): boolean;
+  /** Whether a queue that runs out carries on as the last song's radio (on when the host doesn't say). */
+  autoplay?(): boolean;
 }
 
 /** The songs behind a YouTube Music album, playlist, artist or song (its radio). */
@@ -53,6 +55,9 @@ export class YoutubePlayback {
   index = $state(0);
   #host: Host;
   #unshuffled: Track[] | null = null;
+  /** The song that "next" songs were queued behind, and how many so far. */
+  #queuedAfter: Track | null = null;
+  #queuedNext = 0;
   #paused = true;
   #ended = false;
   #positionMs = 0;
@@ -163,11 +168,14 @@ export class YoutubePlayback {
     this.setRepeat(NEXT_REPEAT[this.#host.repeat()]);
   }
 
-  /** Puts a YouTube Music song right after the current one. Anything else is refused. */
-  add(track: Track): boolean {
+  /** Puts a YouTube Music song after the current one (behind others queued next), or at the end. Anything else is refused. */
+  add(track: Track, at: "next" | "end" = "next"): boolean {
     const queue = this.queue;
     if (!queue || !isYoutubeUri(track.uri)) return false;
-    this.queue = [...queue.slice(0, this.index + 1), track, ...queue.slice(this.index + 1)];
+    // Songs queued next line up behind each other (an album keeps its order) until the song changes.
+    if (this.#queuedAfter !== queue[this.index]) [this.#queuedAfter, this.#queuedNext] = [queue[this.index], 0];
+    const slot = at === "end" ? queue.length : this.index + 1 + this.#queuedNext++;
+    this.queue = [...queue.slice(0, slot), track, ...queue.slice(slot)];
     this.#unshuffled = this.#unshuffled && [...this.#unshuffled, track];
     return true;
   }
@@ -206,7 +214,7 @@ export class YoutubePlayback {
     const repeat = this.#host.repeat() === "off" ? "off" : "context"; // a skip moves on even on repeat-one
     const target = step(queue.length, this.index, repeat, forward);
     if (target !== null) return this.#goTo(target);
-    if (forward) return this.#extend();
+    if (forward) return this.#host.autoplay?.() === false ? this.#finish() : this.#extend();
     this.seek(0);
   }
 

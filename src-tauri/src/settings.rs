@@ -137,6 +137,11 @@ pub struct Settings {
     pub sponsor_block: bool,
     /// What's playing as JSON and an overlay page for OBS, for programs on this PC (Settings → Remote).
     pub streamer_widgets: bool,
+    /// Download new versions in the background and install them when Carbon is in the tray and quiet.
+    pub auto_update: bool,
+    /// Carbon has turned on "Open at startup" once, on its first run as an installed app. After that
+    /// the Settings toggle owns it, so turning it off sticks.
+    pub startup_set_up: bool,
     /// Shortcuts that work from any app (Settings → Global shortcuts).
     pub hotkeys: crate::hotkeys::Hotkeys,
     /// Heavier text everywhere (Settings → Accessibility).
@@ -160,6 +165,18 @@ pub struct Settings {
     pub volume_curve: bool,
     /// No Discord status, scrobbles or listening history while on.
     pub private_session: bool,
+    /// Minimal effects and no motion while on, without changing the chosen effects level.
+    pub game_mode: bool,
+    /// An equalizer button in the player bar that opens Sound settings.
+    pub sound_button: bool,
+    /// Where the song comes from (and a station's bitrate) under the title in the player bar.
+    pub source_badges: bool,
+    /// Two-letter country for local radio stations; empty = the system's region.
+    pub region: String,
+    /// Asks before playing something else would drop songs you queued yourself.
+    pub warn_queue: bool,
+    /// A YouTube Music album or playlist that ends carries on as radio from its last song.
+    pub autoplay: bool,
 }
 
 /// 1: the yellow rebrand.
@@ -200,6 +217,8 @@ impl Default for Settings {
             track_notifications: false,
             sponsor_block: true,
             streamer_widgets: false,
+            auto_update: true,
+            startup_set_up: false,
             hotkeys: crate::hotkeys::Hotkeys::default(),
             bold_text: false,
             ui_scale: 1.0,
@@ -213,6 +232,12 @@ impl Default for Settings {
             volume_step: 0.05,
             volume_curve: false,
             private_session: false,
+            game_mode: false,
+            sound_button: false,
+            source_badges: false,
+            region: String::new(),
+            warn_queue: false,
+            autoplay: true,
         }
     }
 }
@@ -255,6 +280,9 @@ impl Settings {
         }
         if self.display_name.chars().count() > MAX_DISPLAY_NAME || self.display_name.chars().any(char::is_control) {
             return Err(format!("display name must be plain text, up to {MAX_DISPLAY_NAME} characters"));
+        }
+        if !self.region.is_empty() && !(self.region.len() == 2 && self.region.bytes().all(|b| b.is_ascii_uppercase())) {
+            return Err("region must be a two-letter country code".into());
         }
         if self.remote_port < 1024 {
             return Err("the remote port must be between 1024 and 65535".into());
@@ -322,7 +350,7 @@ pub fn load(app: &AppHandle) -> Settings {
     }
 }
 
-fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
+pub(crate) fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
     let file = path(app)?;
     if let Some(dir) = file.parent() {
         fs::create_dir_all(dir).map_err(|e| format!("could not create settings folder: {e}"))?;
@@ -413,6 +441,7 @@ mod tests {
         assert!(parsed.bold_text && parsed.private_session);
         let old: Settings = serde_json::from_str(r#"{"accent":"mint"}"#).unwrap();
         assert_eq!((old.motion, old.startup_page, old.volume_step), (Motion::Normal, StartupPage::Home, 0.05));
+        assert!(old.autoplay && !old.game_mode && old.region.is_empty());
     }
 
     #[test]
@@ -443,6 +472,9 @@ mod tests {
         assert!(Settings { display_name: "a
 b".into(), ..Settings::default() }.validate().is_err());
         assert!(Settings { display_name: "pealz".into(), ui_scale: 1.25, volume_step: 0.01, ..Settings::default() }.validate().is_ok());
+        assert!(Settings { region: "gb".into(), ..Settings::default() }.validate().is_err());
+        assert!(Settings { region: "GBR".into(), ..Settings::default() }.validate().is_err());
+        assert!(Settings { region: "GB".into(), ..Settings::default() }.validate().is_ok());
         let no_service = Settings { services: Some(Services { spotify: false, youtube: false }), ..Settings::default() };
         assert!(no_service.validate().is_ok());
         let youtube_only = Settings { services: Some(Services { spotify: false, youtube: true }), ..Settings::default() };
@@ -491,6 +523,8 @@ b".into(), ..Settings::default() }.validate().is_err());
         assert_eq!(clean.hotkeys.next, "");
         assert!(!Settings::default().track_notifications);
         assert!(!Settings::default().streamer_widgets);
+        assert!(Settings::default().auto_update);
+        assert!(!Settings::default().startup_set_up);
     }
 
     #[test]

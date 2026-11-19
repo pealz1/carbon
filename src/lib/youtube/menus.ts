@@ -33,8 +33,8 @@ async function copyLink(uri: string): Promise<void> {
 
 const copyItem = (uri: string): MenuItem => ({ label: "Copy YouTube Music link", icon: "link", action: () => copyLink(uri) });
 
-async function enqueue(track: Track): Promise<void> {
-  if (await player.addToQueue(track.uri, track)) toasts.show("Added to queue.");
+async function enqueue(track: Track, later = false): Promise<void> {
+  if (await (later ? player.playLater : player.addToQueue)(track.uri, track)) toasts.show("Added to queue.");
   else toasts.error(player.error ?? "Couldn't add that to the queue.");
 }
 
@@ -100,7 +100,8 @@ async function removeFrom(playlist: { id: string; name: string }, track: YtTrack
 export function ytTrackMenu(track: YtTrack, options: YtTrackMenuOptions = {}): MenuEntry[] {
   const { removeFrom: playlist, onRemoved } = options;
   return [
-    { label: "Add to queue", icon: "queue", action: () => enqueue(track) },
+    { label: "Play next", icon: "queue", action: () => enqueue(track) },
+    { label: "Play later", icon: "down", action: () => enqueue(track, true) },
     { label: "Start radio", icon: "play", action: () => player.playContext(track.uri) },
     { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([track.id]) },
     likeItem(track.uri),
@@ -123,7 +124,8 @@ export function ytCardMenu(card: Card): MenuEntry[] {
     const track: Track = { id: card.id, uri: card.uri, name: card.title, artists: [], album: card.image ? { id: "", name: "", uri: "", image: card.image } : null, durationMs: 0, explicit: false };
     return [
       { label: "Play radio", icon: "play", action: () => player.playContext(card.uri) },
-      { label: "Add to queue", icon: "queue", action: () => enqueue(track) },
+      { label: "Play next", icon: "queue", action: () => enqueue(track) },
+      { label: "Play later", icon: "down", action: () => enqueue(track, true) },
       { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([card.id]) },
       likeItem(card.uri),
       "separator",

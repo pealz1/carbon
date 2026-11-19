@@ -139,14 +139,25 @@ async fn fetch(radio: &Radio, path: &str, query: &[(&str, &str)]) -> Result<Vec<
     Ok(stations(raw))
 }
 
-/// Stations by name, by tag ("jazz"), or the most listened-to when both are empty.
+/// A two-letter country code, upper-cased; anything else is refused.
+fn country_code(country: &str) -> Result<String, String> {
+    if country.len() == 2 && country.bytes().all(|b| b.is_ascii_alphabetic()) {
+        Ok(country.to_ascii_uppercase())
+    } else {
+        Err("That isn't a country Carbon knows.".into())
+    }
+}
+
+/// Stations by name, by tag ("jazz"), in one country, or the most listened-to when all are empty.
 #[tauri::command]
-pub async fn radio_stations(radio: State<'_, Radio>, name: String, tag: String) -> Result<Vec<Station>, String> {
+pub async fn radio_stations(radio: State<'_, Radio>, name: String, tag: String, country: Option<String>) -> Result<Vec<Station>, String> {
     let (name, tag) = (clip(&name, MAX_QUERY), clip(&tag, MAX_QUERY).to_lowercase());
-    if name.is_empty() && tag.is_empty() {
+    let country = country.filter(|c| !c.is_empty()).map(|c| country_code(&c)).transpose()?;
+    if name.is_empty() && tag.is_empty() && country.is_none() {
         return fetch(&radio, "stations/topclick", &[]).await;
     }
-    fetch(&radio, "stations/search", &[("name", name.as_str()), ("tag", tag.as_str())]).await
+    let country = country.unwrap_or_default();
+    fetch(&radio, "stations/search", &[("name", name.as_str()), ("tag", tag.as_str()), ("countrycode", country.as_str())]).await
 }
 
 /// Tells the directory a station was played, which is how it ranks them (its API asks clients to).
@@ -217,6 +228,14 @@ mod tests {
         let good = serde_json::json!({ "stationuuid": ID, "name": "N", "url_resolved": "https://s.example/a", "codec": "MP3" });
         let bad = serde_json::json!({ "stationuuid": ID, "name": null, "bitrate": -3.5 });
         assert_eq!(stations(vec![bad, good, serde_json::json!("nonsense")]).len(), 1);
+    }
+
+    #[test]
+    fn takes_only_two_letter_countries() {
+        assert_eq!(country_code("gb").unwrap(), "GB");
+        assert!(country_code("GBR").is_err());
+        assert!(country_code("G1").is_err());
+        assert!(country_code("&x").is_err());
     }
 
     #[test]

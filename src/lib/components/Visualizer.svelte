@@ -2,9 +2,10 @@
   // Bars for what Carbon's own engine is playing (local files only). The engine works the
   // spectrum out only while someone asks, so this asks while it is mounted and the window can be
   // seen, and stops the moment either ends. With motion turned down it draws nothing at all.
-  import { onMount } from "svelte";
+  import { prefersReducedMotion } from "svelte/motion";
   import { engine } from "$lib/local/api";
   import { onScreen } from "$lib/on-screen.svelte";
+  import { prefs } from "$lib/preferences.svelte";
 
   const BANDS = 32;
   /** Well inside the engine's five-second lease, so a visualizer on screen never lapses. */
@@ -14,15 +15,8 @@
   const flat = () => Array<number>(BANDS).fill(0);
 
   let levels = $state(flat());
-  let calm = $state(true);
-
-  onMount(() => {
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-    const read = () => (calm = reduced.matches || document.documentElement.dataset.effects === "minimal");
-    read();
-    reduced.addEventListener("change", read);
-    return () => reduced.removeEventListener("change", read);
-  });
+  // Follows Settings live: Minimal effects, Motion "None" and game mode all still it.
+  const calm = $derived(prefersReducedMotion.current || prefs.effects === "minimal" || prefs.motion === "none");
 
   $effect(() => {
     if (calm || !onScreen.current) return;

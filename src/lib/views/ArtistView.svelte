@@ -54,7 +54,7 @@
     image={a.largeImage}
     playUri={a.uri}
     round
-    placeholder="artist"
+    placeholderIcon="artist"
     chips={[{ label: "Artist", icon: "artist" }]}
     menuItems={() => artistMenu({ kind: "artist", id: a.id, uri: a.uri, title: a.name, subtitle: "Artist", image: a.image, playUri: a.uri })}
   />

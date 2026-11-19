@@ -22,6 +22,7 @@ import { isServerUri, serverHref } from "$lib/servers/uri";
 import { isSoundcloudUri, soundcloudHref } from "$lib/soundcloud/uri";
 import { isStreamUri } from "$lib/stream/uri";
 import { session } from "$lib/session.svelte";
+import { startArtistRadio } from "$lib/spotify/artist-mix";
 import type { Card, PlaylistSummary, Track } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
 import { ytCardMenu, ytTrackMenu } from "$lib/youtube/menus";
@@ -63,11 +64,18 @@ export function shareItem(uri: string, name: string): MenuItem {
 
 const byline = (name: string, artists: { name: string }[]) => (artists.length ? `${name} – ${artists.map((a) => a.name).join(", ")}` : name);
 
-/** `tracks` (same order as `uris`) lets the songs join a Carbon queue, which local files need. */
-async function queue(uris: string[], tracks?: Track[]): Promise<void> {
-  for (const [i, uri] of uris.entries()) if (!(await player.addToQueue(uri, tracks?.[i]))) return;
+/** `tracks` (same order as `uris`) lets the songs join a Carbon queue, which local files need. `later` queues them at the end. */
+async function queue(uris: string[], tracks?: Track[], later = false): Promise<void> {
+  const add = later ? player.playLater : player.addToQueue;
+  for (const [i, uri] of uris.entries()) if (!(await add(uri, tracks?.[i]))) return;
   toasts.show(uris.length === 1 ? "Added to queue." : `Added ${uris.length} songs to queue.`);
 }
+
+/** "Play next" and "Play later" for the same songs. */
+const queueItems = (uris: string[], tracks?: Track[], count = ""): MenuItem[] => [
+  { label: `Play ${count}next`, icon: "queue", action: () => queue(uris, tracks) },
+  { label: `Play ${count}later`, icon: "down", action: () => queue(uris, tracks, true) },
+];
 
 /** "Add to playlist" submenu: a new playlist, then every playlist you can add to. */
 export function addToPlaylistItems(uris: string[]): MenuEntry[] {
@@ -105,16 +113,17 @@ export interface TrackMenuOptions {
 
 export function trackMenu(track: Track, options: TrackMenuOptions = {}): MenuEntry[] {
   const { removeFrom, onRemoved } = options;
-  const toQueue: MenuItem = { label: "Add to queue", icon: "queue", action: () => queue([track.uri], [track]) };
+  const toQueue = queueItems([track.uri], [track]);
   // Local files exist only in Carbon: no Spotify playlists, likes, album pages or links.
-  if (isLocalUri(track.uri)) return [toQueue, ...editTagsItems(track), ...bookmarkSongItems(track)];
+  if (isLocalUri(track.uri)) return [...toQueue, ...editTagsItems(track), ...bookmarkSongItems(track)];
   // Songs on the listener's own server queue among themselves; Spotify's playlists and likes don't apply.
-  if (isStreamUri(track.uri)) return [toQueue];
+  if (isStreamUri(track.uri)) return toQueue;
   // YouTube Music songs get their own menu: they never go to Spotify playlists.
   if (isYoutubeUri(track.uri)) return ytTrackMenu(track, options);
   return [
     { label: "Play", icon: "play", action: () => player.playTracks([track.uri], 0, [track]) },
-    toQueue,
+    ...toQueue,
+    { label: "Start radio", icon: "radio", action: () => startArtistRadio(track, track.artists) },
     { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([track.uri]) },
     likeItem(track.uri, "Save to Liked Songs", "Remove from Liked Songs"),
     ...(removeFrom
@@ -142,7 +151,7 @@ export function selectionMenu(tracks: Track[], options: TrackMenuOptions & { cop
   const { removeFrom, onRemoved, copy } = options;
   const spotify = tracks.filter((t) => t.uri.startsWith("spotify:track:")).map((t) => t.uri);
   return [
-    { label: `Add ${tracks.length} songs to queue`, icon: "queue", action: () => queue(tracks.map((t) => t.uri), tracks) },
+    ...queueItems(tracks.map((t) => t.uri), tracks, `${tracks.length} songs `),
     ...(spotify.length ? [{ label: "Add to playlist", icon: "plus" as const, items: addToPlaylistItems(spotify) }] : []),
     { label: "Copy", icon: "link", action: copy },
     ...(removeFrom && spotify.length
@@ -159,7 +168,7 @@ const playItems = (uri: string, count?: number): MenuItem[] => [
 export function albumMenu(album: Card, tracks: Track[] = []): MenuEntry[] {
   return [
     ...playItems(album.uri, tracks.length || undefined),
-    ...(tracks.length ? [{ label: "Add to queue", icon: "queue", action: () => queue(tracks.map((t) => t.uri), tracks) } satisfies MenuItem] : []),
+    ...(tracks.length ? queueItems(tracks.map((t) => t.uri), tracks) : []),
     ...(tracks.length ? [{ label: "Add to playlist", icon: "plus", items: addToPlaylistItems(tracks.map((t) => t.uri)) } satisfies MenuItem] : []),
     likeItem(album.uri, "Save to library", "Remove from library"),
     collectItem({ ...album, subtitle: album.subtitle || (tracks[0]?.artists ?? []).map((a) => a.name).join(", ") }),
@@ -173,7 +182,7 @@ export function albumMenu(album: Card, tracks: Track[] = []): MenuEntry[] {
 
 export function artistMenu(artist: Card): MenuEntry[] {
   const ref = { id: artist.id, name: artist.title, uri: artist.uri };
-  return [...playItems(artist.uri), "separator", { label: "Go to artist", icon: "artist", action: () => goto(`/artist/${artist.id}`) }, blockArtistMenuItem(ref), bookmarkPageItem({ path: `/artist/${artist.id}`, title: artist.title, subtitle: "Artist", image: artist.image }), shareItem(artist.uri, artist.title)];
+  return [...playItems(artist.uri), { label: "Start radio", icon: "radio", action: () => startArtistRadio(null, [{ id: artist.id, name: artist.title }]) }, "separator", { label: "Go to artist", icon: "artist", action: () => goto(`/artist/${artist.id}`) }, blockArtistMenuItem(ref), bookmarkPageItem({ path: `/artist/${artist.id}`, title: artist.title, subtitle: "Artist", image: artist.image }), shareItem(artist.uri, artist.title)];
 }
 
 function moveToFolderItems(playlistId: string): MenuEntry[] {
@@ -265,7 +274,7 @@ export function cardMenu(card: Card): MenuEntry[] {
   if (card.kind === "artist") return artistMenu(card);
   if (card.kind === "track") {
     return [
-      { label: "Add to queue", icon: "queue", action: () => queue([card.uri]) },
+      ...queueItems([card.uri]),
       { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([card.uri]) },
       likeItem(card.uri, "Save to Liked Songs", "Remove from Liked Songs"),
       "separator",

@@ -4,7 +4,7 @@ use crate::playback::PlaybackInfo;
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, Wry};
+use tauri::{AppHandle, Emitter, Manager, Wry};
 
 const TRAY_ID: &str = "carbon";
 const MAX_LABEL: usize = 60; // Windows truncates tray tooltips at 128 chars
@@ -35,6 +35,21 @@ pub fn show_main(app: &AppHandle) {
     }
 }
 
+/// The show/hide shortcut: brings Carbon forward, or puts it in the tray when it's already in front.
+pub fn toggle_main(app: &AppHandle) {
+    let Some(window) = app.get_webview_window("main").map(|w| w.as_ref().window()) else { return };
+    let in_front = window.is_visible().unwrap_or(false) && !window.is_minimized().unwrap_or(false) && window.is_focused().unwrap_or(false);
+    if !in_front {
+        return show_main(app);
+    }
+    // Like closing to the tray: playing YouTube needs the window kept alive (see visibility.rs).
+    if app.state::<crate::visibility::YoutubePlaying>().get() {
+        crate::visibility::hand_over(&window, "close");
+    } else if let Err(e) = window.hide() {
+        eprintln!("[tray] couldn't hide Carbon: {e}");
+    }
+}
+
 pub fn build(app: &AppHandle) -> tauri::Result<TrayState> {
     let item = |id: &str, text: &str, enabled: bool| MenuItem::with_id(app, id, text, enabled, None::<&str>);
     let now = item("now", "Nothing playing", false)?;
@@ -48,6 +63,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayState> {
             &item("next", "Next", true)?,
             &item("previous", "Previous", true)?,
             &PredefinedMenuItem::separator(app)?,
+            &item("mini", "Mini player", true)?,
             &item("show", "Show Carbon", true)?,
             &item("quit", "Quit Carbon", true)?,
         ],
@@ -62,6 +78,12 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayState> {
             "next" => emit(app, MediaCommand::Next),
             "previous" => emit(app, MediaCommand::Previous),
             "show" => show_main(app),
+            // The mini player lives in the main window's interface, same as its global shortcut.
+            "mini" => {
+                if let Err(e) = app.emit_to("main", "global-hotkey", crate::hotkeys::Action::MiniPlayer) {
+                    eprintln!("[tray] {e}");
+                }
+            }
             "quit" => app.exit(0),
             _ => {}
         })
