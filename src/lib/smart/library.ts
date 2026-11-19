@@ -6,7 +6,8 @@ import { localLibrary } from "$lib/local/library.svelte";
 import { likedRows, playlistRows, rowFromLocal, rowFromRaw, type RawItem, type Row } from "$lib/playlist-tools/rows";
 import { session } from "$lib/session.svelte";
 import { get, invalidate, send } from "$lib/spotify/api";
-import { chunk } from "$lib/spotify/mappers";
+import { chunk, mayReadPlaylist } from "$lib/spotify/mappers";
+import { playlistUnavailable } from "$lib/spotify/endpoints";
 import type { Paging, RawAlbum } from "$lib/spotify/types";
 import type { Sources } from "./rules";
 
@@ -48,10 +49,15 @@ export async function collect(sources: Sources, exclude: Set<string>, onStep?: (
     rows.push(...(await remembered("liked", () => likedRows(undefined, MAX_LIKED))));
   }
   if (sources.playlists) {
-    const owned = session.playlists.filter((p) => p.ownerId === session.profile?.id && !exclude.has(p.id)).slice(0, MAX_PLAYLISTS);
-    for (const [i, p] of owned.entries()) {
-      onStep?.(`Reading your playlists… ${i + 1} of ${owned.length}`);
-      rows.push(...(await remembered(`playlist:${p.id}`, () => playlistRows(p.id))));
+    const playlists = session.playlists.filter((p) => mayReadPlaylist(p, session.profile?.id) && !exclude.has(p.id)).slice(0, MAX_PLAYLISTS);
+    for (const [i, p] of playlists.entries()) {
+      onStep?.(`Reading your playlists… ${i + 1} of ${playlists.length}`);
+      try {
+        rows.push(...(await remembered(`playlist:${p.id}`, () => playlistRows(p.id))));
+      } catch (e) {
+        if (p.ownerId === session.profile?.id || !playlistUnavailable(e)) throw e;
+        p.tracksReadable = false;
+      }
     }
   }
   if (sources.albums) {

@@ -3,7 +3,7 @@ import type { Folder } from "$lib/organizer";
 import type { PlaylistSummary } from "$lib/spotify/types";
 
 export type PlaylistDialog =
-  | { mode: "create"; /** Songs to add once it exists ("Add to playlist → New playlist"). */ addUris?: string[] }
+  | { mode: "create"; name?: string; /** Songs to add once it exists ("Add to playlist → New playlist"). */ addUris?: string[] }
   | { mode: "edit"; playlist: PlaylistSummary; largeImage?: string | null; confirmDelete?: boolean };
 
 export type FolderDialog =

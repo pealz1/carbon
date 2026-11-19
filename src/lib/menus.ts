@@ -12,7 +12,7 @@ import { flattenFolders, folderOf, movePlaylist, removeFolder, togglePin } from 
 import { organizer } from "$lib/organizer.svelte";
 import { addTracks, deletePlaylist, editablePlaylists, removeTracks } from "$lib/playlist-actions";
 import { player } from "$lib/player.svelte";
-import { exportItem, notOwnedItem, saveCopyItem, toolItems } from "$lib/playlist-tools/tools.svelte";
+import { exportItem, toolItems } from "$lib/playlist-tools/tools.svelte";
 import { saved } from "$lib/saved.svelte";
 import { bandcampHref, isBandcampUri } from "$lib/bandcamp/uri";
 import { isServerUri, serverHref } from "$lib/servers/uri";
@@ -172,11 +172,15 @@ function moveToFolderItems(playlistId: string): MenuEntry[] {
 }
 
 export function playlistMenu(playlist: PlaylistSummary, largeImage?: string | null): MenuEntry[] {
-  const owned = playlist.ownerId === session.profile?.id;
+  const owned = !!playlist.ownerId && playlist.ownerId === session.profile?.id;
+  const listed = session.playlists.some((p) => p.id === playlist.id);
+  const readable = playlist.tracksReadable ?? owned;
+  const readOnly = !owned && !(listed && playlist.collaborative);
+  const tools: MenuItem = { label: "Playlist tools", icon: "sort", items: toolItems({ kind: "playlist", id: playlist.id, name: playlist.name, readOnly }) };
   const bookmark = bookmarkPageItem({ path: `/playlist/${playlist.id}`, title: playlist.name, subtitle: "Playlist", image: playlist.image });
-  if (!session.playlists.some((p) => p.id === playlist.id)) {
+  if (!listed) {
     // Not in your library (e.g. a search result): nothing to organise yet.
-    return [...playItems(playlist.uri), "separator", likeItem(playlist.uri, "Save to library", "Remove from library"), bookmark, copyItem(playlist.uri)];
+    return [...playItems(playlist.uri), "separator", likeItem(playlist.uri, "Save to library", "Remove from library"), ...(readable ? [tools] : []), bookmark, copyItem(playlist.uri)];
   }
   return [
     ...playItems(playlist.uri, playlist.trackCount ?? undefined),
@@ -191,9 +195,7 @@ export function playlistMenu(playlist: PlaylistSummary, largeImage?: string | nu
     },
     { label: "Move to folder", icon: "folder", items: moveToFolderItems(playlist.id) },
     { label: "Tags…", icon: "tag", action: () => (dialogs.tags = playlist) },
-    // Spotify only shares the items of playlists you own with apps like Carbon.
-    owned ? { label: "Playlist tools", icon: "sort", items: toolItems({ kind: "playlist", id: playlist.id, name: playlist.name }) } : notOwnedItem,
-    ...(owned ? [] : [saveCopyItem({ kind: "playlist", id: playlist.id, name: playlist.name, readOnly: true })]),
+    ...(readable ? [tools] : [{ label: "View playlist", icon: "note", action: () => goto(`/playlist/${playlist.id}`) } satisfies MenuItem]),
     "separator",
     bookmark,
     copyItem(playlist.uri),

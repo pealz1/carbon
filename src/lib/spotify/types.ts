@@ -48,6 +48,8 @@ export interface PlaylistSummary {
   /** null when Spotify doesn't say. */
   public: boolean | null;
   collaborative: boolean;
+  /** Set after opening the playlist with the current Spotify account. */
+  tracksReadable?: boolean;
 }
 
 export interface Profile {
@@ -103,9 +105,11 @@ export interface RawPlaylist {
   owner?: { id: string; display_name?: string | null };
   public?: boolean | null;
   collaborative?: boolean;
-  items?: { total?: number } | null;
-  tracks?: { total?: number } | null;
+  items?: Partial<Paging<RawPlaylistRow>> | null;
+  tracks?: Partial<Paging<RawPlaylistRow>> | null;
 }
+
+export type RawPlaylistRow = { item?: RawTrack | null; track?: RawTrack | null } | null;
 
 export interface Paging<T> {
   items: T[];

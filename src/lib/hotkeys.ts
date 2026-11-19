@@ -1,3 +1,4 @@
+import { isMac } from "$lib/platform";
 // Global shortcuts in Settings: turning a key press into an accelerator the Rust core can register,
 // and showing one. hotkeys.rs checks every binding again before using it.
 import type { HotkeyAction, Hotkeys } from "$lib/native";
@@ -91,7 +92,7 @@ function canonical(combo: string): string {
 /** Whether two bindings are the same shortcut. */
 export const sameShortcut = (a: string, b: string): boolean => !!a && !!b && canonical(a) === canonical(b);
 
-const SHOWN: Record<string, string> = { Super: "Win", Left: "←", Right: "→", Up: "↑", Down: "↓" };
+const SHOWN: Record<string, string> = { Super: isMac ? "Cmd" : "Win", Left: "←", Right: "→", Up: "↑", Down: "↓" };
 
 /** "Ctrl+Alt+Right" as keycaps: ["Ctrl", "Alt", "→"]. */
 export const comboKeys = (combo: string): string[] => (combo ? combo.split("+").map((k) => SHOWN[k] ?? k) : []);

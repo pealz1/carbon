@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { parseLink } from "./links";
+import { parseLink, pastedSpotifyItems } from "./links";
 
 const ID = "6rqhFgbbKwnb9MLmUQDhG6";
+
+it("copies selected Spotify items in order and reports invalid links before creating anything", () => {
+  const song = `spotify:track:${ID}`;
+  expect(pastedSpotifyItems(`${song}\nhttps://open.spotify.com/episode/${ID}?si=x\n${song}`)).toEqual([song, `spotify:episode:${ID}`, song]);
+  expect(() => pastedSpotifyItems(`${song} https://open.spotify.com/playlist/${ID}`)).toThrow("Link 2");
+  expect(() => pastedSpotifyItems(" ")).toThrow("Paste");
+});
 
 describe("parseLink", () => {
   it("opens Spotify pages and plays Spotify songs and episodes", () => {

@@ -116,8 +116,13 @@
         <span class="play-icon"><Icon name="play" size={14} /></span>
       </button>
       <div class="main">
-        {#if showArt && track.album?.image}
-          <img src={track.album.image} alt="" width="40" height="40" loading="lazy" decoding="async" />
+        {#if showArt}
+          <span class="track-art">
+            <Icon name="note" size={16} />
+            {#key track.album?.image}
+              {#if track.album?.image}<img src={track.album.image} alt="" loading="lazy" decoding="async" onerror={(e) => e.currentTarget.setAttribute("hidden", "")} />{/if}
+            {/key}
+          </span>
         {/if}
         <div class="text">
           <span class="name">
@@ -296,13 +301,20 @@
     min-width: 0;
   }
 
-  .main img {
+  .track-art {
+    position: relative;
+    display: grid;
+    place-items: center;
+    background: var(--graphite-800);
+    color: var(--text-faint);
     width: 40px;
     height: 40px;
     flex: none;
     border-radius: var(--r-art-sm);
-    object-fit: cover;
+    overflow: hidden;
   }
+  .track-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--graphite-800); }
+  .track-art :global(img[hidden]) { display: none; }
 
   .text {
     display: flex;

@@ -8,7 +8,7 @@ import { organizer } from "$lib/organizer.svelte";
 import { session } from "$lib/session.svelte";
 import type { SmartPlaylist } from "$lib/smart/rules";
 import { smart } from "$lib/smart/store.svelte";
-import { ApiError, getFresh } from "$lib/spotify/api";
+import { getFresh } from "$lib/spotify/api";
 import * as sp from "$lib/spotify/endpoints";
 import { chunk } from "$lib/spotify/mappers";
 import type { Paging, PlaylistSummary, RawAlbum, RawArtist } from "$lib/spotify/types";
@@ -71,13 +71,13 @@ async function allPlaylists(tick: Progress): Promise<PlaylistSummary[]> {
 
 /** Spotify only shares songs of playlists you own or work on with apps like Carbon; others keep their details only. */
 async function playlistTracks(p: PlaylistSummary, owned: boolean, tick: Progress): Promise<Pick<BackupPlaylist, "tracks" | "tracksRead">> {
-  if (!owned && !p.collaborative) return { tracks: [], tracksRead: false };
+  if (!owned && !(p.tracksReadable ?? p.collaborative)) return { tracks: [], tracksRead: false };
   try {
     const rows = await playlistRows(p.id, tick);
     return { tracks: rows.filter((r) => URI.item.test(r.uri)).map(rowEntry), tracksRead: true };
   } catch (e) {
     // A playlist of yours that can't be read fails the backup: better than one that quietly lacks it.
-    if (owned || !(e instanceof ApiError)) throw e;
+    if (owned || !sp.playlistUnavailable(e)) throw e;
     return { tracks: [], tracksRead: false };
   }
 }

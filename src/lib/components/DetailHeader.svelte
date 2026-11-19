@@ -14,12 +14,15 @@
   import { player } from "$lib/player.svelte";
   import { css } from "$lib/wallpaper";
   import Icon from "./Icon.svelte";
+  import SpotifyPlaylistCover from "./SpotifyPlaylistCover.svelte";
+  import DevicePicker from "./DevicePicker.svelte";
 
   // Album, playlist, artist and collection headers. The artwork is shown whole and untouched;
   // colour read from it washes the space behind the header and tints the Play pill.
   let {
     title,
     image,
+    playlistCover,
     chips = [],
     byline,
     description,
@@ -34,6 +37,7 @@
   }: {
     title: string;
     image: string | null;
+    playlistCover?: { id: string; public: boolean | null };
     /** Small facts (kind, year, song count, length) shown as chips under the title. */
     chips?: Chip[];
     /** Who made it: artist links or the playlist owner. */
@@ -75,7 +79,9 @@
 
 <header class="detail" class:washed={!!tones.current} {style}>
   <div class="art" class:round>
-    {#if image}
+    {#if playlistCover}
+      <div class="placeholder"><SpotifyPlaylistCover id={playlistCover.id} {image} allowPublic={playlistCover.public !== false} size={72} /></div>
+    {:else if image}
       <img src={image} alt="" width="350" height="350" />
     {:else}
       <div class="placeholder" class:liked={placeholder === "heart"}><Icon name={placeholder} size={72} filled={placeholder === "heart"} /></div>
@@ -105,6 +111,9 @@
         </button>
       {/if}
       {@render children?.()}
+      {#if playUri && /^spotify:(playlist|album|artist):/.test(playUri)}
+        <DevicePicker contextUri={playUri} />
+      {/if}
       {#if menuItems}
         <button class="circle" onclick={(e) => menu.open(e, menuItems())} aria-label="More options for {title}" aria-haspopup="menu" title="More">
           <Icon name="more" size={19} />

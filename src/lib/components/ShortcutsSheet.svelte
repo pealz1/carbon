@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isMac } from "$lib/platform";
   import { dialogs } from "$lib/dialogs.svelte";
   import { SHORTCUTS } from "$lib/shortcuts";
   import Modal from "./Modal.svelte";
@@ -10,7 +11,7 @@
       <div class="row">
         <dt>{shortcut.label}</dt>
         <dd>
-          {#each shortcut.keys as key (key)}<kbd>{key}</kbd>{/each}
+          {#each shortcut.keys as key (key)}<kbd>{key === "Ctrl" && isMac ? "⌘" : key}</kbd>{/each}
         </dd>
       </div>
     {/each}

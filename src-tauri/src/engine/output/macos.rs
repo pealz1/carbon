@@ -56,3 +56,18 @@ impl Output {
         let _ = self.stream.stop();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::dsp::{Params, Snapshot};
+
+    #[test]
+    fn opens_the_default_output_when_available() {
+        if get_default_device_id(false).is_none() { return; }
+        let shared = Arc::new(Shared::new(Params::new(Snapshot::default())));
+        let mut output = open(shared, "").expect("open default Core Audio output");
+        assert!(output.rate > 0);
+        output.pause_stream();
+    }
+}

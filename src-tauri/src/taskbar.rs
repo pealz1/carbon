@@ -5,11 +5,6 @@
 #[cfg(windows)]
 pub use win::{attach, set_playing};
 
-#[cfg(not(windows))]
-pub fn attach(_app: &tauri::AppHandle, _window: &tauri::WebviewWindow) {}
-#[cfg(not(windows))]
-pub fn set_playing(_app: &tauri::AppHandle, _playing: bool) {}
-
 /// A filled shape on the 24-unit grid of Carbon's icon set.
 #[derive(Clone, Copy, Debug)]
 enum Shape {

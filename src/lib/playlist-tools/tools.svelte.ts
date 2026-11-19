@@ -110,9 +110,6 @@ export function toolItems(source: Source): MenuItem[] {
   ];
 }
 
-/** Shown on playlists you don't own, so the missing tools aren't a mystery. */
-export const notOwnedItem: MenuItem = { label: "Sort and export: only playlists you own", icon: "sort", disabled: true };
-
 export async function openCarbon(id: string | null): Promise<void> {
   if (id) await goto(`/carbon/${id}`);
   else toasts.error(carbonPlaylists.error ?? "Couldn't create the playlist.");

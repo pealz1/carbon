@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Device } from "./spotify/devices";
 
 vi.mock("$lib/player.svelte", () => ({ player: { deviceId: "carbon", paused: true, away: false, status: "idle" } }));
-vi.mock("$lib/spotify/endpoints", () => ({ lastPlayback: vi.fn(), transferTo: vi.fn(async () => {}) }));
+vi.mock("$lib/spotify/endpoints", () => ({ lastPlayback: vi.fn(), transferTo: vi.fn(async () => {}), playOn: vi.fn(async () => {}) }));
 vi.mock("$lib/spotify/devices", async (original) => ({ ...(await original<object>()), listDevices: vi.fn(), setDeviceVolume: vi.fn(async () => {}) }));
 
 const { player } = await import("$lib/player.svelte");
@@ -12,6 +12,13 @@ const { devices } = await import("./devices.svelte");
 
 const device = (id: string, name: string, extra: Partial<Device> = {}): Device => ({ id, name, type: "Speaker", active: false, restricted: false, volume: 30, ...extra });
 const snapshot = (isPlaying: boolean) => ({ contextUri: null, trackUri: null, deviceName: null, isPlaying });
+
+it("starts the requested playlist on the selected Connect device independently of Carbon's SDK", async () => {
+  await devices.moveTo(device("mac", "Spotify on Mac"), "spotify:playlist:shared");
+  expect(sp.playOn).toHaveBeenCalledWith("mac", { context_uri: "spotify:playlist:shared" });
+  expect(sp.transferTo).not.toHaveBeenCalled();
+  expect(devices.playing).toBe(true);
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

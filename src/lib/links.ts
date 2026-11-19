@@ -59,3 +59,15 @@ export function parseLink(text: string): LinkTarget | null {
   const parts = url.pathname.split("/").filter((part) => part && !part.startsWith("intl-"));
   return spotify(parts[0] ?? "", parts[1] ?? "");
 }
+
+/** Songs explicitly selected and copied in Spotify, in order including repeats. */
+export function pastedSpotifyItems(text: string): string[] {
+  if (!text.trim()) throw new Error("Paste the song links you copied in Spotify.");
+  const links = text.trim().split(/\s+/);
+  if (links.length > 10_000) throw new Error("Spotify playlists hold up to 10,000 items.");
+  return links.map((link, i) => {
+    const target = parseLink(link);
+    if (target?.service !== "spotify" || !target.playUri) throw new Error(`Link ${i + 1} must point to a Spotify song or episode.`);
+    return target.playUri;
+  });
+}
