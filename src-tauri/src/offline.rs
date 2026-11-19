@@ -156,7 +156,8 @@ pub async fn offline_save(app: AppHandle, downloads: State<'_, Downloads>, id: S
         if !response.status().is_success() {
             return Err("Internet Archive could not deliver the selected file.".into());
         }
-        if response.content_length().is_some_and(|n| n > available) {
+        let expected_size = response.content_length();
+        if expected_size.is_some_and(|n| n > available) {
             return Err("This download exceeds the offline storage limit.".into());
         }
         let part = root.join(".download-part");
@@ -170,7 +171,7 @@ pub async fn offline_save(app: AppHandle, downloads: State<'_, Downloads>, id: S
                 }
                 file.write_all(&chunk).map_err(|e| e.to_string())?;
             }
-            if size == 0 || response.content_length().is_some_and(|n| n != size) {
+            if size == 0 || expected_size.is_some_and(|n| n != size) {
                 return Err("Incomplete audio file.".into());
             }
             file.sync_all().map_err(|e| e.to_string())?;

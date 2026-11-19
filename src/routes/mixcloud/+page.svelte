@@ -1,4 +1,5 @@
 <script lang="ts">
   import ProviderPage from "$lib/providers/ProviderPage.svelte";
 </script>
-<ProviderPage provider="mixcloud"/>
+
+<ProviderPage provider="mixcloud" />

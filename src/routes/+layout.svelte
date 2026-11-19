@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css";
+  import { musicSync } from "$lib/history/sync.svelte";
   import { initLocale } from "$lib/i18n/locale.svelte";
   import { afterNavigate, goto, onNavigate } from "$app/navigation";
   import { page } from "$app/state";
@@ -77,10 +78,11 @@
       paused: player.paused,
       trackUri: player.track?.uri ?? null,
     }));
+    const stopSync=musicSync.start();
     const stopPopouts = popouts.start();
     const stopSounds = installSoundFeedback(document);
     const onScreen = keepYoutubeOnScreen(async () => void (player.paused || (await player.togglePlay())));
-    return () => (stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
+    return () => (stopSync(),stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
   });
 
   // Music services start once the Carbon account gate (if this build has one) is passed.

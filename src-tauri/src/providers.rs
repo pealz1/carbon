@@ -231,6 +231,7 @@ pub enum Request {
     Liked,
     MyPlaylists,
     PlaylistTracks,
+    AlbumTracks,
     Resolve,
 }
 #[derive(Deserialize)]
@@ -316,6 +317,8 @@ pub async fn provider_catalog(catalog: State<'_, Catalog>, query: Query) -> Resu
         Provider::Deezer => {
             let path = match action {
                 Search if !id.is_empty() => "search".to_owned(),
+                PlaylistTracks if numeric(id) => format!("playlist/{id}/tracks"),
+                AlbumTracks if numeric(id) => format!("album/{id}/tracks"),
                 Album if numeric(id) && offset > 0 => format!("album/{id}/tracks"),
                 Album if numeric(id) => format!("album/{id}"),
                 Playlist if numeric(id) && offset > 0 => format!("playlist/{id}/tracks"),

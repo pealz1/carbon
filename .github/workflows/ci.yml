@@ -147,6 +147,7 @@ jobs:
 
       - run: npm ci
       - run: npm run check
+      - run: python .github/test_release_manifest.py
       - run: npx vitest run
       - run: cargo clippy --all-targets -- -D warnings
         working-directory: src-tauri

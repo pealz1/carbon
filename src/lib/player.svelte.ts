@@ -94,7 +94,7 @@ class Player {
   /** Counts every hand-over to a player, so a play that was still fetching when another began can tell. */
   #intent = 0;
   #reported = { at: 0, uri: null as string | null };
-  #seekAt = 0;
+  #seekAt = Number.NEGATIVE_INFINITY; // Drift correction is safe before the first user seek.
   #upNext: Spotify.SdkTrack[] = [];
   #sdk: Spotify.Player | null = null;
   #opening: Promise<void> | null = null;

@@ -1,0 +1,10 @@
+- Added Linux desktop installers
+- Added separate Mac installers
+- Added four music catalogs
+- Added SoundCloud account connections
+- Added playlist imports and match review
+- Added offline recording downloads
+- Added playlist sync and sharing
+- Added daily mixes
+- Added ten interface translations
+- Added Mac Touch Bar playback controls

@@ -1,6 +1,6 @@
 name: Release
 
-# Build both installers into one draft and publish once the updater lists both Mac architectures and Windows.
+# Build native packages in parallel. Publish a single update manifest after all uploads finish.
 on:
   push:
     tags: ["v*"]
@@ -9,9 +9,27 @@ permissions:
   contents: write
 
 jobs:
+  draft:
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.draft.outputs.id }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: draft
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --draft --title "Carbon $TAG" --notes-file .github/release-notes.md
+          fi
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
+          echo "id=$(gh release view "$TAG" --json databaseId --jq .databaseId)" >> "$GITHUB_OUTPUT"
+
   release:
+    needs: draft
     strategy:
-      max-parallel: 1
+      fail-fast: false
       matrix:
         include:
           - runner: windows-latest
@@ -113,12 +131,12 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           args: ${{ matrix.args }}
+          releaseId: ${{ needs.draft.outputs.id }}
           tagName: ${{ github.ref_name }}
           releaseName: Carbon ${{ github.ref_name }}
-          releaseBody: Download the installer below. New here? The setup guide is at https://getcarbon.cc/setup.
           releaseDraft: true
           prerelease: false
-          includeUpdaterJson: true
+          includeUpdaterJson: false
 
       - uses: ./.github/actions/macos-images
         if: runner.os == 'macOS'
@@ -136,8 +154,9 @@ jobs:
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.ref_name }}
     steps:
-      - name: Verify updater and publish
+      - uses: actions/checkout@v7
+      - name: Verify assets and publish the signed update index
         run: |
-          gh release download "$TAG" -p latest.json
-          jq -e '[.platforms["windows-x86_64"], .platforms["darwin-aarch64"], .platforms["darwin-x86_64"], .platforms["linux-x86_64"], .platforms["linux-aarch64"]] | all(.[]; (.signature | length) > 0 and (.url | startswith("https://")))' latest.json
-          gh release edit "$TAG" --draft=false --latest
+          python3 .github/release-manifest.py "$TAG" "$GH_REPO"
+          gh release upload "$TAG" latest.json --clobber
+          gh release edit "$TAG" --notes-file .github/release-notes.md --draft=false --latest
