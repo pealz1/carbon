@@ -3,6 +3,7 @@
   import Status from "$lib/components/Status.svelte";
   import TrackList from "$lib/components/TrackList.svelte";
   import { greeting } from "$lib/format";
+  import { prefs } from "$lib/preferences.svelte";
   import ReleasesShelf from "$lib/releases/ReleasesShelf.svelte";
   import { resource } from "$lib/resource.svelte";
   import { session } from "$lib/session.svelte";
@@ -43,7 +44,7 @@
     })),
   );
 
-  const firstName = $derived(session.profile?.name.split(" ")[0] ?? "");
+  const firstName = $derived(prefs.value?.displayName.trim() || (session.profile?.name.split(" ")[0] ?? ""));
 </script>
 
 <header class="hero">

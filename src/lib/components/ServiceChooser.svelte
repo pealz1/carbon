@@ -12,10 +12,9 @@
 
   let picked = $state<Services>({ spotify: false, youtube: false });
   let saving = $state(false);
-  const ready = $derived(picked.spotify || picked.youtube);
 
   async function go() {
-    if (!ready || saving) return;
+    if (saving) return;
     saving = true;
     await services.choose(picked);
     saving = false;
@@ -36,7 +35,7 @@
         </button>
       {/each}
     </div>
-    <button class="go" onclick={go} disabled={!ready || saving}>{saving ? "Setting up…" : "Continue"}</button>
+    <button class="go" onclick={go} disabled={saving}>{saving ? "Setting up…" : picked.spotify || picked.youtube ? "Continue" : "Continue with other providers or local files"}</button>
   </section>
 </div>
 

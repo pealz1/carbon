@@ -2,10 +2,12 @@
 // to Rust (history.rs), which appends it to a file. The list itself is only read when a page asks
 // for it. `history.paused` is the switch a private session would flip: nothing is recorded while
 // it's on.
+import { account } from "$lib/account.svelte";
 import { invoke } from "@tauri-apps/api/core";
 import { untrack } from "svelte";
 import { describeError } from "$lib/errors";
 import { player } from "$lib/player.svelte";
+import { prefs } from "$lib/preferences.svelte";
 import { toasts } from "$lib/toast.svelte";
 import type { Entry } from "./entries";
 import { advance, begin, count, due, waitFor, type Listening } from "./rule";
@@ -13,7 +15,16 @@ import { isSong, songOf, type Song } from "./song";
 
 class History {
   /** Oldest first, as saved. Empty until `load()`. */
-  entries = $state.raw<Entry[]>([]);
+  deviceEntries = $state.raw<Entry[]>([]);
+  #online=$state.raw<Entry[]>([]);
+  #owner=$state<string|null>(null);
+  entries=$derived.by(()=>{
+    if(!this.#owner || this.#owner!==account.user?.id || !this.#online.length)return this.deviceEntries;
+    const unique=new Map(this.#online.map(e=>[e.at+"|"+e.uri,e]));
+    for(const e of this.deviceEntries)unique.set(e.at+"|"+e.uri,e);
+    return [...unique.values()].sort((a,b)=>a.at-b.at);
+  });
+  setOnline(owner:string|null,entries:Entry[]){this.#owner=owner;this.#online=entries;}
   loaded = $state(false);
   error = $state<string | null>(null);
   paused = $state(false);
@@ -71,7 +82,7 @@ class History {
 
   #record(at: number): void {
     const playing = this.#now;
-    if (!playing || this.paused) return;
+    if (!playing || this.paused || prefs.value?.privateSession) return;
     const entry: Entry = { at, source: playing.source, ...playing.song };
     invoke<boolean>("history_add", { entry }).then(
       (saved) => void (saved && this.#show(entry)),
@@ -82,14 +93,14 @@ class History {
   /** Adds a saved play to the list a page is showing, unless the list was read after it was saved. */
   async #show(entry: Entry): Promise<void> {
     await this.#loading;
-    const last = this.entries.at(-1);
-    if (this.loaded && !(last?.at === entry.at && last.uri === entry.uri)) this.entries = [...this.entries, entry];
+    const last = this.deviceEntries.at(-1);
+    if (this.loaded && !(last?.at === entry.at && last.uri === entry.uri)) this.deviceEntries = [...this.deviceEntries, entry];
   }
 
   load(): Promise<void> {
     this.#loading ??= invoke<Entry[]>("history_get").then(
       (entries) => {
-        this.entries = entries;
+        this.deviceEntries = entries;
         this.loaded = true;
         this.error = null;
       },
@@ -114,7 +125,7 @@ class History {
   async clear(): Promise<boolean> {
     try {
       await invoke("history_clear");
-      this.entries = [];
+      this.deviceEntries = [];
       return true;
     } catch (e) {
       console.error("[history] clear", e);

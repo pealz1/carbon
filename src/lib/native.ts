@@ -8,6 +8,8 @@ export type RomanPlace = "below" | "instead";
 export type ChineseScript = "original" | "simplified" | "traditional";
 export type LyricsSource = "lrclib" | "youtube" | "netease" | "musixmatch";
 export type CinemaLayout = "split" | "lyrics" | "cover" | "ambient";
+export type Motion = "none" | "normal" | "playful";
+export type StartupPage = "home" | "library" | "liked" | "search" | "last";
 export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
 
@@ -21,6 +23,8 @@ export interface Settings {
   /** Null until chosen on first run. */
   services?: Services | null;
   closeToTray: boolean;
+  miniOnMinimize:boolean; miniClickThrough:boolean; miniPinned:boolean;
+  discordArtwork:boolean; discordTimestamps:boolean; discordPaused:boolean;
   discordPresence: boolean;
   lastfmScrobbling: boolean;
   /** Independent of Last.fm; only sends once a token is saved. */
@@ -69,6 +73,27 @@ export interface Settings {
   /** Carbon has turned on "Open at startup" once; after that the Settings toggle owns it. */
   startupSetUp: boolean;
   hotkeys: Hotkeys;
+  /** Heavier text everywhere. */
+  boldText: boolean;
+  /** Main-window zoom, 0.8 to 1.5. */
+  uiScale: number;
+  motion: Motion;
+  /** Cards swell on hover and press in when clicked. */
+  cardHover: boolean;
+  highContrast: boolean;
+  /** A focus outline on clicks too, not only on keyboard focus. */
+  focusRing: boolean;
+  /** Replaces the Spotify name in the home greeting; "" = the Spotify name. */
+  displayName: string;
+  startupPage: StartupPage;
+  /** Ask before quitting while music plays. */
+  confirmClose: boolean;
+  /** Volume change per scroll-wheel notch, 0.01 to 0.25. */
+  volumeStep: number;
+  /** Squares the slider's volume for finer control at the low end. */
+  volumeCurve: boolean;
+  /** No Discord status, scrobbles or listening history while on. */
+  privateSession: boolean;
 }
 
 /** Global shortcuts as accelerators ("Ctrl+Alt+Space"); "" is unbound. Mirrors hotkeys.rs. */

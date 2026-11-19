@@ -7,6 +7,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 const FILE: &str = "settings.json";
 const MAX_LYRICS_DELAY_MS: i32 = 1000;
+const MAX_DISPLAY_NAME: usize = 40;
 pub const ACCENTS: [&str; 7] = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"];
 const LYRICS_SOURCES: [&str; 4] = ["lrclib", "youtube", "netease", "musixmatch"];
 
@@ -49,6 +50,26 @@ pub enum ChineseScript {
     Traditional,
 }
 
+/// How much buttons and surfaces move (Settings → Accessibility). None also stills page transitions.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum Motion {
+    None,
+    Normal,
+    Playful,
+}
+
+/// The page Carbon opens on. `Last` is wherever the listener was when they closed it.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum StartupPage {
+    Home,
+    Library,
+    Liked,
+    Search,
+    Last,
+}
+
 /// The music services the listener connected (asked on first run, changeable in Settings).
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Services {
@@ -62,6 +83,12 @@ pub struct Settings {
     /// None until the listener has chosen.
     pub services: Option<Services>,
     pub close_to_tray: bool,
+    pub mini_on_minimize: bool,
+    pub mini_click_through: bool,
+    pub mini_pinned: bool,
+    pub discord_artwork: bool,
+    pub discord_timestamps: bool,
+    pub discord_paused: bool,
     pub discord_presence: bool,
     pub lastfm_scrobbling: bool,
     /// Sends listens to ListenBrainz once a token is saved; independent of Last.fm.
@@ -117,6 +144,27 @@ pub struct Settings {
     pub startup_set_up: bool,
     /// Shortcuts that work from any app (Settings → Global shortcuts).
     pub hotkeys: crate::hotkeys::Hotkeys,
+    /// Heavier text everywhere (Settings → Accessibility).
+    pub bold_text: bool,
+    /// Webview zoom for the main window, 0.8 to 1.5.
+    pub ui_scale: f32,
+    pub motion: Motion,
+    /// Album and playlist cards swell on hover and press in when clicked.
+    pub card_hover: bool,
+    pub high_contrast: bool,
+    /// A focus outline on clicks too, not only on keyboard focus.
+    pub focus_ring: bool,
+    /// Used in the home greeting instead of the Spotify name; empty = the Spotify name.
+    pub display_name: String,
+    pub startup_page: StartupPage,
+    /// Asks before quitting while music plays (only when closing actually quits).
+    pub confirm_close: bool,
+    /// How far one scroll-wheel notch moves the volume, 0.01 to 0.25.
+    pub volume_step: f32,
+    /// Squares the volume slider, so the low end gets finer control.
+    pub volume_curve: bool,
+    /// No Discord status, scrobbles or listening history while on.
+    pub private_session: bool,
 }
 
 /// 1: the yellow rebrand.
@@ -127,6 +175,8 @@ impl Default for Settings {
         Self {
             services: None,
             close_to_tray: true,
+            mini_on_minimize: false, mini_click_through: false, mini_pinned: true,
+            discord_artwork: true, discord_timestamps: true, discord_paused: false,
             discord_presence: true,
             lastfm_scrobbling: true,
             listenbrainz_scrobbling: true,
@@ -158,6 +208,18 @@ impl Default for Settings {
             auto_update: true,
             startup_set_up: false,
             hotkeys: crate::hotkeys::Hotkeys::default(),
+            bold_text: false,
+            ui_scale: 1.0,
+            motion: Motion::Normal,
+            card_hover: false,
+            high_contrast: false,
+            focus_ring: false,
+            display_name: String::new(),
+            startup_page: StartupPage::Home,
+            confirm_close: false,
+            volume_step: 0.05,
+            volume_curve: false,
+            private_session: false,
         }
     }
 }
@@ -192,11 +254,17 @@ impl Settings {
         if !(0.0..=1.0).contains(&self.ui_sound_volume) {
             return Err("interface sound volume must be between 0% and 100%".into());
         }
+        if !(0.8..=1.5).contains(&self.ui_scale) {
+            return Err("interface scale must be between 80% and 150%".into());
+        }
+        if !(0.01..=0.25).contains(&self.volume_step) {
+            return Err("volume scroll step must be between 1% and 25%".into());
+        }
+        if self.display_name.chars().count() > MAX_DISPLAY_NAME || self.display_name.chars().any(char::is_control) {
+            return Err(format!("display name must be plain text, up to {MAX_DISPLAY_NAME} characters"));
+        }
         if self.remote_port < 1024 {
             return Err("the remote port must be between 1024 and 65535".into());
-        }
-        if self.services.is_some_and(|s| !s.spotify && !s.youtube) {
-            return Err("connect at least one music service".into());
         }
         // Font names go into CSS, so anything but a plain family name is refused.
         if let Some(bad) = self.fonts().into_iter().find(|f| !f.is_empty() && !crate::fonts::is_safe_name(f)) {
@@ -299,7 +367,10 @@ pub fn settings_set(app: AppHandle, state: State<SettingsState>, settings: Setti
         crate::hotkeys::apply(&app, &settings.hotkeys);
     }
     if let Some(discord) = app.try_state::<crate::discord::Discord>() {
-        discord.send(crate::discord::Msg::Enabled(settings.discord_presence));
+        discord.send(crate::discord::Msg::Preferences(settings.discord_presence && !settings.private_session,crate::discord::Options::from(&settings)));
+    }
+    if settings.mini_pinned!=before.mini_pinned || settings.mini_click_through!=before.mini_click_through {
+        crate::popouts::configure_mini(&app, &settings)?;
     }
     if let Some(lastfm) = app.try_state::<crate::lastfm::Lastfm>() {
         lastfm.send(crate::lastfm::Msg::Enabled(settings.lastfm_scrobbling));
@@ -341,6 +412,17 @@ mod tests {
     }
 
     #[test]
+    fn reads_interface_preferences_and_keeps_old_files_working() {
+        let parsed: Settings =
+            serde_json::from_str(r#"{"motion":"playful","startupPage":"last","uiScale":1.1,"boldText":true,"privateSession":true}"#).unwrap();
+        assert_eq!(parsed.motion, Motion::Playful);
+        assert_eq!(parsed.startup_page, StartupPage::Last);
+        assert!(parsed.bold_text && parsed.private_session);
+        let old: Settings = serde_json::from_str(r#"{"accent":"mint"}"#).unwrap();
+        assert_eq!((old.motion, old.startup_page, old.volume_step), (Motion::Normal, StartupPage::Home, 0.05));
+    }
+
+    #[test]
     fn rejects_bad_values() {
         let bad_accent = Settings { accent: "neon".into(), ..Settings::default() };
         assert!(bad_accent.validate().is_err());
@@ -362,8 +444,14 @@ mod tests {
         assert!(bad_id.validate().is_err());
         let bad_port = Settings { remote_port: 80, ..Settings::default() };
         assert!(bad_port.validate().is_err());
+        assert!(Settings { ui_scale: 2.0, ..Settings::default() }.validate().is_err());
+        assert!(Settings { volume_step: 0.0, ..Settings::default() }.validate().is_err());
+        assert!(Settings { display_name: "x".repeat(41), ..Settings::default() }.validate().is_err());
+        assert!(Settings { display_name: "a
+b".into(), ..Settings::default() }.validate().is_err());
+        assert!(Settings { display_name: "pealz".into(), ui_scale: 1.25, volume_step: 0.01, ..Settings::default() }.validate().is_ok());
         let no_service = Settings { services: Some(Services { spotify: false, youtube: false }), ..Settings::default() };
-        assert!(no_service.validate().is_err());
+        assert!(no_service.validate().is_ok());
         let youtube_only = Settings { services: Some(Services { spotify: false, youtube: true }), ..Settings::default() };
         assert!(youtube_only.validate().is_ok());
         let loud = Settings { ui_sound_volume: 1.5, ..Settings::default() };

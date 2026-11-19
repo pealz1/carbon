@@ -123,7 +123,7 @@ export async function albumRows(id: string, onProgress?: Progress): Promise<Row[
 export function carbonRows(playlist: CarbonPlaylist, library: LocalTrack[]): Row[] {
   const files = new Map(library.map((t) => [t.id, t]));
   return playlist.items.map((item) => {
-    if (item.kind === "spotify") return rowFromTrack(item.track);
+    if (item.kind !== "local") return rowFromTrack(item.track);
     const file = files.get(item.id);
     return file ? rowFromLocal(file) : { ...rowFromRaw(null), uri: LOCAL_PREFIX + item.id, name: "File not found" };
   });

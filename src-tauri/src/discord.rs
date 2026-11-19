@@ -14,16 +14,22 @@ const MAX_TEXT: usize = 128;
 
 pub enum Msg {
     Playback(Option<PlaybackInfo>),
-    Enabled(bool),
+    Preferences(bool,Options),
+}
+
+#[derive(Clone,Copy,PartialEq,Eq)]
+pub struct Options { artwork:bool, timestamps:bool, paused:bool }
+impl From<&crate::settings::Settings> for Options {
+    fn from(p:&crate::settings::Settings)->Self{Self{artwork:p.discord_artwork,timestamps:p.discord_timestamps,paused:p.discord_paused}}
 }
 
 pub struct Discord(Sender<Msg>);
 
 impl Discord {
-    pub fn spawn(enabled: bool) -> Self {
+    pub fn spawn(enabled: bool, options:Options) -> Self {
         let (tx, rx) = mpsc::channel();
         if let Some(app_id) = APP_ID {
-            std::thread::spawn(move || run(app_id, enabled, rx));
+            std::thread::spawn(move || run(app_id, enabled, options, rx));
         }
         Self(tx)
     }
@@ -66,35 +72,40 @@ fn same(a: &Option<Shown>, b: &Option<Shown>) -> bool {
     }
 }
 
-fn activity(info: &PlaybackInfo, start_ms: i64) -> Activity<'static> {
+fn activity(info: &PlaybackInfo, start_ms: i64,options:Options) -> Activity<'static> {
     let mut assets = Assets::new().large_text(field(&info.album));
-    if let Some(url) = &info.artwork_url {
+    if options.artwork && let Some(url) = &info.artwork_url {
         assets = assets.large_image(url.clone());
     }
     // No length (a live radio station) means no end: Discord then shows time elapsed, not a full bar.
     let started = Timestamps::new().start(start_ms);
     let timestamps = if info.duration_ms > 0 { started.end(start_ms + info.duration_ms as i64) } else { started };
-    Activity::new()
+    let activity=Activity::new()
         .activity_type(ActivityType::Listening)
         .status_display_type(StatusDisplayType::Details)
         .details(field(&info.title))
-        .state(field(&info.artist_line()))
-        .assets(assets)
-        .timestamps(timestamps)
+        .state(field(&if info.paused {format!("Paused · {}",info.artist_line())} else {info.artist_line()}))
+        .assets(assets);
+    if options.timestamps && !info.paused { activity.timestamps(timestamps) } else {activity}
 }
 
-fn run(app_id: &'static str, mut enabled: bool, rx: Receiver<Msg>) {
+fn run(app_id: &'static str, mut enabled: bool,mut options:Options, rx: Receiver<Msg>) {
     let mut client: Option<DiscordIpcClient> = None;
     let mut latest: Option<PlaybackInfo> = None;
     let mut shown: Option<Shown> = None;
     loop {
         match rx.recv_timeout(RETRY) {
             Ok(Msg::Playback(info)) => latest = info,
-            Ok(Msg::Enabled(on)) => enabled = on,
+            Ok(Msg::Preferences(on,next)) => {
+                if next!=options && let Some(previous)=shown.as_mut(){previous.track_id.clear();}
+                enabled=on; options=next;
+            }
             Err(RecvTimeoutError::Timeout) => {}
             Err(RecvTimeoutError::Disconnected) => break,
         }
-        let want = target(latest.as_ref(), enabled, now_ms());
+        let want=if let Some(info)=latest.as_ref().filter(|i|enabled && i.paused && options.paused) {
+            Some(Shown{track_id:format!("paused:{}",info.track_id),start_ms:0})
+        } else {target(latest.as_ref(),enabled,now_ms())};
         if same(&want, &shown) && (client.is_some() || want.is_none()) {
             continue;
         }
@@ -107,7 +118,7 @@ fn run(app_id: &'static str, mut enabled: bool, rx: Receiver<Msg>) {
         }
         let Some(ipc) = client.as_mut() else { continue };
         let result = match (&want, latest.as_ref()) {
-            (Some(s), Some(info)) => ipc.set_activity(activity(info, s.start_ms)),
+            (Some(s), Some(info)) => ipc.set_activity(activity(info, s.start_ms,options)),
             _ => ipc.clear_activity(),
         };
         match result {

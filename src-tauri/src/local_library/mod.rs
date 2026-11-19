@@ -69,6 +69,7 @@ pub struct LibraryView {
 pub struct LocalLibrary {
     index: Mutex<Index>,
     scanning: AtomicBool,
+    scan_again: AtomicBool,
     file: Option<PathBuf>,
     art_dir: Option<PathBuf>,
 }
@@ -82,7 +83,7 @@ impl LocalLibrary {
             .and_then(|t| serde_json::from_str::<Index>(&t).map_err(|e| eprintln!("[library] index unreadable, starting fresh: {e}")).ok())
             .unwrap_or_default();
         let art_dir = app.path().app_cache_dir().ok().map(|d| d.join(ART_DIR));
-        LocalLibrary { index: Mutex::new(index), scanning: AtomicBool::new(false), file, art_dir }
+        LocalLibrary { index: Mutex::new(index), scanning: AtomicBool::new(false), scan_again: AtomicBool::new(false), file, art_dir }
     }
 
     fn view(&self) -> Result<LibraryView, String> {
@@ -188,6 +189,7 @@ fn add_folder(folders: &[String], folder: &Path) -> Result<Vec<String>, String> 
 
 fn spawn_scan(app: &AppHandle) -> Result<(), String> {
     let library = app.state::<LocalLibrary>();
+    library.scan_again.store(true,Ordering::Release);
     if library.scanning.swap(true, Ordering::AcqRel) {
         return Ok(()); // the running scan starts over if the folders changed under it
     }
@@ -207,6 +209,7 @@ fn spawn_scan(app: &AppHandle) -> Result<(), String> {
 fn run_scan(app: &AppHandle) {
     let library = app.state::<LocalLibrary>();
     loop {
+        library.scan_again.store(false,Ordering::Release);
         let Ok((folders, previous)) = library.index.lock().map(|index| {
             // Tracks cut by a CUE sheet are rebuilt from the sheet on every scan.
             let reusable = index.tracks.iter().filter(|t| index.tags_version == TAGS_VERSION && t.clip.is_none());
@@ -230,12 +233,20 @@ fn run_scan(app: &AppHandle) {
         break;
     }
     library.scanning.store(false, Ordering::Release);
+    if library.scan_again.swap(false,Ordering::AcqRel){let _=spawn_scan(app);}
     let _ = app.emit("local-library-changed", ());
 }
 
 #[tauri::command]
 pub fn local_library_get(library: State<LocalLibrary>) -> Result<LibraryView, String> {
     library.view()
+}
+
+pub(crate) fn include_offline(app:&AppHandle,folder:&Path)->Result<(),String>{
+    let library=app.state::<LocalLibrary>();
+    {let mut index=library.index.lock().map_err(|e|e.to_string())?;
+     if !index.folders.iter().any(|f|folder.starts_with(f)){index.folders=add_folder(&index.folders,folder)?;library.save(&index);}}
+    spawn_scan(app)
 }
 
 /// Opens the Windows folder picker. The path comes from the OS dialog, never from the webview.
@@ -306,7 +317,7 @@ mod tests {
             tracks: files.iter().map(|f| scan::read_one(f, None).unwrap()).collect(),
             tags_version: TAGS_VERSION,
         };
-        LocalLibrary { index: Mutex::new(index), scanning: AtomicBool::new(false), file: None, art_dir: None }
+        LocalLibrary { index: Mutex::new(index), scanning: AtomicBool::new(false), scan_again: AtomicBool::new(false), file: None, art_dir: None }
     }
 
     #[test]

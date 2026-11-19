@@ -1,0 +1,12 @@
+name: Install Linux desktop dependencies
+description: GTK, WebKit, audio, Secret Service and Tauri package tools
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
+          libasound2-dev libdbus-1-dev libxdo-dev librsvg2-dev libssl-dev libfuse2 patchelf rpm file \
+          desktop-file-utils gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav \
+          xvfb xauth dbus-x11

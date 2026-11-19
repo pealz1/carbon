@@ -13,6 +13,8 @@
   const found = resource(() => (term ? soundcloud.search(term) : Promise.resolve(null)));
 </script>
 
+<a class="pill" href="/soundcloud/account">SoundCloud player and account</a>
+
 <header class="page-head"><h1>SoundCloud</h1></header>
 <SearchBox bind:term placeholder="Search songs, playlists and people" label="Search SoundCloud" />
 

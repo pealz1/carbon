@@ -1,6 +1,6 @@
 [package]
 name = "carbon"
-version = "0.7.0"
+version = "0.8.0"
 description = "Carbon, a glass Spotify client"
 authors = ["pealz"]
 edition = "2024"
@@ -15,6 +15,7 @@ name = "carbon_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
+cc = "1"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
@@ -33,7 +34,7 @@ md5 = "0.8"
 # Signs YouTube Music requests (SAPISIDHASH); already in the tree via tungstenite.
 sha1 = "0.11"
 # Same major as tauri-plugin-updater uses, so only one reqwest ends up in the binary.
-reqwest = { version = "0.13", default-features = false, features = ["rustls", "json", "form"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "json", "form", "query"] }
 tokio = { version = "1", features = ["sync", "time", "macros", "net", "rt"] }
 socketioxide = { version = "0.18", default-features = false }
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
@@ -55,6 +56,10 @@ tauri-plugin-global-shortcut = "2"
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 cpal = "0.18"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
+dirs = "6"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # Output only. Newer CoreAudio backends link the macOS 14.2 process-tap recording API.

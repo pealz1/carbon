@@ -53,13 +53,13 @@ Carbon is a native Rust app that plays your music itself, looks like it belongs 
 2. **Create your Spotify app.** Spotify lets each developer app serve only five listeners, so Carbon runs on your own free one. It takes about two minutes: [step-by-step guide](https://getcarbon.cc/setup).
 3. **Paste your Client ID** into Carbon, sign in with Spotify, and press play.
 
-Carbon targets Windows 10 and 11 and macOS 11 Big Sur or later with Safari 16.4 or newer. The Mac app runs natively on Intel and Apple silicon. Spotify playback requires **Spotify Premium**.
+Carbon targets Windows 10/11, macOS 11+ with Safari 16.4+, and x86-64 or ARM64 desktop Linux with glibc 2.35+, WebKitGTK 4.1 and the listed multimedia dependencies. Linux installers include AppImage, DEB and RPM. The Mac app runs natively on Intel and Apple silicon. Spotify playback requires **Spotify Premium**.
 
 Owned and collaborative playlists open as editable track lists when Spotify grants access. For other public playlists, Carbon shows Spotify’s embedded player. To make a sortable copy, select songs in Spotify, copy their links, then choose **Make an editable copy** in Carbon.
 
 > Windows may show a SmartScreen warning the first time, because Carbon isn't signed with a paid code-signing certificate yet. Choose **More info → Run anyway**.
 
-> The 0.7.0 Mac disk image is ad-hoc signed. Gatekeeper can show a warning because this release has no Apple notarization.
+> The Mac disk images are ad-hoc signed. Gatekeeper can show a warning because this release has no Apple notarization.
 
 ## Support Carbon
 
@@ -91,3 +91,5 @@ Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.
 ## License
 
 [MIT](LICENSE). Carbon isn't affiliated with, endorsed by, or sponsored by Spotify. Spotify is a trademark of Spotify AB.
+
+[Music providers, offline playback and playlist imports](docs/providers.md)

@@ -64,7 +64,7 @@ pub fn uninstall(app: AppHandle) -> Result<(), String> {
 /// index, Carbon playlists, smart-playlist rules and cached metadata. Credential Manager entries survive an uninstall, so this is the
 /// "leave nothing behind" option. Music files themselves are never touched.
 #[tauri::command]
-pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
+pub async fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     token_store::token_clear()?;
     token_store::carbon_token_clear()?;
     lastfm::clear_session()?;
@@ -79,6 +79,7 @@ pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     library_tools::delete(&app)?;
     youtube::forget(&app)?;
     crate::servers::clear_all()?;
+    crate::providers::forget(&app.state::<crate::providers::Catalog>()).await?;
     forget_window_state(&app)?;
     settings::delete(&app)
 }

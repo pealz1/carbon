@@ -19,7 +19,7 @@
   /** Every stored item, with its track when it can still be played. */
   const rows = $derived(
     (playlist?.items ?? []).map((item) => ({
-      track: item.kind === "spotify" ? item.track : (localLibrary.byUri.get(LOCAL_PREFIX + item.id) ?? null),
+      track: item.kind !== "local" ? item.track : (localLibrary.byUri.get(LOCAL_PREFIX + item.id) ?? null),
       kind: item.kind,
     })),
   );
@@ -104,7 +104,7 @@
             <span class="name">{row.track?.name ?? "File not found"}</span>
             <span class="sub">{row.track ? row.track.artists.map((a) => a.name).join(", ") : "Rescan or remove it"}</span>
           </div>
-          <span class="badge" class:local={row.kind === "local"}>{row.kind === "local" ? "Local" : "Spotify"}</span>
+          <span class="badge" class:local={row.kind === "local"}>{row.kind === "local" ? "Local" : row.kind === "youtube" ? "YouTube Music" : "Spotify"}</span>
           <span class="duration tabular">{row.track ? formatDuration(row.track.durationMs) : ""}</span>
           <span class="tools">
             <button onclick={() => store.move(playlist.id, i, i - 1)} disabled={i === 0} aria-label="Move up"><Icon name="up" size={15} /></button>

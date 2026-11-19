@@ -1,5 +1,7 @@
 <script lang="ts">
   import "../app.css";
+  import { musicSync } from "$lib/history/sync.svelte";
+  import { initLocale } from "$lib/i18n/locale.svelte";
   import { afterNavigate, goto, onNavigate } from "$app/navigation";
   import { page } from "$app/state";
   import { onMount, tick, type Snippet } from "svelte";
@@ -17,6 +19,7 @@
   import LyricsPanel from "$lib/components/LyricsPanel.svelte";
   import NowPlayingBar from "$lib/components/NowPlayingBar.svelte";
   import PlaylistDialog from "$lib/components/PlaylistDialog.svelte";
+  import QuitGuard from "$lib/components/QuitGuard.svelte";
   import QueuePanel from "$lib/components/QueuePanel.svelte";
   import ShortcutsSheet from "$lib/components/ShortcutsSheet.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
@@ -45,17 +48,21 @@
   import { updates } from "$lib/updates.svelte";
   import { installSoundFeedback, setSoundGate } from "$lib/sfx";
   import { useSmartShuffle } from "$lib/smart-shuffle-play";
+  import { lastPage, rememberPage, startupPath } from "$lib/startup-page";
   import { view } from "$lib/view.svelte";
 
   let { children }: { children: Snippet } = $props();
   let main = $state<HTMLElement>();
   // The mini player and lyrics windows only mirror this window's player; they start nothing.
   const popout = isPopoutPath(page.url.pathname);
+  // Read before the first navigation below overwrites it with Home.
+  const lastAtLaunch = popout ? null : lastPage();
 
   // Every window (pop-outs too) stops its per-frame work while it can't be seen.
   onMount(() => onScreen.start());
 
   onMount(() => {
+    void initLocale().catch(e=>console.error("[language]",e));
     if (popout) return;
     void account.boot();
     void serverSession.load();
@@ -73,10 +80,11 @@
       trackUri: player.track?.uri ?? null,
     }));
     const stopUpdates = updates.start(); // looks for new versions in the background
+    const stopSync=musicSync.start();
     const stopPopouts = popouts.start();
     const stopSounds = installSoundFeedback(document);
     const onScreen = keepYoutubeOnScreen(async () => void (player.paused || (await player.togglePlay())));
-    return () => (stopUpdates(), stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
+    return () => (stopUpdates(), stopSync(), stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
   });
 
   // Music services start once the Carbon account gate (if this build has one) is passed.
@@ -97,11 +105,24 @@
     if (!booting) void tick().then(() => requestAnimationFrame(() => dismissBootScreen()));
   });
 
-  afterNavigate(() => main?.scrollTo({ top: 0 }));
+  afterNavigate(() => {
+    main?.scrollTo({ top: 0 });
+    if (!popout && services.screen === "app") rememberPage(page.url.pathname + page.url.search);
+  });
+
+  // Settings → Behaviour → Startup page, once, unless a link already opened somewhere else.
+  let landed = false;
+  $effect(() => {
+    if (popout || landed || services.screen !== "app" || !prefs.value) return;
+    landed = true;
+    const to = startupPath(prefs.value.startupPage, lastAtLaunch);
+    if (page.url.pathname === "/" && to !== "/") void goto(to, { replaceState: true });
+  });
 
   // Native page transitions; only the page content (view-transition-name: page) moves.
   onNavigate((navigation) => {
-    if (!document.startViewTransition || document.documentElement.dataset.effects === "minimal") return;
+    const { effects, motion } = document.documentElement.dataset;
+    if (!document.startViewTransition || effects === "minimal" || motion === "none") return;
     return new Promise((resolve) => {
       document.startViewTransition(async () => {
         resolve();
@@ -157,6 +178,7 @@
   {#if compact.on}<CompactPlayer />{/if}
   <YoutubeStage />
   <ContextMenu />
+  <QuitGuard />
   {#if dialogs.playlist}
     {#key dialogs.playlist}<PlaylistDialog request={dialogs.playlist} />{/key}
   {/if}
