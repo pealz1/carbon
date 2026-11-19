@@ -3,7 +3,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { withTimeout } from "$lib/auth";
-import { CarbonError, describeCarbonError, exchangeCode, fetchMe, loginUrl, logout, type CarbonUser } from "$lib/carbon-account";
+import { CarbonError, describeCarbonError, musicRequest, exchangeCode, fetchMe, loginUrl, logout, type CarbonUser } from "$lib/carbon-account";
 import { REQUIRE_CARBON_ACCOUNT, TIMING } from "$lib/config";
 import { challengeFor, randomString } from "$lib/pkce";
 
@@ -67,6 +67,11 @@ class Account {
       this.error = describeCarbonError(e);
       this.status = "signed-out";
     }
+  }
+
+  music<T>(path:string,init:RequestInit={}):Promise<T> {
+    if(!this.#token)return Promise.reject(new Error("Sign in to your Carbon account to sync your library."));
+    return musicRequest<T>(path,init,this.#token);
   }
 
   async signOut(): Promise<void> {

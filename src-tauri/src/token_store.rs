@@ -22,7 +22,7 @@ fn check(token: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn load(account: &str) -> Result<Option<String>, String> {
+pub(crate) fn load(account: &str) -> Result<Option<String>, String> {
     match entry(account)?.get_password() {
         Ok(token) => Ok(Some(token)),
         Err(keyring::Error::NoEntry) => Ok(None),
@@ -30,14 +30,14 @@ fn load(account: &str) -> Result<Option<String>, String> {
     }
 }
 
-fn save(account: &str, token: &str) -> Result<(), String> {
+pub(crate) fn save(account: &str, token: &str) -> Result<(), String> {
     check(token)?;
     entry(account)?
         .set_password(token)
         .map_err(|e| format!("could not save sign-in: {e}"))
 }
 
-fn clear(account: &str) -> Result<(), String> {
+pub(crate) fn clear(account: &str) -> Result<(), String> {
     match entry(account)?.delete_credential() {
         Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
         Err(e) => Err(format!("could not remove saved sign-in: {e}")),

@@ -1,26 +1,57 @@
 name: Release
 
-# Build both installers into one draft and publish once the updater lists both Mac architectures and Windows.
+# Build native packages in parallel. Publish a single update manifest after all uploads finish.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Native tag build to finish publishing
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
+  draft:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.draft.outputs.id }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: draft
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --draft --title "Carbon $TAG" --notes-file .github/release-notes.md
+          fi
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
+          echo "id=$(gh release view "$TAG" --json databaseId --jq .databaseId)" >> "$GITHUB_OUTPUT"
+
   release:
+    needs: draft
     strategy:
-      max-parallel: 1
+      fail-fast: false
       matrix:
         include:
           - runner: windows-latest
             args: ""
           - runner: macos-15
             args: "--target universal-apple-darwin"
+          - runner: ubuntu-22.04
+            args: ""
+          - runner: ubuntu-22.04-arm
+            args: ""
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/linux-desktop
+        if: runner.os == 'Linux'
 
       - uses: actions/setup-node@v7
         with:
@@ -100,28 +131,54 @@ jobs:
 
       - uses: tauri-apps/tauri-action@v0
         env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          NO_STRIP: "true"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           args: ${{ matrix.args }}
+          releaseId: ${{ needs.draft.outputs.id }}
           tagName: ${{ github.ref_name }}
           releaseName: Carbon ${{ github.ref_name }}
-          releaseBody: Download the installer below. New here? The setup guide is at https://getcarbon.cc/setup.
           releaseDraft: true
           prerelease: false
-          includeUpdaterJson: true
+          includeUpdaterJson: false
+
+      - uses: ./.github/actions/macos-images
+        if: runner.os == 'macOS'
+      - name: Upload Mac disk images
+        if: runner.os == 'macOS'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.ref_name }}" src-tauri/target/{aarch64,x86_64}-apple-darwin/release/bundle/dmg/*.dmg --clobber
 
   publish:
+    permissions:
+      actions: read
+      contents: write
     needs: release
+    if: ${{ !cancelled() && (needs.release.result == 'success' || (github.event_name == 'workflow_dispatch' && needs.release.result == 'skipped')) }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.ref_name }}
     steps:
-      - name: Verify updater and publish
+      - uses: actions/checkout@v7
+      - name: Select the completed native build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RUN_ID: ${{ inputs.build_run }}
         run: |
-          gh release download "$TAG" -p latest.json
-          jq -e '[.platforms["windows-x86_64"], .platforms["darwin-aarch64"], .platforms["darwin-x86_64"]] | all(.[]; (.signature | length) > 0 and (.url | startswith("https://")))' latest.json
-          gh release edit "$TAG" --draft=false --latest
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          gh run view "$RUN_ID" --json event,workflowName,headBranch,jobs > "$RUNNER_TEMP/build.json"
+          tag=$(jq -er 'select(.event == "push" and .workflowName == "Release")
+            | select([.jobs[] | select(.name | startswith("release (")) | .conclusion] == ["success","success","success","success"])
+            | .headBranch | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' "$RUNNER_TEMP/build.json")
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+      - name: Verify assets and publish the signed update index
+        run: |
+          python3 .github/release-manifest.py "$TAG" "$GH_REPO"
+          gh release upload "$TAG" latest.json --clobber
+          gh release edit "$TAG" --notes-file .github/release-notes.md --draft=false --latest

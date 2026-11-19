@@ -61,7 +61,7 @@ describe("native bridge", () => {
 
 describe("preferences", () => {
   const settings = {
-    closeToTray: true,
+    closeToTray: true, miniOnMinimize:false,miniClickThrough:false,miniPinned:true,discordArtwork:true,discordTimestamps:true,discordPaused:false,
     discordPresence: true,
     lastfmScrobbling: true,
     listenbrainzScrobbling: true,

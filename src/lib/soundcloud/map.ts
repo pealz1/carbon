@@ -55,6 +55,9 @@ const readableSegments = (t: Raw): boolean => t.format?.protocol === "hls" && /m
  * one plain file or unencrypted MP3/AAC segments: previews and protected streams are left alone.
  */
 export function unplayable(raw: Raw): string | null {
+  if (raw.access === "blocked") return REASONS.blocked;
+  if (raw.access === "preview") return REASONS.preview;
+  if (typeof raw.streamable === "boolean") return raw.streamable ? null : REASONS.blocked;
   if (raw.policy === "BLOCK") return REASONS.blocked;
   if (raw.policy === "SNIP") return REASONS.preview;
   const offered = list(raw.media?.transcodings);

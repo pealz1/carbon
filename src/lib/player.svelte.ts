@@ -98,7 +98,7 @@ class Player {
   /** Asks the listener whether to drop their queued songs; installed by the window that can show it. */
   confirmReplace: (() => Promise<boolean>) | null = null;
   #reported = { at: 0, uri: null as string | null };
-  #seekAt = 0;
+  #seekAt = Number.NEGATIVE_INFINITY; // Drift correction is safe before the first user seek.
   #upNext: Spotify.SdkTrack[] = [];
   #sdk: Spotify.Player | null = null;
   #opening: Promise<void> | null = null;

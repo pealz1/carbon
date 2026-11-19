@@ -148,9 +148,9 @@ impl NowPlaying {
 /// Carbon's local data folder. Found without Tauri, so the running app and a `now-playing` launch
 /// (which never starts Tauri) always agree on it.
 fn data_dir() -> Option<PathBuf> {
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
     return dirs::data_local_dir().map(|dir| dir.join(IDENTIFIER));
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
     std::env::var_os("LOCALAPPDATA").map(|dir| PathBuf::from(dir).join(IDENTIFIER))
 }
 

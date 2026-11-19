@@ -1,6 +1,8 @@
 <script lang="ts">
   import { disable as autostartOff, enable as autostartOn, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
   import { openUrl } from "@tauri-apps/plugin-opener";
+  import { invoke } from "@tauri-apps/api/core";
+  import { languages,activeLocale,selectLocale,type Locale } from "$lib/i18n/locale.svelte";
   import { onMount } from "svelte";
   import { account } from "$lib/account.svelte";
   import AccessibilityPanel from "$lib/components/AccessibilityPanel.svelte";
@@ -51,6 +53,15 @@
     { id: "minimal", label: "Minimal", hint: "Flat colour, no blur or motion; easiest on older PCs" },
   ];
 
+  let query=$state(""),grid=$state<HTMLDivElement>(),matchCount=$state(0);
+  let testing=$state(false),diagnostics=$state<{name:string;status:number|null;elapsed:number}[]>([]);
+  $effect(()=>{
+    const term=query.trim().toLocaleLowerCase(),panels=grid?.querySelectorAll<HTMLElement>(":scope > section");
+    let count=0;
+    for(const panel of panels??[]){const match=!term || panel.textContent?.toLocaleLowerCase().includes(term);panel.hidden=!match;if(match)count++;}
+    matchCount=count;
+  });
+  async function testConnections(){testing=true;try{diagnostics=await invoke("provider_diagnostics");}catch(e){notice=describeError(e);}finally{testing=false;}}
   let info = $state<AppInfo | null>(null);
   let lastfm = $state<LastfmStatus | null>(null);
   let lastfmBusy = $state(false);
@@ -152,11 +163,13 @@
 
 <header class="page-head">
   <h1>Settings</h1>
+  <input type="search" class="input" bind:value={query} placeholder="Search settings" aria-label="Search settings">
+  {#if query && !matchCount}<p role="status">No matching settings.</p>{/if}
   {#if notice || prefs.error}<p class="notice" role="status">{prefs.error ?? notice}</p>{/if}
 </header>
 
 {#if s}
-  <div class="grid">
+  <div class="grid" bind:this={grid}>
     <section class="panel plate account">
       <h2>Account</h2>
       {#if services.active.spotify}
@@ -203,6 +216,7 @@
 
     <section class="panel plate">
       <h2>Appearance</h2>
+      <label>Language <select class="input" value={activeLocale()} onchange={e=>selectLocale(e.currentTarget.value as Locale)}>{#each Object.entries(languages) as [code,name]}<option value={code}>{name}</option>{/each}</select></label>
       <p class="eyebrow">Effects</p>
       <div class="segmented" role="radiogroup" aria-label="Effects">
         {#each EFFECTS as e (e.id)}
@@ -276,6 +290,11 @@
         description={info?.discordConfigured ? "Shows what you're listening to while Discord is open." : "Not available in this build."}
         onchange={(v) => prefs.update({ discordPresence: v })}
       />
+      {#if s.discordPresence}
+        <Toggle checked={s.discordArtwork} label="Show Discord artwork" onchange={v=>prefs.update({discordArtwork:v})}/>
+        <Toggle checked={s.discordTimestamps} label="Show playback time on Discord" onchange={v=>prefs.update({discordTimestamps:v})}/>
+        <Toggle checked={s.discordPaused} label="Show paused songs on Discord" onchange={v=>prefs.update({discordPaused:v})}/>
+      {/if}
       <Toggle
         checked={s.lastfmScrobbling}
         disabled={!lastfm?.username}
@@ -325,6 +344,12 @@
 
     <section class="panel plate">
       <h2>System</h2>
+      <button class="pill" disabled={testing} onclick={testConnections}>Test provider connections</button>
+      {#if testing}<p role="status">Checking connections…</p>{/if}
+      {#if diagnostics.length}<ul>{#each diagnostics as item}<li>{item.name} · {item.status===null?"Unreachable":"HTTP "+item.status+" · "+item.elapsed+" ms"}</li>{/each}</ul>{/if}
+      <Toggle checked={s.miniOnMinimize} label="Open mini player on minimize" onchange={v=>prefs.update({miniOnMinimize:v})}/>
+      <Toggle checked={s.miniPinned} label="Keep mini player on top" onchange={v=>prefs.update({miniPinned:v})}/>
+      <Toggle checked={s.miniClickThrough} label="Click through the mini player" description="Turn this off here to use the mini player buttons again." onchange={v=>prefs.update({miniClickThrough:v})}/>
       <Toggle checked={startup} label="Open at startup" description="Starts in the background when you sign in to your computer." onchange={toggleStartup} />
       <Toggle checked={s.closeToTray} label="Keep playing when closed" description="Closing the window keeps Carbon in the tray. Quit from the tray icon." onchange={(v) => prefs.update({ closeToTray: v })} />
     </section>
@@ -342,6 +367,8 @@
           {updates.state === "checking" ? "Checking…" : updates.state === "current" ? "You're up to date · check again" : "Check for updates"}
         </button>
       {/if}
+      {#if updates.notes}<details><summary>Release notes</summary><p class="notes">{updates.notes}</p></details>{/if}
+      <button class="pill" onclick={()=>openUrl("https://github.com/pealz1/carbon/releases")}>Version history</button>
       {#if updates.error}<p class="warn">{updates.error}</p>{/if}
     </section>
 
@@ -376,6 +403,7 @@
 {/if}
 
 <style>
+  .grid > :global([hidden]){display:none} .notes{white-space:pre-line}
   .page-head {
     align-items: baseline;
   }

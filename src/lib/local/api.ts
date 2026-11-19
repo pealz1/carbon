@@ -58,7 +58,7 @@ export interface LibraryView {
   scanning: boolean;
 }
 
-export type PlaylistItem = { kind: "local"; id: string } | { kind: "spotify"; track: Track };
+export type PlaylistItem = { kind: "local"; id: string } | { kind: "spotify" | "youtube"; track: Track };
 
 export interface CarbonPlaylist {
   id: string;
@@ -130,8 +130,9 @@ export const library = {
 };
 
 export const playlists = {
+  restore:(id:string,name:string,items:PlaylistItem[],expected:number|null)=>invoke<CarbonPlaylist[]>("carbon_playlist_restore",{id,name,items,expected}),
   list: () => invoke<CarbonPlaylist[]>("carbon_playlists"),
-  create: (name: string) => invoke<CarbonPlaylist[]>("carbon_playlist_create", { name }),
+  create: (name: string, items?: PlaylistItem[]) => invoke<CarbonPlaylist[]>("carbon_playlist_create", { name, items }),
   rename: (id: string, name: string) => invoke<CarbonPlaylist[]>("carbon_playlist_rename", { id, name }),
   remove: (id: string) => invoke<CarbonPlaylist[]>("carbon_playlist_delete", { id }),
   add: (id: string, items: PlaylistItem[]) => invoke<CarbonPlaylist[]>("carbon_playlist_add", { id, items }),

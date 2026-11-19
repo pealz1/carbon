@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Carbon: a free, open-source Spotify and YouTube Music client for Windows and macOS</title>
-  <meta name="description" content="Carbon is a free, open-source Spotify and YouTube Music client for Windows and macOS, built in Rust. A liquid-glass interface, word-synced lyrics, media keys, Discord and Last.fm, and signed updates.">
+  <title>Carbon: a free, open-source Spotify and YouTube Music client for Windows, macOS and Linux</title>
+  <meta name="description" content="Carbon is a free, open-source Spotify and YouTube Music client for Windows, macOS and Linux, built in Rust. A liquid-glass interface, word-synced lyrics, media keys, Discord and Last.fm, and signed updates.">
   <link rel="canonical" href="https://getcarbon.cc/">
   <meta name="theme-color" content="#090907">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -24,7 +24,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Carbon">
   <meta property="og:title" content="Carbon: your music, in liquid glass">
-  <meta property="og:description" content="A free, open-source Spotify and YouTube Music client for Windows and macOS. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
+  <meta property="og:description" content="A free, open-source Spotify and YouTube Music client for Windows, macOS and Linux. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
   <meta property="og:url" content="https://getcarbon.cc/">
   <meta property="og:image" content="https://getcarbon.cc/assets/og.png?v=4">
   <meta property="og:image:width" content="1200">
@@ -32,9 +32,10 @@
   <meta property="og:image:alt" content="The Carbon logo beside the Carbon app window on a laptop screen.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Carbon: your music, in liquid glass">
-  <meta name="twitter:description" content="A free, open-source Spotify and YouTube Music client for Windows and macOS. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
+  <meta name="twitter:description" content="A free, open-source Spotify and YouTube Music client for Windows, macOS and Linux. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
   <meta name="twitter:image" content="https://getcarbon.cc/assets/og.png?v=4">
   <meta name="twitter:image:alt" content="The Carbon logo beside the Carbon app window on a laptop screen.">
+  <script src="/assets/installers.js?v=1" defer></script>
 </head>
 <body class="home">
   <a class="skip" href="#main">Skip to content</a>
@@ -61,7 +62,7 @@
       <div class="wrap hero__top">
         <h1 class="hero__title" id="hero-title">Your music,<br>in liquid glass.</h1>
         <div class="hero__aside">
-          <p class="hero__lead">Carbon is a free, open-source Spotify and YouTube Music client for Windows and macOS. Built in Rust, it plays your library itself, fills lyrics word by word and keeps your sign-in on your PC.</p>
+          <p class="hero__lead">Carbon is a free, open-source Spotify and YouTube Music client for Windows, macOS and Linux. Built in Rust, it plays your library itself, fills lyrics word by word and keeps your sign-in on your PC.</p>
           <div class="cta">
             <a class="btn btn--primary btn--lg" href="https://github.com/pealz1/carbon/releases/latest" data-tilt="10">
               <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
@@ -293,7 +294,7 @@
       </div>
       <div class="wrap get__body">
         <h2 id="get-title">Get Carbon for your desktop.</h2>
-        <p class="get__lead">Free and open source. On first launch you’ll create your own Spotify Client ID; the setup guide walks you through it in about two minutes.</p>
+        <p class="get__lead">Choose the installer for your computer. You can listen to local files and public music providers without a Spotify account.</p>
         <div class="cta cta--center">
           <a class="btn btn--primary btn--lg" href="https://github.com/pealz1/carbon/releases/latest" data-tilt="10">
             <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
@@ -301,9 +302,12 @@
           </a>
           <a class="btn btn--glass btn--lg" href="/setup" data-tilt="10">Setup guide</a>
         </div>
+        <details class="downloads"><summary>All installers</summary><ul id="carbon-installers">
+          <li><a href="https://github.com/pealz1/carbon/releases/latest">View all release downloads</a></li>
+        </ul></details>
         <dl class="reqs">
-          <div><dt>System</dt><dd>Windows 10 or 11, or macOS 11+ with Safari 16.4+</dd></div>
-          <div><dt>Account</dt><dd>Spotify Premium</dd></div>
+          <div><dt>System</dt><dd>Windows 10/11, macOS 11+ with Safari 16.4+, or desktop Linux with glibc 2.35+ and WebKitGTK 4.1</dd></div>
+          <div><dt>Account</dt><dd>Carbon account. Spotify playback requires Premium.</dd></div>
           <div><dt>Price</dt><dd>Free</dd></div>
           <div><dt>License</dt><dd>MIT</dd></div>
         </dl>
@@ -370,7 +374,7 @@
           </details>
           <details class="qa">
             <summary>Which Macs can run Carbon?<span class="qa__icon" aria-hidden="true"></span></summary>
-            <div class="qa__a"><p>Choose the universal DMG for Intel or Apple silicon. Carbon requires macOS 11 or later with Safari 16.4 or newer. Version 0.7.0 is ad-hoc signed and Gatekeeper may show a warning.</p></div>
+            <div class="qa__a"><p>Choose the Apple silicon, Intel or universal DMG. Carbon requires macOS 11 or later with Safari 16.4 or newer. The Mac build is ad-hoc signed and Gatekeeper may show a warning.</p></div>
           </details>
         </div>
       </div>
@@ -382,7 +386,7 @@
       <div class="foot">
         <div class="foot__brand">
           <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg?v=3" width="30" height="30" alt="" loading="lazy"><img class="brand__word" src="/assets/carbon-wordmark.svg?v=3" width="119" height="27" alt="" loading="lazy"></a>
-          <p>A free, open-source Spotify and YouTube Music client for Windows and macOS.</p>
+          <p>A free, open-source Spotify and YouTube Music client for Windows, macOS and Linux.</p>
         </div>
         <nav aria-labelledby="f-product">
           <h2 id="f-product">Product</h2>

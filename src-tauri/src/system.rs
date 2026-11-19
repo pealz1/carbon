@@ -43,7 +43,7 @@ pub fn uninstall(app: AppHandle) -> Result<(), String> {
 /// index, Carbon playlists, smart-playlist rules and cached metadata. Credential Manager entries survive an uninstall, so this is the
 /// "leave nothing behind" option. Music files themselves are never touched.
 #[tauri::command]
-pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
+pub async fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     token_store::token_clear()?;
     token_store::carbon_token_clear()?;
     lastfm::clear_session()?;
@@ -58,6 +58,7 @@ pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     library_tools::delete(&app)?;
     youtube::forget(&app)?;
     crate::servers::clear_all()?;
+    crate::providers::forget(&app.state::<crate::providers::Catalog>()).await?;
     forget_window_state(&app)?;
     settings::delete(&app)
 }
@@ -103,6 +104,15 @@ fn forget_window_state(app: &AppHandle) -> Result<(), String> {
     remove_path(&cache.join("notifications"))
 }
 
+/// Deletes a file or folder; one that's already gone is fine.
+fn remove_path(path: &std::path::Path) -> Result<(), String> {
+    let result = if path.is_dir() { std::fs::remove_dir_all(path) } else { std::fs::remove_file(path) };
+    match result {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("couldn't delete {}: {e}", path.display())),
+        _ => Ok(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,14 +128,5 @@ mod tests {
         remove_path(&dir).unwrap();
         remove_path(&dir).unwrap(); // already gone is fine
         assert_eq!(size_of(&dir), 0);
-    }
-}
-
-/// Deletes a file or folder; one that's already gone is fine.
-fn remove_path(path: &std::path::Path) -> Result<(), String> {
-    let result = if path.is_dir() { std::fs::remove_dir_all(path) } else { std::fs::remove_file(path) };
-    match result {
-        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("couldn't delete {}: {e}", path.display())),
-        _ => Ok(()),
     }
 }

@@ -19,6 +19,11 @@ mod notifications;
 mod oauth;
 mod playback;
 mod popouts;
+mod providers;
+mod provider_widget;
+#[cfg(target_os="macos")]
+mod touchbar;
+mod offline;
 mod radio;
 mod remote;
 mod servers;
@@ -70,6 +75,8 @@ fn playback_update(
     tray.update(&app, info.as_ref());
     remote.publish(info.as_ref());
     app.state::<cli::StateFile>().update(info.as_ref());
+    #[cfg(target_os="macos")]
+    touchbar::update(info.as_ref());
     // A private session shares nothing: Discord clears and the scrobblers hear "stopped".
     let shared = info.filter(|_| !settings::current(&app).private_session);
     discord.send(discord::Msg::Playback(shared.clone()));
@@ -83,7 +90,7 @@ fn playback_update(
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let handle = app.handle().clone();
     let prefs = settings::load(&handle);
-    app.manage(Discord::spawn(prefs.discord_presence && !prefs.private_session));
+    app.manage(Discord::spawn(prefs.discord_presence && !prefs.private_session,discord::Options::from(&prefs)));
     app.manage(Lastfm::spawn(prefs.lastfm_scrobbling));
     app.manage(Listenbrainz::spawn(prefs.listenbrainz_scrobbling, listenbrainz::queue_path(&handle)));
     let remote = remote::Remote::new(&handle);
@@ -111,9 +118,10 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(yours::Yours::new(&handle));
     app.manage(youtube::Youtube::new());
     app.manage(radio::Radio::new(&app.package_info().version.to_string()));
+    app.manage(providers::Catalog::new());
+    app.manage(offline::Downloads::default());
     app.manage(lyrics_sources::LyricsSources::new());
     app.manage(servers::Servers::new(&app.package_info().version.to_string()));
-    app.manage(soundcloud::SoundCloud::new(&app.package_info().version.to_string()));
     app.manage(bandcamp::Bandcamp::new(&app.package_info().version.to_string()));
     app.manage(engine::spotify_eq::SpotifyEqInjected(sound.spotify_eq));
     let window = engine::spotify_eq::create_main_window(app, sound.spotify_eq)?;
@@ -121,6 +129,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     let media = MediaState::default();
     media.attach(&handle, &window);
+    #[cfg(target_os="macos")]
+    touchbar::install(&handle,&window);
     app.manage(media);
     #[cfg(windows)]
     taskbar::attach(&handle, &window);
@@ -169,6 +179,10 @@ pub fn run() {
             {
                 visibility::hand_over(window, "minimize");
             }
+            WindowEvent::Resized(_) if window.label()=="main" && window.is_minimized().unwrap_or(false) && settings::current(window.app_handle()).mini_on_minimize => {
+                let app=window.app_handle().clone();
+                tauri::async_runtime::spawn(async move { if app.get_webview_window("mini").is_none(){let _=popouts::popout_open(app,popouts::Popout::Mini).await;} });
+            }
             // Closing Carbon (close-to-tray off) closes the pop-outs too; they'd have no player to follow.
             WindowEvent::Destroyed if window.label() == "main" => window.app_handle().exit(0),
             WindowEvent::Destroyed if popouts::Popout::is_label(window.label()) => popouts::changed(window.app_handle(), Some(window.label())),
@@ -179,6 +193,18 @@ pub fn run() {
             oauth::wait_for_oauth_redirect,
             oauth::wait_for_carbon_redirect,
             token_store::token_load,
+            providers::provider_catalog,
+            providers::provider_page,
+            providers::provider_expand_link, providers::provider_diagnostics,
+            providers::provider_connections,
+            providers::provider_credentials,
+            providers::provider_open,
+            provider_widget::provider_widget_url,
+            providers::provider_soundcloud_metadata,
+            offline::offline_storage, offline::offline_available, offline::offline_save, offline::offline_remove,
+            providers::soundcloud_client_id,
+            providers::soundcloud_authorize,
+            oauth::wait_for_soundcloud_redirect,
             token_store::token_save,
             token_store::token_clear,
             token_store::carbon_token_load,
@@ -229,6 +255,7 @@ pub fn run() {
             carbon_playlists::carbon_playlists,
             carbon_playlists::carbon_playlist_create,
             carbon_playlists::carbon_playlist_rename,
+            carbon_playlists::carbon_playlist_restore,
             carbon_playlists::carbon_playlist_delete,
             carbon_playlists::carbon_playlist_add,
             carbon_playlists::carbon_playlist_remove,
@@ -280,8 +307,7 @@ pub fn run() {
             servers::server_disconnect,
             servers::servers_connected,
             servers::server_get,
-            soundcloud::soundcloud_get,
-            soundcloud::soundcloud_stream,
+            providers::soundcloud_get,
             bandcamp::bandcamp_search,
             bandcamp::bandcamp_release,
             bandcamp::bandcamp_band,

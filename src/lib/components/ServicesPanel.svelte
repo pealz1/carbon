@@ -22,16 +22,16 @@
   <h2>Services</h2>
   <Toggle
     checked={on.spotify}
-    disabled={busy || (on.spotify && !on.youtube)}
+    disabled={busy}
     label="Spotify"
-    description={on.spotify && !on.youtube ? "Turn on YouTube Music first: Carbon needs at least one service." : "Your Spotify library and playback. Needs Premium."}
+    description="Your Spotify library and playback. Needs Premium."
     onchange={(v) => set("spotify", v)}
   />
   <Toggle
     checked={on.youtube}
-    disabled={busy || (on.youtube && !on.spotify)}
+    disabled={busy}
     label="YouTube Music"
-    description={on.youtube && !on.spotify ? "Turn on Spotify first: Carbon needs at least one service." : "YouTube Music's catalogue, played in YouTube's own player."}
+    description="YouTube Music’s catalogue and embedded player."
     onchange={(v) => set("youtube", v)}
   />
   {#if spotifyPending}

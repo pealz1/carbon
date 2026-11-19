@@ -1,4 +1,4 @@
-use super::{Shared, renderer};
+use super::{Renderer, Shared, renderer};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use rtrb::Producer;
 use std::sync::Arc;
@@ -39,25 +39,29 @@ pub fn open(shared: Arc<Shared>, preferred: &str) -> Result<Output, String> {
     let rate = config.sample_rate();
     let channels = usize::from(config.channels()).max(1);
     let mut stream_config = config.config();
-    // shortcut: always ask for f32 and let WASAPI's converter handle integer-only devices; add a
-    // per-format callback if a device ever refuses.
     stream_config.buffer_size = cpal::BufferSize::Default;
 
-    let (producer, mut render) = renderer(shared.clone(), rate, channels);
-    let errors = shared.clone();
-    let stream = device
-        .build_output_stream::<f32, _, _>(
-            stream_config,
-            move |data, _| render.render(data),
-            move |e| {
-                eprintln!("[engine] audio device error: {e}");
-                errors.failed.store(true, Ordering::Release);
-            },
-            None,
-        )
-        .map_err(|e| format!("Couldn't open {} ({e}).", device_name(&device)))?;
+    let (producer, render) = renderer(shared.clone(), rate, channels);
+    use cpal::SampleFormat::*;
+    let stream = match config.sample_format() {
+        F32 => build::<f32>, F64 => build::<f64>,
+        I8 => build::<i8>, I16 => build::<i16>, I24 => build::<cpal::I24>, I32 => build::<i32>, I64 => build::<i64>,
+        U8 => build::<u8>, U16 => build::<u16>, U24 => build::<cpal::U24>, U32 => build::<u32>, U64 => build::<u64>,
+        other => return Err(format!("Unsupported PCM output format {other}.")),
+    }(&device, stream_config, render, shared).map_err(|e| format!("Couldn't open {} ({e}).", device_name(&device)))?;
     stream.play().map_err(|e| format!("Couldn't start {} ({e}).", device_name(&device)))?;
     Ok(Output { stream, producer, rate, device, follows_default })
+}
+
+fn build<T: cpal::SizedSample + cpal::FromSample<f32>>(
+    device: &cpal::Device, config: cpal::StreamConfig, mut render: Renderer, shared: Arc<Shared>,
+) -> Result<cpal::Stream, cpal::Error> {
+    device.build_output_stream::<T, _, _>(config,
+        move |data, _| render.render_with(data, T::from_sample),
+        move |e| {
+            eprintln!("[engine] audio device error: {e}");
+            shared.failed.store(true, Ordering::Release);
+        }, None)
 }
 
 impl Output {

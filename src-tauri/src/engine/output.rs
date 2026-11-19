@@ -60,7 +60,12 @@ impl Renderer {
         Renderer { shared, consumer, chain: Chain::new(rate), channels, fade: 0.0, fade_step: 1.0 / (FADE_SECONDS * rate as f32) }
     }
 
+    #[cfg(any(test, target_os = "macos"))]
     fn render(&mut self, data: &mut [f32]) {
+        self.render_with(data, |sample| sample);
+    }
+
+    fn render_with<T: Copy>(&mut self, data: &mut [T], convert: impl Fn(f32) -> T) {
         self.chain.sync(&self.shared.params);
         if self.shared.flush.load(Ordering::Acquire) {
             if let Ok(chunk) = self.consumer.read_chunk(self.consumer.slots()) {
@@ -72,7 +77,7 @@ impl Renderer {
         let frames = data.len() / self.channels;
         let wanted = if paused && self.fade == 0.0 { 0 } else { frames * 2 };
         let take = self.consumer.slots().min(wanted) & !1;
-        let Ok(chunk) = self.consumer.read_chunk(take) else { return data.fill(0.0) };
+        let Ok(chunk) = self.consumer.read_chunk(take) else { return data.fill(convert(0.0)) };
         let (a, b) = chunk.as_slices();
         let mut samples = a.iter().chain(b.iter()).copied();
         let target = if paused { 0.0 } else { 1.0 };
@@ -83,7 +88,7 @@ impl Renderer {
                 _ => (0.0, 0.0),
             };
             let (l, r) = self.chain.frame(l, r, self.fade);
-            write_frame(frame, l, r);
+            write_frame(frame, l, r, &convert);
         }
         chunk.commit_all();
         self.shared.consumed.fetch_add((take / 2) as u64, Ordering::Release);
@@ -92,13 +97,13 @@ impl Renderer {
 
 /// Stereo into whatever the device has: mono gets the average, extra channels stay silent.
 #[inline]
-fn write_frame(frame: &mut [f32], l: f32, r: f32) {
+fn write_frame<T: Copy>(frame: &mut [T], l: f32, r: f32, convert: impl Fn(f32) -> T) {
     match frame {
-        [only] => *only = (l + r) * 0.5,
+        [only] => *only = convert((l + r) * 0.5),
         [fl, fr, rest @ ..] => {
-            *fl = l;
-            *fr = r;
-            rest.fill(0.0);
+            *fl = convert(l);
+            *fr = convert(r);
+            rest.fill(convert(0.0));
         }
         [] => {}
     }
@@ -118,10 +123,10 @@ mod tests {
     #[test]
     fn maps_stereo_onto_any_channel_count() {
         let mut mono = [0.0];
-        write_frame(&mut mono, 0.4, 0.2);
+        write_frame(&mut mono, 0.4, 0.2, |v| v);
         assert!((mono[0] - 0.3).abs() < 1e-6);
         let mut surround = [9.0; 6];
-        write_frame(&mut surround, 0.4, 0.2);
+        write_frame(&mut surround, 0.4, 0.2, |v| v);
         assert_eq!(surround, [0.4, 0.2, 0.0, 0.0, 0.0, 0.0]);
     }
 

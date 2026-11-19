@@ -107,19 +107,19 @@ describe("starting services", () => {
     await services.boot();
     expect(services.value).toBeNull();
     expect(h.session.boot).not.toHaveBeenCalled();
-    expect(await services.choose({ spotify: false, youtube: false })).toBe(false);
+    expect(await services.choose({ spotify: false, youtube: false })).toBe(true);
     expect(await services.choose(BOTH)).toBe(true);
     expect(services.setupNow).toBe(true);
     expect(h.session.boot).toHaveBeenCalledWith(true);
     expect(h.youtube.boot).toHaveBeenCalled();
   });
 
-  it("turning a service off signs out of it and never leaves none on", async () => {
+  it("can turn both off for local files and other providers", async () => {
     h.settings = { services: BOTH };
     await services.boot();
     expect(await services.set("youtube", false)).toBe(true);
     expect(h.youtube.signOut).toHaveBeenCalled();
-    expect(await services.set("spotify", false)).toBe(false);
-    expect(services.value).toEqual(SPOTIFY);
+    expect(await services.set("spotify", false)).toBe(true);
+    expect(services.value).toEqual({ spotify: false, youtube: false });
   });
 });
