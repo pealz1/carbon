@@ -4,12 +4,19 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Native tag build to finish publishing
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
   draft:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       id: ${{ steps.draft.outputs.id }}
@@ -147,7 +154,11 @@ jobs:
         run: gh release upload "${{ github.ref_name }}" src-tauri/target/{aarch64,x86_64}-apple-darwin/release/bundle/dmg/*.dmg --clobber
 
   publish:
+    permissions:
+      actions: read
+      contents: write
     needs: release
+    if: ${{ !cancelled() && (needs.release.result == 'success' || (github.event_name == 'workflow_dispatch' && needs.release.result == 'skipped')) }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -155,6 +166,17 @@ jobs:
       TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v7
+      - name: Select the completed native build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RUN_ID: ${{ inputs.build_run }}
+        run: |
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          gh run view "$RUN_ID" --json event,workflowName,headBranch,jobs > "$RUNNER_TEMP/build.json"
+          tag=$(jq -er 'select(.event == "push" and .workflowName == "Release")
+            | select([.jobs[] | select(.name | startswith("release (")) | .conclusion] == ["success","success","success","success"])
+            | .headBranch | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' "$RUNNER_TEMP/build.json")
+          echo "TAG=$tag" >> "$GITHUB_ENV"
       - name: Verify assets and publish the signed update index
         run: |
           python3 .github/release-manifest.py "$TAG" "$GH_REPO"
