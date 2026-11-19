@@ -68,7 +68,7 @@
   <DetailHeader
     title={liked ? "Liked Music" : p.name}
     image={liked ? null : p.largeImage}
-    placeholder={liked ? "heart" : "note"}
+    placeholderIcon={liked ? "heart" : "note"}
     {chips}
     description={p.description || null}
     playUri={p.uri}

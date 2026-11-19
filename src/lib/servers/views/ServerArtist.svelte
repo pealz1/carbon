@@ -17,7 +17,7 @@
   <Status error={artist.error} onretry={artist.reload} />
 {:else if artist.data}
   {@const a = artist.data}
-  <DetailHeader title={a.name} image={a.image} playUri={a.uri} round placeholder="artist" chips={[{ label: `Artist on ${SERVER_NAMES[kind]}`, icon: "artist" }]} />
+  <DetailHeader title={a.name} image={a.image} playUri={a.uri} round placeholderIcon="artist" chips={[{ label: `Artist on ${SERVER_NAMES[kind]}`, icon: "artist" }]} />
   <Shelf title="Albums" cards={a.albums} wrap />
   {#if !a.albums.length}<Status empty="Your server has no albums by this artist." />{/if}
 {/if}
