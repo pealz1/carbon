@@ -154,6 +154,18 @@ pub struct Settings {
     pub volume_curve: bool,
     /// No Discord status, scrobbles or listening history while on.
     pub private_session: bool,
+    /// Minimal effects and no motion while on, without changing the chosen effects level.
+    pub game_mode: bool,
+    /// An equalizer button in the player bar that opens Sound settings.
+    pub sound_button: bool,
+    /// Where the song comes from (and a station's bitrate) under the title in the player bar.
+    pub source_badges: bool,
+    /// Two-letter country for local radio stations; empty = the system's region.
+    pub region: String,
+    /// Asks before playing something else would drop songs you queued yourself.
+    pub warn_queue: bool,
+    /// A YouTube Music album or playlist that ends carries on as radio from its last song.
+    pub autoplay: bool,
 }
 
 /// 1: the yellow rebrand.
@@ -205,6 +217,12 @@ impl Default for Settings {
             volume_step: 0.05,
             volume_curve: false,
             private_session: false,
+            game_mode: false,
+            sound_button: false,
+            source_badges: false,
+            region: String::new(),
+            warn_queue: false,
+            autoplay: true,
         }
     }
 }
@@ -247,6 +265,9 @@ impl Settings {
         }
         if self.display_name.chars().count() > MAX_DISPLAY_NAME || self.display_name.chars().any(char::is_control) {
             return Err(format!("display name must be plain text, up to {MAX_DISPLAY_NAME} characters"));
+        }
+        if !self.region.is_empty() && !(self.region.len() == 2 && self.region.bytes().all(|b| b.is_ascii_uppercase())) {
+            return Err("region must be a two-letter country code".into());
         }
         if self.remote_port < 1024 {
             return Err("the remote port must be between 1024 and 65535".into());
@@ -406,6 +427,7 @@ mod tests {
         assert!(parsed.bold_text && parsed.private_session);
         let old: Settings = serde_json::from_str(r#"{"accent":"mint"}"#).unwrap();
         assert_eq!((old.motion, old.startup_page, old.volume_step), (Motion::Normal, StartupPage::Home, 0.05));
+        assert!(old.autoplay && !old.game_mode && old.region.is_empty());
     }
 
     #[test]
@@ -436,6 +458,9 @@ mod tests {
         assert!(Settings { display_name: "a
 b".into(), ..Settings::default() }.validate().is_err());
         assert!(Settings { display_name: "pealz".into(), ui_scale: 1.25, volume_step: 0.01, ..Settings::default() }.validate().is_ok());
+        assert!(Settings { region: "gb".into(), ..Settings::default() }.validate().is_err());
+        assert!(Settings { region: "GBR".into(), ..Settings::default() }.validate().is_err());
+        assert!(Settings { region: "GB".into(), ..Settings::default() }.validate().is_ok());
         let no_service = Settings { services: Some(Services { spotify: false, youtube: false }), ..Settings::default() };
         assert!(no_service.validate().is_err());
         let youtube_only = Settings { services: Some(Services { spotify: false, youtube: true }), ..Settings::default() };

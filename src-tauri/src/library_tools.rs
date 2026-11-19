@@ -12,7 +12,7 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
 
 const SMART_FILE: &str = "smart-playlists.json";
-const CACHE_DIR: &str = "library-cache";
+pub const CACHE_DIR: &str = "library-cache";
 const CACHE_KEYS: [&str; 1] = ["new-releases"];
 const FORMATS: [(&str, &str, &str); 3] = [("csv", "csv", "CSV"), ("json", "json", "JSON"), ("m3u", "m3u8", "M3U playlist")];
 const IMPORT_EXTENSIONS: [&str; 5] = ["csv", "json", "m3u", "m3u8", "txt"];

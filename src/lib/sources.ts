@@ -2,7 +2,9 @@
 // with another service's streams, so no queue, playlist or list holds both: switching service
 // replaces the queue, and the other player is stopped (and confirmed stopped) first. Spotify and
 // local files may share a Carbon queue (handed off run by run, see local/queue.ts).
+import { isBandcampUri } from "$lib/bandcamp/uri";
 import { isRadioUri } from "$lib/radio/uri";
+import { isSoundcloudUri } from "$lib/soundcloud/uri";
 import { isStreamUri } from "$lib/stream/uri";
 import { isYoutubeUri } from "$lib/youtube/uri";
 
@@ -29,4 +31,10 @@ export const canJoinQueue = (active: Owner | null, uri: string): boolean => acti
 /** Starting `next` stops the other owner first; staying with the same owner just replaces its queue. */
 export function planSwitch(active: Owner | null, next: Owner): ({ op: "halt"; owner: Owner } | { op: "start"; owner: Owner })[] {
   return active && active !== next ? [{ op: "halt", owner: active }, { op: "start", owner: next }] : [{ op: "start", owner: next }];
+}
+
+/** What the player bar's source badge says for the playing song. */
+export function sourceLabel(source: "spotify" | "local" | "youtube" | "radio" | "server", uri: string): string {
+  if (source === "server") return isSoundcloudUri(uri) ? "SoundCloud" : isBandcampUri(uri) ? "Bandcamp" : "Your server";
+  return { spotify: "Spotify", local: "Local file", youtube: "YouTube Music", radio: "Radio" }[source];
 }

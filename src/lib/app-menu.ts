@@ -1,6 +1,9 @@
 // The title bar's "More" menu: windows and views, sleep timer, sound, private session, help and quitting.
 import { goto } from "$app/navigation";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { appDataDir } from "@tauri-apps/api/path";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
+import { copyText } from "$lib/clipboard";
+import { diagnostics } from "$lib/diagnostics";
 import { exit } from "@tauri-apps/plugin-process";
 import { dialogs } from "$lib/dialogs.svelte";
 import { describeError } from "$lib/errors";
@@ -9,6 +12,7 @@ import { appInfo } from "$lib/native";
 import { player } from "$lib/player.svelte";
 import { popouts } from "$lib/popout/host.svelte";
 import { prefs } from "$lib/preferences.svelte";
+import { services } from "$lib/services.svelte";
 import { SLEEP_PRESETS, sleepTimer } from "$lib/sleep-timer.svelte";
 import { toasts } from "$lib/toast.svelte";
 import { updates } from "$lib/updates.svelte";
@@ -35,6 +39,32 @@ async function togglePrivate(): Promise<void> {
   const on = !prefs.value?.privateSession;
   if (await prefs.update({ privateSession: on })) {
     toasts.show(on ? "Private session on. Nothing goes to Discord, Last.fm, ListenBrainz or your history." : "Private session off.");
+  }
+}
+
+async function toggleGameMode(): Promise<void> {
+  const on = !prefs.value?.gameMode;
+  if (await prefs.update({ gameMode: on })) toasts.show(on ? "Game mode on: no effects or motion, and the visualizer rests." : "Game mode off.");
+}
+
+async function copyDiagnostics(): Promise<void> {
+  const info = await appInfo().catch(() => null);
+  const text = diagnostics({
+    info,
+    settings: prefs.value,
+    services: { spotify: services.active.spotify, youtube: services.active.youtube },
+    player: { source: player.source, status: player.status, playing: !player.paused, hasTrack: !!player.track },
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+  });
+  await copyText(text, "Diagnostics copied. Paste them into your bug report.");
+}
+
+async function openDataFolder(): Promise<void> {
+  try {
+    await revealItemInDir(await appDataDir());
+  } catch (e) {
+    toasts.error(`Couldn't open the folder: ${describeError(e)}`);
   }
 }
 
@@ -72,6 +102,7 @@ export function appMenu(): MenuEntry[] {
     { label: sleepTimer.current ? "Sleep timer (on)" : "Sleep timer", icon: "moon", items: sleepItems() },
     { label: "Sound settings", icon: "equalizer", action: () => goto("/sound") },
     { label: prefs.value?.privateSession ? "End private session" : "Private session", icon: "block", action: togglePrivate },
+    { label: prefs.value?.gameMode ? "End game mode" : "Game mode", icon: "speed", action: toggleGameMode },
     "separator",
     { label: "Settings", icon: "settings", action: () => goto("/settings") },
     { label: "Check for updates", icon: "refresh", disabled: updates.state === "checking" || updates.state === "downloading", action: checkUpdates },
@@ -84,6 +115,15 @@ export function appMenu(): MenuEntry[] {
         { label: "Report a bug", icon: "link", action: open(LINKS.bug) },
         { label: "Source on GitHub", icon: "link", action: open(LINKS.source) },
         { label: "getcarbon.cc", icon: "link", action: open(LINKS.site) },
+      ],
+    },
+    {
+      label: "Developer",
+      icon: "keyboard",
+      items: [
+        { label: "Copy diagnostics", icon: "duplicate", action: copyDiagnostics },
+        { label: "Open data folder", icon: "folder", action: openDataFolder },
+        { label: "Reload interface", icon: "refresh", action: () => location.reload() },
       ],
     },
     { label: "About Carbon", icon: "spark", action: about },

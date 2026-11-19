@@ -25,6 +25,8 @@
   import {
     ACCENTS,
     appInfo,
+    cacheClear,
+    cacheSize,
     installedFonts,
     lastfmConnect,
     lastfmDisconnect,
@@ -56,10 +58,35 @@
   let notice = $state<string | null>(null);
   let confirmRemove = $state(false);
   let fonts = $state<string[] | null>(null);
+  let cache = $state<number | null>(null);
+  let clearing = $state(false);
+
+  const formatBytes = (bytes: number) =>
+    bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+  const measureCache = () =>
+    cacheSize().then(
+      (bytes) => (cache = bytes),
+      (e) => ((cache = 0), (notice = `Couldn't measure the cache: ${describeError(e)}`)),
+    );
+
+  async function clearCache() {
+    clearing = true;
+    try {
+      await cacheClear();
+      notice = "Cache cleared.";
+    } catch (e) {
+      notice = `Couldn't clear the cache: ${describeError(e)}`;
+    } finally {
+      clearing = false;
+      void measureCache();
+    }
+  }
   const s = $derived(prefs.value);
   const customId = $derived(s?.spotifyClientId ?? "");
 
   onMount(async () => {
+    void measureCache();
     installedFonts().then(
       (list) => (fonts = list),
       (e) => {
@@ -287,6 +314,13 @@
       <h2>Sound</h2>
       <p class="muted">EQ, loudness, crossfade and output device for local files played by Carbon's own engine.</p>
       <a class="pill" href="/sound">Open Sound settings</a>
+      <Toggle checked={s.soundButton} label="Sound button in the player bar" description="One click to EQ and the rest of Sound settings." onchange={(v) => prefs.update({ soundButton: v })} />
+      <Toggle
+        checked={s.sourceBadges}
+        label="Show where songs come from"
+        description="A small tag under the playing song: Spotify, YouTube Music, local file, your server or radio."
+        onchange={(v) => prefs.update({ sourceBadges: v })}
+      />
     </section>
 
     <section class="panel plate">
@@ -317,6 +351,12 @@
         <button class="link" onclick={() => openUrl("https://getcarbon.cc")}>getcarbon.cc</button>
         <button class="link" onclick={() => openUrl("https://github.com/pealz1/carbon")}>Source on GitHub</button>
         <button class="link" onclick={() => openUrl("https://getcarbon.cc/privacy")}>Privacy</button>
+      </div>
+      <div class="cache">
+        <p class="muted">
+          Cache: {cache === null ? "measuring…" : formatBytes(cache)} of notification artwork and library details. Clearing it is safe; Carbon fetches them again when needed.
+        </p>
+        <button class="pill" disabled={!cache || clearing} onclick={clearCache}>{clearing ? "Clearing…" : "Clear cache"}</button>
       </div>
       {#if confirmRemove}
         <p class="warn">This signs you out of Spotify, Last.fm and ListenBrainz, resets every setting and forgets your local library and Carbon playlists. Your music files stay where they are.</p>
@@ -469,6 +509,13 @@
     background: var(--accent);
     transform-origin: left;
     transition: transform var(--dur-med) var(--ease-out);
+  }
+
+  .cache {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
   }
 
   .link {

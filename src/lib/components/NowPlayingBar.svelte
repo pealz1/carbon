@@ -6,6 +6,8 @@
   import { onScreen } from "$lib/on-screen.svelte";
   import { pageHref } from "$lib/youtube/uri";
   import { player } from "$lib/player.svelte";
+  import { prefs } from "$lib/preferences.svelte";
+  import { sourceLabel } from "$lib/sources";
   import Stars from "$lib/ratings/Stars.svelte";
   import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
@@ -56,6 +58,7 @@
           {/each}
           {#if album?.name}<span class="dash">–</span>{album.name}{/if}
         </span>
+        {#if prefs.value?.sourceBadges}<span class="badge">{sourceLabel(player.source, player.track.uri)}</span>{/if}
         <PlayingElsewhere />
       </div>
       <LikeButton uri={player.track.uri} label={player.track.name} size={17} />
@@ -113,6 +116,11 @@
     <button class="ctl" onclick={view.enterCinema} aria-label="Cinema mode" title="Cinema mode (Ctrl+Shift+C)">
       <Icon name="screen" size={18} />
     </button>
+    {#if prefs.value?.soundButton}
+      <a class="ctl" class:on={page.url.pathname === "/sound"} href="/sound" aria-label="Sound settings" title="Sound settings">
+        <Icon name="equalizer" size={18} />
+      </a>
+    {/if}
     <button class="ctl" onwheel={wheelVolume} onclick={() => player.setVolume(player.volume > 0 ? 0 : DEFAULT_VOLUME)} aria-label={player.volume > 0 ? "Mute" : "Unmute"} title={player.volume > 0 ? "Mute" : "Unmute"}>
       <Icon name={player.volume > 0 ? "volume" : "mute"} size={18} />
     </button>
@@ -123,6 +131,20 @@
 </section>
 
 <style>
+  /* Settings → Sound → source badges: where the song comes from, as a quiet tag under the title. */
+  .badge {
+    align-self: flex-start;
+    margin-top: 2px;
+    padding: 1px var(--sp-2);
+    border: 1px solid var(--chrome-active);
+    border-radius: var(--r-pill);
+    color: var(--chrome-text-muted);
+    font-size: var(--fs-micro);
+    font-weight: 600;
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
   /* Takes the seek row's place for a station, at the same height so the transport doesn't move. */
   .live {
     height: 20px;

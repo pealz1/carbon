@@ -32,7 +32,7 @@ vi.mock("$lib/spotify/endpoints", () => ({
   deletePlaylist: vi.fn(),
 }));
 vi.mock("$lib/player.svelte", () => ({
-  player: { addToQueue: vi.fn(async () => true), playContext: vi.fn(), shufflePlay: vi.fn(), playTracks: vi.fn() },
+  player: { addToQueue: vi.fn(async () => true), playLater: vi.fn(async () => true), playContext: vi.fn(), shufflePlay: vi.fn(), playTracks: vi.fn() },
 }));
 vi.mock("$lib/session.svelte", () => ({
   session: {
@@ -107,7 +107,9 @@ describe("trackMenu", () => {
     const menu = trackMenu(track);
     expect(items(menu).map((i) => i.label)).toEqual([
       "Play",
-      "Add to queue",
+      "Play next",
+      "Play later",
+      "Start radio",
       "Add to playlist",
       "Save to Liked Songs",
       "Go to album",
@@ -119,7 +121,7 @@ describe("trackMenu", () => {
     ]);
     const targets = items(find(menu, "Add to playlist")!.items!).map((i) => i.label);
     expect(targets).toEqual(["New playlist…", "List mine", "List shared"]);
-    await find(menu, "Add to queue")!.action!();
+    await find(menu, "Play next")!.action!();
     expect(player.addToQueue).toHaveBeenCalledWith("spotify:track:t1", track);
     expect(toasts.items.at(-1)?.text).toBe("Added to queue.");
   });
@@ -127,8 +129,8 @@ describe("trackMenu", () => {
   it("offers only the queue for a local file, passing the track along", async () => {
     const local = { ...track, id: "local:abc", uri: "local:abc", album: null, artists: [{ id: "", name: "Me", uri: "" }] };
     const menu = trackMenu(local);
-    expect(items(menu).map((i) => i.label)).toEqual(["Add to queue", "Edit tags…", "Bookmark song"]);
-    await find(menu, "Add to queue")!.action!();
+    expect(items(menu).map((i) => i.label)).toEqual(["Play next", "Play later", "Edit tags…", "Bookmark song"]);
+    await find(menu, "Play next")!.action!();
     expect(player.addToQueue).toHaveBeenCalledWith("local:abc", local);
     find(menu, "Edit tags…")!.action!();
     expect(dialogs.tagEditor).toBe("abc");
@@ -238,12 +240,12 @@ describe("album, artist and folder menus", () => {
     const { albumMenu, artistMenu } = await import("./menus");
     const album = { kind: "album" as const, id: "al1", uri: "spotify:album:al1", title: "OK", subtitle: "", image: null, playUri: "spotify:album:al1" };
     const menu = albumMenu(album, [track]);
-    expect(items(menu).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Add to queue", "Add to playlist", "Save to library", "Add to collection", "Bookmark", "Go to artist", "Export…", "Share"]);
+    expect(items(menu).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Play next", "Play later", "Add to playlist", "Save to library", "Add to collection", "Bookmark", "Go to artist", "Export…", "Share"]);
     find(menu, "Play")!.action!();
     expect(player.playContext).toHaveBeenCalledWith("spotify:album:al1");
     find(menu, "Shuffle play")!.action!();
     expect(player.shufflePlay).toHaveBeenCalledWith("spotify:album:al1", 1);
-    await find(menu, "Add to queue")!.action!();
+    await find(menu, "Play next")!.action!();
     expect(player.addToQueue).toHaveBeenCalledWith("spotify:track:t1", track);
     const artist = artistMenu({ ...album, kind: "artist", id: "a1", uri: "spotify:artist:a1" });
     find(artist, "Go to artist")!.action!();
@@ -253,7 +255,7 @@ describe("album, artist and folder menus", () => {
   it("stops queueing at the first failure without claiming success", async () => {
     vi.mocked(player.addToQueue).mockResolvedValueOnce(false);
     const before = toasts.items.length;
-    await find(trackMenu(track), "Add to queue")!.action!();
+    await find(trackMenu(track), "Play next")!.action!();
     expect(toasts.items.length).toBe(before);
   });
 

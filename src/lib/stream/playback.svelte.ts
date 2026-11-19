@@ -63,6 +63,9 @@ export class StreamPlayback {
   #moving = false;
   #audio: HTMLAudioElement | null = null;
   #unshuffled: Track[] | null = null;
+  /** The song that "next" songs were queued behind, and how many so far. */
+  #queuedAfter: Track | null = null;
+  #queuedNext = 0;
   #paused = true;
   #ended = false;
   #rate = 1;
@@ -163,11 +166,14 @@ export class StreamPlayback {
     this.setRepeat(NEXT_REPEAT[this.#host.repeat()]);
   }
 
-  /** Puts a song right after the current one. Anything without a stream address is refused. */
-  add(track: Track): boolean {
+  /** Puts a song right after the current one, or at the end. Anything without a stream address is refused. */
+  add(track: Track, at: "next" | "end" = "next"): boolean {
     const queue = this.queue;
     if (!queue || !this.#source.playable(track)) return false;
-    this.queue = [...queue.slice(0, this.index + 1), track, ...queue.slice(this.index + 1)];
+    // Songs queued next line up behind each other (an album keeps its order) until the song changes.
+    if (this.#queuedAfter !== queue[this.index]) [this.#queuedAfter, this.#queuedNext] = [queue[this.index], 0];
+    const slot = at === "end" ? queue.length : this.index + 1 + this.#queuedNext++;
+    this.queue = [...queue.slice(0, slot), track, ...queue.slice(slot)];
     this.#unshuffled = this.#unshuffled && [...this.#unshuffled, track];
     return true;
   }

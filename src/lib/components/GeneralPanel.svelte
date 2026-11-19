@@ -4,6 +4,7 @@
   import type { StartupPage } from "$lib/native";
   import { player } from "$lib/player.svelte";
   import { prefs } from "$lib/preferences.svelte";
+  import { regionChoices, regionName, systemRegion } from "$lib/region";
   import { SLEEP_PRESETS, sleepTimer } from "$lib/sleep-timer.svelte";
   import Toggle from "./Toggle.svelte";
 
@@ -17,6 +18,8 @@
   const MAX_NAME = 40;
   const s = $derived(prefs.value);
   const remaining = $derived(sleepTimer.remainingMs);
+  const regions = regionChoices();
+  const detected = systemRegion();
 
   async function setCurve(on: boolean) {
     if (await prefs.update({ volumeCurve: on })) player.setVolume(player.volume);
@@ -44,6 +47,20 @@
         onchange={(e) => prefs.update({ displayName: e.currentTarget.value.trim() })}
       />
     </label>
+    <label class="field">
+      <span class="label">Region</span>
+      <span class="muted">For “Near you” in Radio. Carbon never asks for your location; Automatic uses your system's region.</span>
+      <select value={s.region} onchange={(e) => prefs.update({ region: e.currentTarget.value })}>
+        <option value="">Automatic{detected ? ` (${regionName(detected)})` : ""}</option>
+        {#each regions as r (r.code)}<option value={r.code}>{r.name}</option>{/each}
+      </select>
+    </label>
+    <Toggle
+      checked={s.gameMode}
+      label="Game mode"
+      description="Holds effects at Minimal and stops all motion and the visualizer, to leave your PC's power for a game. Your own effects choice comes back when you turn it off."
+      onchange={(v) => prefs.update({ gameMode: v })}
+    />
     <Toggle
       checked={s.privateSession}
       label="Private session"

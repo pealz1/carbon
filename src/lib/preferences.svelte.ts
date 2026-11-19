@@ -3,7 +3,7 @@ import { describeError } from "$lib/errors";
 import { applyFonts } from "$lib/fonts";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { getSettings, saveSettings, type Settings } from "$lib/native";
+import { getSettings, saveSettings, type Effects, type Motion, type Settings } from "$lib/native";
 import { smartShuffle } from "$lib/smart-shuffle";
 
 /** Interface scale is webview zoom, so pointer and layout maths stay in step. Pop-outs keep their fixed size. */
@@ -20,6 +20,15 @@ class Preferences {
   value = $state<Settings | null>(null);
   error = $state<string | null>(null);
   #zoom = 1;
+
+  /** The effects level in force: game mode holds it at Minimal without changing the choice. */
+  get effects(): Effects {
+    return this.value?.gameMode ? "minimal" : (this.value?.effects ?? "full");
+  }
+
+  get motion(): Motion {
+    return this.value?.gameMode ? "none" : (this.value?.motion ?? "normal");
+  }
 
   async load(): Promise<Settings> {
     this.value = await getSettings();
@@ -53,11 +62,11 @@ class Preferences {
     if (!this.value) return;
     const root = document.documentElement;
     root.dataset.accent = this.value.accent;
-    root.dataset.effects = this.value.effects;
+    root.dataset.effects = this.effects;
     root.style.setProperty("--lyrics-scale", String(this.value.lyricsScale));
     root.dataset.lyricsBlur = this.value.lyricsBlur === false ? "off" : "on";
     applyFonts(root, this.value);
-    root.dataset.motion = this.value.motion;
+    root.dataset.motion = this.motion;
     root.toggleAttribute("data-bold-text", this.value.boldText);
     root.toggleAttribute("data-high-contrast", this.value.highContrast);
     root.toggleAttribute("data-focus-ring", this.value.focusRing);

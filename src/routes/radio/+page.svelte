@@ -7,6 +7,7 @@
   import { describe, stations, type Station } from "$lib/radio/api";
   import { favourites } from "$lib/radio/favourites.svelte";
   import { RADIO_PREFIX } from "$lib/radio/uri";
+  import { currentRegion, regionName } from "$lib/region";
   import { resource } from "$lib/resource.svelte";
 
   // Internet radio from Radio Browser's open directory: search by name, browse a genre, keep the
@@ -17,9 +18,12 @@
   let query = $state(initial);
   let term = $state(initial.trim());
   const tag = $derived(page.url.searchParams.get("tag") ?? "");
+  // Stations in the listener's region (Settings → General → Region), kept in the address like the rest.
+  const near = $derived(page.url.searchParams.get("near") === "1");
+  const region = $derived(currentRegion());
 
-  const address = (q: string, genre: string) => {
-    const params = new URLSearchParams({ ...(q && { q }), ...(genre && { tag: genre }) });
+  const address = (q: string, genre: string, local = near) => {
+    const params = new URLSearchParams({ ...(q && { q }), ...(genre && { tag: genre }), ...(local && { near: "1" }) });
     return `?${params}`;
   };
 
@@ -35,9 +39,14 @@
 
   const pickGenre = (genre: string) => goto(address(term, genre === tag ? "" : genre), { replaceState: true, keepFocus: true, noScroll: true });
 
-  const found = resource(() => stations(term, tag));
-  const browsing = $derived(!term && !tag);
-  const heading = $derived(term ? `Stations matching “${term}”` : tag ? `${tag[0].toUpperCase()}${tag.slice(1)} stations` : "Most listened to");
+  const toggleNear = () => goto(address(term, tag, !near), { replaceState: true, keepFocus: true, noScroll: true });
+
+  const found = resource(() => stations(term, tag, near ? region : ""));
+  const browsing = $derived(!term && !tag && !near);
+  const where = $derived(near && region ? ` in ${regionName(region)}` : "");
+  const heading = $derived(
+    term ? `Stations matching “${term}”${where}` : tag ? `${tag[0].toUpperCase()}${tag.slice(1)} stations${where}` : where ? `Most listened to${where}` : "Most listened to",
+  );
   const playing = (station: Station) => player.track?.uri === RADIO_PREFIX + station.id;
 </script>
 
@@ -54,6 +63,11 @@
 </div>
 
 <div class="genres" role="group" aria-label="Genres">
+  {#if region}
+    <button class="pill" class:active={near} aria-pressed={near} onclick={toggleNear} title="Change your region in Settings → General">
+      <Icon name="radio" size={14} /> Near you
+    </button>
+  {/if}
   {#each GENRES as genre (genre)}
     <button class="pill" class:active={tag === genre} aria-pressed={tag === genre} onclick={() => pickGenre(genre)}>{genre}</button>
   {/each}

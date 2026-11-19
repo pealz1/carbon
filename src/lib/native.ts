@@ -88,6 +88,18 @@ export interface Settings {
   volumeCurve: boolean;
   /** No Discord status, scrobbles or listening history while on. */
   privateSession: boolean;
+  /** Minimal effects and no motion while on; `effects` keeps the listener's choice. */
+  gameMode: boolean;
+  /** An equalizer button in the player bar that opens Sound settings. */
+  soundButton: boolean;
+  /** The song's source (and a station's bitrate) under the title in the player bar. */
+  sourceBadges: boolean;
+  /** Two-letter country for local radio; "" = the system's region. */
+  region: string;
+  /** Ask before playing something else drops songs you queued yourself. */
+  warnQueue: boolean;
+  /** A YouTube Music album or playlist that ends carries on as radio. */
+  autoplay: boolean;
 }
 
 /** Global shortcuts as accelerators ("Ctrl+Alt+Space"); "" is unbound. Mirrors hotkeys.rs. */
@@ -218,6 +230,9 @@ export const blocklistGet = () => invoke<BlocklistData>("blocklist_get");
 export const blocklistSet = (blocklist: BlocklistData) => invoke<BlocklistData>("blocklist_set", { blocklist });
 
 export const appInfo = () => invoke<AppInfo>("app_info");
+/** Bytes "Clear cache" would free: notification artwork and library metadata. */
+export const cacheSize = () => invoke<number>("cache_size");
+export const cacheClear = () => invoke<void>("cache_clear");
 export const uninstall = () => invoke("uninstall");
 export const removeSavedData = () => invoke("remove_saved_data");
 

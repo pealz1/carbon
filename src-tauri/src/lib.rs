@@ -203,6 +203,8 @@ pub fn run() {
             system::app_info,
             system::uninstall,
             system::remove_saved_data,
+            system::cache_size,
+            system::cache_clear,
             engine::engine_play,
             engine::engine_pause,
             engine::engine_resume,

@@ -62,12 +62,63 @@ pub fn remove_saved_data(app: AppHandle) -> Result<(), String> {
     settings::delete(&app)
 }
 
+/// What "Clear cache" may delete: notification artwork and the library tools' metadata. Local
+/// library artwork stays (the index points at it), and so do loudness measurements (the analyzer
+/// keeps them in memory and would write them straight back).
+const CLEARABLE: [&str; 2] = ["notifications", library_tools::CACHE_DIR];
+
+fn clearable(app: &AppHandle) -> Result<Vec<PathBuf>, String> {
+    let dir = app.path().app_cache_dir().map_err(|e| e.to_string())?;
+    Ok(CLEARABLE.iter().map(|name| dir.join(name)).collect())
+}
+
+/// Bytes in a file or folder, following no links; whatever can't be read counts as nothing.
+fn size_of(path: &std::path::Path) -> u64 {
+    let Ok(meta) = std::fs::symlink_metadata(path) else { return 0 };
+    if meta.is_file() {
+        return meta.len();
+    }
+    if !meta.is_dir() {
+        return 0;
+    }
+    std::fs::read_dir(path).map(|entries| entries.flatten().map(|e| size_of(&e.path())).sum()).unwrap_or(0)
+}
+
+/// Size of what "Clear cache" would delete (Settings → About & data).
+#[tauri::command]
+pub async fn cache_size(app: AppHandle) -> Result<u64, String> {
+    Ok(clearable(&app)?.iter().map(|p| size_of(p)).sum())
+}
+
+#[tauri::command]
+pub async fn cache_clear(app: AppHandle) -> Result<(), String> {
+    clearable(&app)?.iter().try_for_each(|p| remove_path(p))
+}
+
 /// Remembered window positions (window-state plugin) and cached notification artwork.
 fn forget_window_state(app: &AppHandle) -> Result<(), String> {
     let config = app.path().app_config_dir().map_err(|e| e.to_string())?;
     let cache = app.path().app_cache_dir().map_err(|e| e.to_string())?;
     remove_path(&config.join(tauri_plugin_window_state::DEFAULT_FILENAME))?;
     remove_path(&cache.join("notifications"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sizes_folders_and_removes_them() {
+        let dir = std::env::temp_dir().join(format!("carbon-cache-test-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("inner")).unwrap();
+        std::fs::write(dir.join("a.bin"), [0u8; 10]).unwrap();
+        std::fs::write(dir.join("inner").join("b.bin"), [0u8; 5]).unwrap();
+        assert_eq!(size_of(&dir), 15);
+        assert_eq!(size_of(&dir.join("missing")), 0);
+        remove_path(&dir).unwrap();
+        remove_path(&dir).unwrap(); // already gone is fine
+        assert_eq!(size_of(&dir), 0);
+    }
 }
 
 /// Deletes a file or folder; one that's already gone is fine.

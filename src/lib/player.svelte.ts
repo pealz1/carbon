@@ -93,6 +93,10 @@ class Player {
   #stallTimer: ReturnType<typeof setTimeout> | undefined;
   /** Counts every hand-over to a player, so a play that was still fetching when another began can tell. */
   #intent = 0;
+  /** Songs the listener queued by hand into the queue now playing (Settings → Playback → warn). */
+  #queuedByYou = 0;
+  /** Asks the listener whether to drop their queued songs; installed by the window that can show it. */
+  confirmReplace: (() => Promise<boolean>) | null = null;
   #reported = { at: 0, uri: null as string | null };
   #seekAt = 0;
   #upNext: Spotify.SdkTrack[] = [];
@@ -130,6 +134,7 @@ class Player {
     fail: (message) => this.#warn(message),
     setContext: (uri) => (this.contextUri = uri),
     skipsOffTopic: () => prefs.value?.sponsorBlock ?? false,
+    autoplay: () => prefs.value?.autoplay ?? true,
   });
 
   /** The listener's own server (Navidrome, Jellyfin): its songs stream through an audio element, in a queue of their own. */
@@ -423,8 +428,8 @@ class Player {
   }
 
   /** Plain Spotify playback takes over from a Carbon queue (stopping local audio first). */
-  async #spotify<T>(action: () => Promise<T>): Promise<T> {
-    await this.#switchTo("carbon");
+  async #spotify(action: () => Promise<boolean>): Promise<boolean> {
+    if (!(await this.#switchTo("carbon"))) return false;
     if (this.#mixed.active || this.#mixed.backend === "local") await this.#mixed.leave();
     return action();
   }
@@ -433,8 +438,22 @@ class Player {
     return this.#radio.active ? "radio" : this.#youtube.active ? "youtube" : this.#stream.active ? "stream" : this.track ? "carbon" : null;
   }
 
-  /** Stops the other service, and waits until it has, before `next` starts (they never overlap). */
-  async #switchTo(next: Owner): Promise<void> {
+  /** Whether starting something new may drop songs the listener queued by hand. Unattended starts
+   * (remote, command line, hotkeys while Carbon isn't focused) never wait on a question nobody sees. */
+  async #mayReplace(): Promise<boolean> {
+    if (!this.#queuedByYou || !prefs.value?.warnQueue || !this.confirmReplace || !document.hasFocus()) return true;
+    // Spotify keeps its own queue when something else starts; Carbon's queues are replaced.
+    if (!(this.#youtube.upNext ?? this.#stream.upNext ?? this.#mixed.upNext)?.length) return true;
+    return this.confirmReplace();
+  }
+
+  /**
+   * Stops the other service, and waits until it has, before `next` starts (they never overlap).
+   * Resolves false, changing nothing, when the listener chose to keep the songs they queued.
+   */
+  async #switchTo(next: Owner): Promise<boolean> {
+    if (!(await this.#mayReplace())) return false;
+    this.#queuedByYou = 0;
     this.#intent += 1;
     for (const step of planSwitch(this.#owner(), next)) {
       if (step.op === "start") continue;
@@ -447,6 +466,7 @@ class Player {
         await this.#sdk?.pause().catch((e) => console.warn("[player] Spotify pause failed", e));
       }
     }
+    return true;
   }
 
   #playYoutube = (action: () => unknown): Promise<boolean> => this.#playAlone("youtube", action);
@@ -454,7 +474,7 @@ class Player {
   /** A service with a queue of its own takes over: everything else goes quiet first. Resolves false on failure. */
   async #playAlone(owner: Owner, action: () => unknown): Promise<boolean> {
     try {
-      await this.#switchTo(owner);
+      if (!(await this.#switchTo(owner))) return false;
       await action();
       return true;
     } catch (e) {
@@ -466,7 +486,7 @@ class Player {
   /** A live radio station takes over: whatever was playing stops first. */
   playStation = async (station: Station): Promise<void> => {
     try {
-      await this.#switchTo("radio");
+      if (!(await this.#switchTo("radio"))) return;
       this.contextUri = null;
       this.#radio.play(station);
     } catch (e) {
@@ -480,7 +500,7 @@ class Player {
     if (!owner || owner === "radio") return void (this.problem = explain(owner ? RADIO_ALONE : SEPARATE_SERVICES));
     if (owner === "youtube") return this.#playYoutube(() => this.#youtube.play(tracks, index, contextUri ?? null));
     if (owner === "stream") return this.#playAlone("stream", () => this.#stream.play(tracks, index, contextUri ?? null));
-    await this.#switchTo("carbon");
+    if (!(await this.#switchTo("carbon"))) return;
     return this.#mixed.play(tracks, index);
   };
 
@@ -562,7 +582,7 @@ class Player {
 
   /** Carbon's own shuffle of a Spotify list, as a Carbon queue: Spotify's shuffle and repeat go off for it. */
   async #shuffleQueue(tracks: Track[]): Promise<boolean> {
-    await this.#switchTo("carbon");
+    if (!(await this.#switchTo("carbon"))) return false;
     await this.#mixed.play(shuffledFrom(tracks, Math.floor(Math.random() * tracks.length)), 0, tracks);
     return true;
   }
@@ -733,6 +753,24 @@ class Player {
    * Resolves false (with `problem` set) when the song was refused.
    */
   addToQueue = async (uri: string, track?: Track): Promise<boolean> => {
+    const added = await this.#enqueue(uri, track);
+    if (added) this.#queuedByYou += 1;
+    return added;
+  };
+
+  /**
+   * At the end of the queue instead of next. Only YouTube Music and server queues are plain lists;
+   * Spotify's queue (and a mixed one, which mirrors it) only takes songs in order, so they queue as usual.
+   */
+  playLater = async (uri: string, track?: Track): Promise<boolean> => {
+    const own = track && ((this.#youtube.active && isYoutubeUri(uri) && this.#youtube) || (this.#stream.active && isStreamUri(uri) && this.#stream));
+    if (!own) return this.addToQueue(uri, track);
+    const added = own.add(track, "end");
+    if (added) this.#queuedByYou += 1;
+    return added;
+  };
+
+  #enqueue = async (uri: string, track?: Track): Promise<boolean> => {
     if (this.#radio.active) return ((this.problem = explain(RADIO_ALONE)), false);
     if (!canJoinQueue(this.#owner(), uri)) return ((this.problem = explain(SEPARATE_SERVICES)), false);
     if (isYoutubeUri(uri)) return this.#youtube.active && track ? this.#youtube.add(track) : this.playTracks([uri], 0, track && [track]).then(() => true);

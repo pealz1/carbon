@@ -11,6 +11,7 @@
   import Cinema from "$lib/components/Cinema.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
   import CompactPlayer from "$lib/components/CompactPlayer.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
   import LibraryTools from "$lib/components/LibraryTools.svelte";
@@ -31,6 +32,7 @@
   import { youtube } from "$lib/youtube/session.svelte";
   import Toasts from "$lib/components/Toasts.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
+  import { confirmations } from "$lib/confirm.svelte";
   import { dialogs } from "$lib/dialogs.svelte";
   import { handleKey } from "$lib/keyboard";
   import { sound } from "$lib/local/sound.svelte";
@@ -75,6 +77,13 @@
       paused: player.paused,
       trackUri: player.track?.uri ?? null,
     }));
+    player.confirmReplace = () =>
+      confirmations.ask({
+        title: "Replace your queue?",
+        body: "Playing this drops the songs you queued.",
+        ok: "Play it",
+        cancel: "Keep my queue",
+      });
     const stopPopouts = popouts.start();
     const stopSounds = installSoundFeedback(document);
     const onScreen = keepYoutubeOnScreen(async () => void (player.paused || (await player.togglePlay())));
@@ -173,6 +182,7 @@
   <YoutubeStage />
   <ContextMenu />
   <QuitGuard />
+  <ConfirmDialog />
   {#if dialogs.playlist}
     {#key dialogs.playlist}<PlaylistDialog request={dialogs.playlist} />{/key}
   {/if}

@@ -7,6 +7,7 @@
   import Toggle from "$lib/components/Toggle.svelte";
   import type { LikeRule } from "$lib/native";
   import { prefs } from "$lib/preferences.svelte";
+  import { services } from "$lib/services.svelte";
 
   const s = $derived(prefs.value);
   const items = $derived(blocklist.data.items);
@@ -34,6 +35,20 @@
       description="Carbon shuffles albums, your own playlists, Liked Songs, Carbon playlists and YouTube Music itself, and keeps the same artist from playing twice in a row. Spotify shuffles other playlists and artists."
       onchange={(v) => prefs.update({ smartShuffle: v })}
     />
+    <Toggle
+      checked={s.warnQueue}
+      label="Warn before replacing your queue"
+      description="Asks first when playing something else would drop songs you queued yourself. Spotify keeps its own queue, so this covers YouTube Music, your server and local files."
+      onchange={(v) => prefs.update({ warnQueue: v })}
+    />
+    {#if services.active.youtube}
+      <Toggle
+        checked={s.autoplay}
+        label="Autoplay on YouTube Music"
+        description="When an album or playlist ends, keep going with radio from its last song. Spotify's autoplay is a setting of your Spotify account."
+        onchange={(v) => prefs.update({ autoplay: v })}
+      />
+    {/if}
   {/if}
   <Toggle
     checked={blocklist.data.skipExplicit}
