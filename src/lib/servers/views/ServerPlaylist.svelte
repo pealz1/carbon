@@ -30,6 +30,6 @@
 {:else if playlist.data}
   {@const p = playlist.data}
   <DetailHeader title={p.name} image={p.image} {chips} playUri={p.uri} shuffleCount={p.tracks.length} />
-  <TrackList tracks={p.tracks} contextUri={p.uri} showAlbum />
+  <TrackList tracks={p.tracks} contextUri={p.uri} showAlbum tools="Playlist order" />
   {#if !p.tracks.length}<Status empty="This playlist is empty." />{/if}
 {/if}

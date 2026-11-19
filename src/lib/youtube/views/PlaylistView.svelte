@@ -88,6 +88,7 @@
     contextUri={p.uri}
     showAlbum
     numbered
+    tools={liked ? "Date added" : "Playlist order"}
     removeFrom={p.owned && !liked ? { id, name: p.name } : undefined}
     onremove={dropRow}
   />

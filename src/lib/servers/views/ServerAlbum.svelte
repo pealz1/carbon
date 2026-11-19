@@ -44,6 +44,6 @@
       {/each}
     {/snippet}
   </DetailHeader>
-  <TrackList tracks={a.tracks} contextUri={a.uri} numbered showArt={false} />
+  <TrackList tracks={a.tracks} contextUri={a.uri} numbered showArt={false} tools="Album order" />
   {#if !a.tracks.length}<Status empty="Your server didn't list any songs for this album." />{/if}
 {/if}

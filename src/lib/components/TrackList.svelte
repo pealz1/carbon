@@ -11,17 +11,20 @@
   import { all, clicked, copyText, NONE, pastedSpotifyUris, picked, type Selection } from "$lib/selection";
   import { toasts } from "$lib/toast.svelte";
   import type { PlaylistSummary, Track } from "$lib/spotify/types";
+  import { arrange, type TrackSort } from "$lib/track-tools";
   import AddToCarbon from "./AddToCarbon.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
+  import Status from "./Status.svelte";
+  import TrackTools from "./TrackTools.svelte";
 
   let {
-    tracks,
+    tracks: source,
     contextUri,
     showAlbum = false,
     showArt = true,
     numbered = false,
-    numbers,
+    tools,
     compact = false,
     removeFrom,
     onremove,
@@ -32,13 +35,22 @@
     showAlbum?: boolean;
     showArt?: boolean;
     numbered?: boolean;
-    /** Each row's number when the list is filtered or sorted (its place in the original order). */
-    numbers?: number[];
+    /** Filter, sort and order above the list; the value names the original order ("Album order"). */
+    tools?: string;
     compact?: boolean;
     /** Lets the menu remove songs from this playlist (only pass for playlists you can edit). */
     removeFrom?: Pick<PlaylistSummary, "id" | "name">;
     onremove?: (uri: string) => void;
   } = $props();
+
+  let query = $state("");
+  let sort = $state<TrackSort>("default");
+  let descending = $state(false);
+  const arranged = $derived(!!tools && (!!query.trim() || sort !== "default" || descending));
+  const shown = $derived(arranged ? arrange(source, query, sort, descending) : null);
+  /** The rows as shown. Sorted or filtered, they play in that order instead of the album's or playlist's. */
+  const tracks = $derived(shown?.tracks ?? source);
+  const context = $derived(arranged ? undefined : contextUri);
 
   // Several rows can be selected (click, Ctrl-click, Shift-click, Ctrl+A) and then queued, added to a
   // playlist, copied or removed together. A list that changes under the selection drops it.
@@ -98,12 +110,15 @@
   function play(index: number) {
     const track = tracks[index];
     // YouTube Music lists play from what is loaded here (long playlists load page by page).
-    if (isYoutubeUri(track.uri)) player.playQueue(tracks, index, contextUri);
-    else if (contextUri) player.playContext(contextUri, track.uri);
+    if (isYoutubeUri(track.uri)) player.playQueue(tracks, index, context);
+    else if (context) player.playContext(context, track.uri);
     else player.playTracks(tracks.map((t) => t.uri), index, tracks);
   }
 </script>
 
+{#if tools && source.length > 1}
+  <TrackTools bind:query bind:sort bind:descending defaultLabel={tools} album={showAlbum} count={tracks.length} />
+{/if}
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
 <ol class="tracks" class:compact class:with-album={showAlbum} tabindex="-1" {onkeydown} aria-label={selection.rows.size > 1 ? `${selection.rows.size} songs selected` : undefined}>
   {#each tracks as track, i (track.uri + i)}
@@ -114,7 +129,7 @@
         {#if current && !player.paused}
           <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
         {:else if numbered}
-          <span class="index tabular">{numbers?.[i] ?? i + 1}</span>
+          <span class="index tabular">{shown?.numbers[i] ?? i + 1}</span>
         {/if}
         <span class="play-icon"><Icon name="play" size={14} /></span>
       </button>
@@ -156,6 +171,7 @@
     </li>
   {/each}
 </ol>
+{#if arranged && source.length && !tracks.length}<Status empty="No songs match “{query.trim()}”." />{/if}
 
 <style>
   .tracks {

@@ -71,7 +71,7 @@
     {/snippet}
     <AddToCarbon tracks={a.tracks} label="Add to Carbon playlist" wide />
   </DetailHeader>
-  <TrackList tracks={album.tracks} numbered showArt={false} />
+  <TrackList tracks={album.tracks} numbered showArt={false} tools="Album order" />
 {:else}
   <header class="page-head">
     <div class="title">
