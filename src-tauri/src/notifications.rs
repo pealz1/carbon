@@ -139,8 +139,15 @@ fn show(app: &AppHandle, info: &PlaybackInfo, art: Option<&Path>) {
     }
 }
 
-#[cfg(not(any(windows, target_os = "macos")))]
-fn show(_app: &AppHandle, _info: &PlaybackInfo, _art: Option<&Path>) {}
+#[cfg(target_os = "linux")]
+fn show(_app: &AppHandle, info: &PlaybackInfo, art: Option<&Path>) {
+    let mut command = std::process::Command::new("notify-send");
+    command.args(["--app-name=Carbon", "--hint=boolean:suppress-sound:true"]);
+    if let Some(icon) = art { command.arg("--icon").arg(icon); }
+    if let Err(e) = command.arg("--").arg(&info.title).arg(info.artist_line()).output() {
+        eprintln!("[notifications] {e}");
+    }
+}
 
 #[cfg(test)]
 mod tests {

@@ -83,6 +83,12 @@ pub struct Settings {
     /// None until the listener has chosen.
     pub services: Option<Services>,
     pub close_to_tray: bool,
+    pub mini_on_minimize: bool,
+    pub mini_click_through: bool,
+    pub mini_pinned: bool,
+    pub discord_artwork: bool,
+    pub discord_timestamps: bool,
+    pub discord_paused: bool,
     pub discord_presence: bool,
     pub lastfm_scrobbling: bool,
     /// Sends listens to ListenBrainz once a token is saved; independent of Last.fm.
@@ -164,6 +170,8 @@ impl Default for Settings {
         Self {
             services: None,
             close_to_tray: true,
+            mini_on_minimize: false, mini_click_through: false, mini_pinned: true,
+            discord_artwork: true, discord_timestamps: true, discord_paused: false,
             discord_presence: true,
             lastfm_scrobbling: true,
             listenbrainz_scrobbling: true,
@@ -250,9 +258,6 @@ impl Settings {
         }
         if self.remote_port < 1024 {
             return Err("the remote port must be between 1024 and 65535".into());
-        }
-        if self.services.is_some_and(|s| !s.spotify && !s.youtube) {
-            return Err("connect at least one music service".into());
         }
         // Font names go into CSS, so anything but a plain family name is refused.
         if let Some(bad) = self.fonts().into_iter().find(|f| !f.is_empty() && !crate::fonts::is_safe_name(f)) {
@@ -355,8 +360,10 @@ pub fn settings_set(app: AppHandle, state: State<SettingsState>, settings: Setti
         crate::hotkeys::apply(&app, &settings.hotkeys);
     }
     if let Some(discord) = app.try_state::<crate::discord::Discord>() {
-        // A private session clears the status at once, not at the next song.
-        discord.send(crate::discord::Msg::Enabled(settings.discord_presence && !settings.private_session));
+        discord.send(crate::discord::Msg::Preferences(settings.discord_presence && !settings.private_session,crate::discord::Options::from(&settings)));
+    }
+    if settings.mini_pinned!=before.mini_pinned || settings.mini_click_through!=before.mini_click_through {
+        crate::popouts::configure_mini(&app, &settings)?;
     }
     if let Some(lastfm) = app.try_state::<crate::lastfm::Lastfm>() {
         lastfm.send(crate::lastfm::Msg::Enabled(settings.lastfm_scrobbling));
@@ -437,7 +444,7 @@ mod tests {
 b".into(), ..Settings::default() }.validate().is_err());
         assert!(Settings { display_name: "pealz".into(), ui_scale: 1.25, volume_step: 0.01, ..Settings::default() }.validate().is_ok());
         let no_service = Settings { services: Some(Services { spotify: false, youtube: false }), ..Settings::default() };
-        assert!(no_service.validate().is_err());
+        assert!(no_service.validate().is_ok());
         let youtube_only = Settings { services: Some(Services { spotify: false, youtube: true }), ..Settings::default() };
         assert!(youtube_only.validate().is_ok());
         let loud = Settings { ui_sound_volume: 1.5, ..Settings::default() };

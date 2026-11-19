@@ -57,7 +57,10 @@ async function loadPlaylist(id: string): Promise<map.SoundcloudPlaylist> {
   const listed = (Array.isArray(raw.tracks) ? raw.tracks : []).slice(0, MAX_PLAYLIST);
   const missing = map.stubIds(listed);
   const batches = Array.from({ length: Math.ceil(missing.length / BATCH) }, (_, i) => missing.slice(i * BATCH, (i + 1) * BATCH));
-  const fetched = await Promise.all(batches.map((ids) => get<Raw[]>("tracks", { ids: ids.join(",") })));
+  const fetched = await Promise.all(batches.map(async (ids) => {
+    const page = await get("tracks", { ids: ids.join(",") });
+    return Array.isArray(page) ? page : page.collection ?? [];
+  }));
   return map.playlist(raw, map.fillStubs(listed, fetched.flat()));
 }
 
@@ -91,8 +94,8 @@ export async function tracksFor(uri: string): Promise<Track[]> {
 
 export const isSong = (track: Track): boolean => parseSoundcloudUri(track.uri)?.item === "track";
 
-/** A song's address for this one play, signed by SoundCloud; null for anything that isn't a SoundCloud song. */
-export function streamUrl(track: Track): Promise<string> | null {
+/** The official interactive widget plays a saved song and enforces its availability. */
+export function streamUrl(track: Track): string | null {
   const parsed = parseSoundcloudUri(track.uri);
-  return parsed?.item === "track" ? invoke<string>("soundcloud_stream", { id: parsed.id }) : null;
+  return parsed?.item === "track" ? `https://api.soundcloud.com/tracks/${parsed.id}` : null;
 }

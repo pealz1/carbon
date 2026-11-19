@@ -48,6 +48,12 @@ async function call(path: string, init: RequestInit = {}, token?: string): Promi
   return body;
 }
 
+/** Music library routes are owned by the same Carbon account service. */
+export async function musicRequest<T>(path:string,init:RequestInit={},token?:string):Promise<T> {
+  if(!/^\/(me|people|shared)\/[a-zA-Z0-9/?=&-]+$/.test(path))throw new Error("Invalid music library request.");
+  return await call("/v1/library"+path,init,token) as T;
+}
+
 /** The page that signs you in on getcarbon.cc and sends the browser back to Carbon. */
 export function loginUrl(state: string, codeChallenge: string): string {
   const url = new URL(CARBON.loginUrl);

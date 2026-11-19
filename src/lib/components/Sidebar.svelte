@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {t} from "$lib/i18n/locale.svelte";
   import { commandKey } from "$lib/platform";
   import { page } from "$app/state";
   import { dialogs } from "$lib/dialogs.svelte";
@@ -26,16 +27,16 @@
       {@const open = view.rail || !view.closed.includes(section.id)}
       <section class="section">
         <button class="section-head" aria-expanded={open} onclick={() => view.toggleSection(section.id)}>
-          <span>{section.label}</span>
+          <span>{t(section.label)}</span>
           <span class="fold" class:closed={!open}><Icon name="down" size={14} /></span>
         </button>
         {#if open}
-          <nav aria-label={section.label}>
+          <nav aria-label={t(section.label)}>
             {#each section.items as item (item.href)}
               {@const active = isActive(item.href, path)}
-              <a href={item.href} class="row nav pressable" class:active aria-current={active ? "page" : undefined} title={view.rail ? item.label : undefined}>
+              <a href={item.href} class="row nav pressable" class:active aria-current={active ? "page" : undefined} title={view.rail ? t(item.label) : undefined}>
                 <span class="icon"><Icon name={item.icon} size={18} filled={item.icon === "heart" && active} /></span>
-                <span class="name">{item.label}</span>
+                <span class="name">{t(item.label)}</span>
               </a>
             {/each}
           </nav>

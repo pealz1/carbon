@@ -25,5 +25,6 @@ export function fromLocal(t: LocalTrack, toUrl: (path: string) => string = conve
 }
 
 export function toItem(track: Track): PlaylistItem {
-  return isLocalUri(track.uri) ? { kind: "local", id: localId(track.uri) } : { kind: "spotify", track };
+  if (isLocalUri(track.uri)) return { kind: "local", id: localId(track.uri) };
+  return { kind: track.uri.startsWith("ytm:video:") ? "youtube" : "spotify", track };
 }
