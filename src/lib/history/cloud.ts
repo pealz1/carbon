@@ -24,7 +24,7 @@ export interface Library {
   following: Pick<Profile, "shareId" | "name">[];
 }
 export interface OnlinePlaylist extends Summary {
-  songs: (Omit<Song, "image"> & { explicit: boolean })[];
+  songs: (Omit<Song, "image"> & { explicit: boolean; artwork?: string })[];
 }
 export interface PublicProfile extends Profile {
   playlists: Summary[];
@@ -46,10 +46,18 @@ export const shareUrl = (type: "people" | "shared", key: string) =>
   "https://getcarbon.cc/music?" + new URLSearchParams({ [type]: key });
 export const readShare = (key: string) => musicRequest<OnlinePlaylist>("/shared/" + key);
 export const readPerson = (key: string) => musicRequest<PublicProfile>("/people/" + key);
+/** Known catalog IDs carry cover art without storing signed URLs or local file paths. */
+export function coverOf(track: { uri: string; artwork?: string }): string | null {
+  const yt = /^ytm:video:([a-zA-Z0-9_-]{11})$/.exec(track.uri);
+  if (yt) return "https://i.ytimg.com/vi/" + yt[1] + "/hqdefault.jpg";
+  return track.uri.startsWith("spotify:track:") && /^[a-f0-9]{40}$/i.test(track.artwork || "")
+    ? "https://i.scdn.co/image/" + track.artwork
+    : null;
+}
 export function cloudItems(list: OnlinePlaylist): PlaylistItem[] {
   return list.songs.map((s) => ({
     kind: s.uri.startsWith("ytm:") ? "youtube" : "spotify",
-    track: { ...trackOf({ ...s, image: null }), explicit: s.explicit },
+    track: { ...trackOf({ ...s, image: coverOf(s) }), explicit: s.explicit },
   }));
 }
 function keyFor(id: string) {
@@ -66,7 +74,9 @@ export async function upload(list: CarbonPlaylist, visible: boolean) {
   const songs = list.items.flatMap((i) => {
     if (i.kind === "local") return [];
     const { image, ...song } = songOf(i.track);
-    return [{ ...song, explicit: i.track.explicit }];
+    const artwork =
+      i.kind === "spotify" && image ? /^https:\/\/i\.scdn\.co\/image\/([a-f0-9]{40})$/i.exec(image)?.[1] : undefined;
+    return [{ ...song, explicit: i.track.explicit, ...(artwork ? { artwork } : {}) }];
   });
   const user = account.user?.id;
   const timestamp = list.updatedMs;

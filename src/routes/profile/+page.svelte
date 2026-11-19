@@ -5,6 +5,7 @@
   import { carbonPlaylists } from "$lib/local/playlists.svelte";
   import {
     cloudItems,
+    coverOf,
     readLibrary,
     readShare,
     readPerson,
@@ -216,7 +217,12 @@
     <details>
       <summary>Track list</summary>
       <ol>
-        {#each playlist.songs as s}<li>{s.title} · {s.artists.join(", ")}</li>{/each}
+        {#each playlist.songs as s}{@const image = coverOf(s)}
+          <li>
+            {#if image}<img class="song-art" src={image} alt="" loading="lazy" width="32" height="32" />{/if}{s.title} · {s.artists.join(
+              ", ",
+            )}
+          </li>{/each}
       </ol>
     </details>
     {#if own}<button
@@ -261,6 +267,12 @@
 </section>
 
 <style>
+  .song-art {
+    vertical-align: middle;
+    object-fit: cover;
+    margin-inline-end: 0.5rem;
+    border-radius: 4px;
+  }
   section {
     padding: var(--sp-5);
     margin-block: var(--sp-4);
