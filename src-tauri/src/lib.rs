@@ -19,6 +19,8 @@ mod notifications;
 mod oauth;
 mod playback;
 mod popouts;
+mod providers;
+mod provider_widget;
 mod radio;
 mod remote;
 mod servers;
@@ -109,9 +111,9 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(yours::Yours::new(&handle));
     app.manage(youtube::Youtube::new());
     app.manage(radio::Radio::new(&app.package_info().version.to_string()));
+    app.manage(providers::Catalog::new());
     app.manage(lyrics_sources::LyricsSources::new());
     app.manage(servers::Servers::new(&app.package_info().version.to_string()));
-    app.manage(soundcloud::SoundCloud::new(&app.package_info().version.to_string()));
     app.manage(bandcamp::Bandcamp::new(&app.package_info().version.to_string()));
     app.manage(engine::spotify_eq::SpotifyEqInjected(sound.spotify_eq));
     let window = engine::spotify_eq::create_main_window(app, sound.spotify_eq)?;
@@ -152,6 +154,7 @@ pub fn run() {
                 .with_state_flags(StateFlags::POSITION | StateFlags::SIZE)
                 .build(),
         )
+        .register_uri_scheme_protocol("carbon-widget", |_,request| provider_widget::response(&request))
         .setup(setup)
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. } if window.label() == "main" && settings::current(window.app_handle()).close_to_tray => {
@@ -177,6 +180,14 @@ pub fn run() {
             oauth::wait_for_oauth_redirect,
             oauth::wait_for_carbon_redirect,
             token_store::token_load,
+            providers::provider_catalog,
+            providers::provider_page,
+            providers::provider_connections,
+            providers::provider_credentials,
+            providers::provider_open,
+            providers::soundcloud_client_id,
+            providers::soundcloud_authorize,
+            oauth::wait_for_soundcloud_redirect,
             token_store::token_save,
             token_store::token_clear,
             token_store::carbon_token_load,
@@ -276,8 +287,7 @@ pub fn run() {
             servers::server_disconnect,
             servers::servers_connected,
             servers::server_get,
-            soundcloud::soundcloud_get,
-            soundcloud::soundcloud_stream,
+            providers::soundcloud_get,
             bandcamp::bandcamp_search,
             bandcamp::bandcamp_release,
             bandcamp::bandcamp_band,

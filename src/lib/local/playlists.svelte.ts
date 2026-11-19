@@ -17,9 +17,10 @@ class CarbonPlaylists {
   find = (id: string): CarbonPlaylist | undefined => this.list.find((p) => p.id === id);
 
   /** Returns the new playlist's id. */
-  async create(name: string): Promise<string | null> {
-    const before = new Set(this.list.map((p) => p.id));
-    return (await this.#apply(api.create(name))) ? (this.list.find((p) => !before.has(p.id))?.id ?? null) : null;
+  async create(name: string, items?: PlaylistItem[]): Promise<string | null> {
+    let id: string | null = null;
+    await this.#apply(api.create(name, items).then((list) => { id = list.at(-1)?.id ?? null; return list; }));
+    return id;
   }
 
   rename = (id: string, name: string) => this.#apply(api.rename(id, name));

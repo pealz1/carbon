@@ -89,7 +89,6 @@ class ServiceState {
 
   /** First run: connect these services. */
   async choose(next: Services): Promise<boolean> {
-    if (!next.spotify && !next.youtube) return false;
     if (!(await prefs.update({ services: next }))) return false;
     this.setupNow = next.spotify;
     this.value = next;
@@ -102,7 +101,6 @@ class ServiceState {
     const current = this.value;
     if (!current || current[service] === on) return false;
     const next = { ...current, [service]: on };
-    if (!next.spotify && !next.youtube) return false;
     if (!on) await (service === "spotify" ? session.signOut() : youtube.signOut());
     if (!(await prefs.update({ services: next }))) return false;
     this.value = next;

@@ -120,6 +120,14 @@ jobs:
           prerelease: false
           includeUpdaterJson: true
 
+      - uses: ./.github/actions/macos-images
+        if: runner.os == 'macOS'
+      - name: Upload Mac disk images
+        if: runner.os == 'macOS'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.ref_name }}" src-tauri/target/{aarch64,x86_64}-apple-darwin/release/bundle/dmg/*.dmg --clobber
+
   publish:
     needs: release
     runs-on: ubuntu-latest

@@ -71,6 +71,11 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "More music",
     items: [
       { href: "/soundcloud", label: "SoundCloud", icon: "cloud" },
+      { href: "/apple", label: "Apple Music", icon: "note" },
+      { href: "/deezer", label: "Deezer", icon: "equalizer" },
+      { href: "/mixcloud", label: "Mixcloud", icon: "radio" },
+      { href: "/archive", label: "Internet Archive", icon: "library" },
+      { href: "/import", label: "Import playlist", icon: "listAdd" },
       { href: "/bandcamp", label: "Bandcamp", icon: "album" },
     ],
   },

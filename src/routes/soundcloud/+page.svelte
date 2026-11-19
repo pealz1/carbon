@@ -1,5 +1,4 @@
 <script lang="ts">
-  import SoundcloudHome from "$lib/soundcloud/views/SoundcloudHome.svelte";
+  import ProviderPage from "$lib/providers/ProviderPage.svelte";
 </script>
-
-<SoundcloudHome />
+<ProviderPage provider="soundcloud"/>

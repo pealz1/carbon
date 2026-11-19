@@ -5,6 +5,8 @@
 import { shuffledFrom, step, type Repeat } from "$lib/local/queue";
 import type { Track } from "$lib/spotify/types";
 
+import { playWidget } from "$lib/providers/widget-playback";
+
 const RESTART_AFTER_MS = 3000;
 /** Songs in a row that won't load before Carbon stops skipping (the server went away, say). */
 const MAX_FAILURES = 3;
@@ -61,6 +63,7 @@ export class StreamPlayback {
   #startMs = 0;
   /** Audio is actually advancing (not loading or buffering). */
   #moving = false;
+  #widget: ReturnType<typeof playWidget> | null = null;
   #audio: HTMLAudioElement | null = null;
   #unshuffled: Track[] | null = null;
   #paused = true;
@@ -103,8 +106,10 @@ export class StreamPlayback {
 
   toggle(): void {
     const audio = this.#audio;
-    if (!this.queue || !audio) return;
+    if (!this.queue) return;
     if (this.#ended) return this.#goTo(0);
+    if (this.#widget) return this.#widget.toggle();
+    if (!audio) return;
     if (this.#paused) {
       if (performance.now() - this.#loadedAt > ADDRESS_GOOD_FOR_MS) return this.#goTo(this.index, this.#positionMs());
       const turn = this.#turn;
@@ -125,12 +130,14 @@ export class StreamPlayback {
   }
 
   seek(ms: number): void {
+    if (this.#widget) return this.#widget.seek(Math.max(0,ms));
     if (!this.#audio || !this.queue) return;
     this.#audio.currentTime = Math.max(0, ms) / 1000;
     this.#report();
   }
 
   setVolume(volume: number): void {
+    this.#widget?.volume(volume);
     if (this.#audio) this.#audio.volume = Math.min(1, Math.max(0, volume));
   }
 
@@ -184,7 +191,7 @@ export class StreamPlayback {
   }
 
   #positionMs(): number {
-    return Math.round((this.#audio?.currentTime ?? 0) * 1000);
+    return this.#widget?.position ?? Math.round((this.#audio?.currentTime ?? 0) * 1000);
   }
 
   /** The element's own length once it knows it; a transcoded stream may never say. */
@@ -206,6 +213,7 @@ export class StreamPlayback {
     this.index = index;
     this.#ended = false;
     this.#paused = false;
+    this.#widget?.close(); this.#widget=null;
     this.#audio?.pause(); // the song before goes quiet while this one's address is fetched
     this.#host.show(track);
     this.#host.sync(false, startMs, track.durationMs || undefined, true);
@@ -219,6 +227,17 @@ export class StreamPlayback {
 
   #load(url: string | null): void {
     if (!url) return this.#failed("no address for this song");
+    if (url.startsWith("https://api.soundcloud.com/tracks/")) {
+      this.#release();
+      const turn=this.#turn;
+      this.#widget=playWidget(url,this.#host.volume(),this.#startMs,(paused,position,duration)=>{
+        if(turn!==this.#turn)return;
+        this.#paused=paused; this.#failures=0;
+        this.#host.sync(paused,position,duration || undefined);
+      },()=>{if(turn===this.#turn){if(this.#host.repeat()==="track")this.#goTo(this.index);else this.#skip(true);}},
+      (e)=>{if(turn===this.#turn)this.#failed(e);});
+      return;
+    }
     const audio = (this.#audio ??= this.#element());
     this.#segments?.destroy();
     this.#segments = null;
@@ -267,6 +286,7 @@ export class StreamPlayback {
     this.#ended = true;
     this.#paused = true;
     this.#audio?.pause();
+    this.#widget?.close(); this.#widget=null;
     this.#host.sync(true, 0);
   }
 
@@ -287,6 +307,7 @@ export class StreamPlayback {
   }
 
   #release(): void {
+    this.#widget?.close(); this.#widget=null;
     this.#segments?.destroy();
     this.#segments = null;
     const audio = this.#audio;

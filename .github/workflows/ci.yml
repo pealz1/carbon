@@ -119,10 +119,11 @@ jobs:
             sleep 1
           done
           jq -e '.status == "stopped"' "$RUNNER_TEMP/carbon-state.json"
+      - uses: ./.github/actions/macos-images
       - uses: actions/upload-artifact@v4
         with:
           name: Carbon-macOS-universal
-          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          path: src-tauri/target/*-apple-darwin/release/bundle/dmg/*.dmg
           if-no-files-found: error
 
   check:

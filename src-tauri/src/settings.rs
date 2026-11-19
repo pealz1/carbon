@@ -188,9 +188,6 @@ impl Settings {
         if self.remote_port < 1024 {
             return Err("the remote port must be between 1024 and 65535".into());
         }
-        if self.services.is_some_and(|s| !s.spotify && !s.youtube) {
-            return Err("connect at least one music service".into());
-        }
         // Font names go into CSS, so anything but a plain family name is refused.
         if let Some(bad) = self.fonts().into_iter().find(|f| !f.is_empty() && !crate::fonts::is_safe_name(f)) {
             return Err(format!("\u{201c}{bad}\u{201d} isn't a font name Carbon can use"));
@@ -356,7 +353,7 @@ mod tests {
         let bad_port = Settings { remote_port: 80, ..Settings::default() };
         assert!(bad_port.validate().is_err());
         let no_service = Settings { services: Some(Services { spotify: false, youtube: false }), ..Settings::default() };
-        assert!(no_service.validate().is_err());
+        assert!(no_service.validate().is_ok());
         let youtube_only = Settings { services: Some(Services { spotify: false, youtube: true }), ..Settings::default() };
         assert!(youtube_only.validate().is_ok());
         let loud = Settings { ui_sound_volume: 1.5, ..Settings::default() };

@@ -50,6 +50,7 @@ pub struct SpotifyTrack {
 pub enum Item {
     Local { id: String },
     Spotify { track: SpotifyTrack },
+    Youtube { track: SpotifyTrack },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -74,8 +75,12 @@ impl Item {
         match self {
             Item::Local { id } if id.len() == 32 && id.chars().all(|c| c.is_ascii_hexdigit()) => Ok(()),
             Item::Local { .. } => Err("that local song id isn't valid".into()),
-            Item::Spotify { track: t } => {
-                let uri_ok = t.uri.strip_prefix("spotify:track:").is_some_and(is_spotify_id) && t.uri.ends_with(&t.id);
+            Item::Spotify { track: t } | Item::Youtube { track: t } => {
+                let uri_ok = match self {
+                    Item::Youtube { .. } => t.uri.strip_prefix("ytm:video:") == Some(t.id.as_str())
+                        && t.id.len() == 11 && t.id.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_')),
+                    _ => t.uri.strip_prefix("spotify:track:") == Some(t.id.as_str()) && is_spotify_id(&t.id),
+                };
                 let image_ok = t.album.as_ref().and_then(|a| a.image.as_deref()).is_none_or(|i| i.starts_with("https://") && short(i));
                 let texts_ok = [&t.name, &t.id].into_iter().all(|s| short(s))
                     && t.artists.iter().all(|a| short(&a.name) && short(&a.id) && short(&a.uri))
@@ -83,7 +88,7 @@ impl Item {
                 if uri_ok && image_ok && texts_ok && !t.name.is_empty() && t.artists.len() <= MAX_ARTISTS {
                     Ok(())
                 } else {
-                    Err("that Spotify track isn't valid".into())
+                    Err("that provider track isn't valid".into())
                 }
             }
         }
@@ -179,6 +184,7 @@ pub fn create(playlists: &mut Vec<Playlist>, name: &str) -> Result<(), String> {
 pub fn add(playlists: &mut [Playlist], id: &str, items: Vec<Item>) -> Result<(), String> {
     items.iter().try_for_each(Item::validate)?;
     let p = find(playlists, id)?;
+    check_sources(p.items.iter().chain(&items))?;
     if p.items.len() + items.len() > MAX_ITEMS {
         return Err(format!("A playlist holds up to {MAX_ITEMS} songs."));
     }
@@ -190,12 +196,23 @@ pub fn add(playlists: &mut [Playlist], id: &str, items: Vec<Item>) -> Result<(),
 /// Swaps in a whole new item list (sorting, removing duplicates, smart playlists, imports).
 pub fn replace(playlists: &mut [Playlist], id: &str, items: Vec<Item>) -> Result<(), String> {
     items.iter().try_for_each(Item::validate)?;
+    check_sources(items.iter())?;
     if items.len() > MAX_ITEMS {
         return Err(format!("A playlist holds up to {MAX_ITEMS} songs."));
     }
     let p = find(playlists, id)?;
     p.items = items;
     p.updated_ms = now_ms();
+    Ok(())
+}
+
+fn check_sources<'a>(mut items: impl Iterator<Item = &'a Item>) -> Result<(), String> {
+    if let Some(first) = items.next() {
+        let youtube = matches!(first, Item::Youtube { .. });
+        if items.any(|item| matches!(item, Item::Youtube { .. }) != youtube) {
+            return Err("Keep YouTube Music songs in their own Carbon playlist.".into());
+        }
+    }
     Ok(())
 }
 
@@ -226,8 +243,15 @@ pub fn carbon_playlists(store: State<Store>) -> Result<Vec<Playlist>, String> {
 }
 
 #[tauri::command]
-pub fn carbon_playlist_create(app: AppHandle, store: State<Store>, name: String) -> Result<Vec<Playlist>, String> {
-    store.update(&app, |all| create(all, &name))
+pub fn carbon_playlist_create(app: AppHandle, store: State<Store>, name: String, items: Option<Vec<Item>>) -> Result<Vec<Playlist>, String> {
+    store.update(&app, |all| {
+        create(all, &name)?;
+        if let Some(items) = items {
+            let id = all.last().ok_or("Couldn't create playlist.")?.id.clone();
+            add(all, &id, items)?;
+        }
+        Ok(())
+    })
 }
 
 #[tauri::command]
@@ -329,6 +353,20 @@ mod tests {
         assert!(add(&mut all, &id, vec![bad_image]).is_err());
         assert!(add(&mut all, "missing", vec![]).is_err());
         assert!(all[0].items.is_empty());
+    }
+
+    #[test]
+    fn youtube_import_round_trips_and_rejects_mixed_sources_atomically() {
+        let mut all=one();
+        let id=all[0].id.clone();
+        let Item::Spotify{mut track}=spotify("abcdefghijk") else { unreachable!() };
+        track.uri="ytm:video:abcdefghijk".into();
+        let song=Item::Youtube{track};
+        add(&mut all,&id,vec![song.clone(),song]).unwrap();
+        let before=all.clone();
+        assert!(add(&mut all,&id,vec![Item::Local{id:LOCAL.into()}]).is_err());
+        assert_eq!(all,before);
+        assert_eq!(serde_json::from_str::<Vec<Playlist>>(&serde_json::to_string(&all).unwrap()).unwrap(),all);
     }
 
     #[test]
