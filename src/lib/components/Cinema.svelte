@@ -73,7 +73,7 @@
   onkeydown={() => timer.wake()}
   transition:fade={{ duration: 260 }}
 >
-  <Ambient image={player.artwork} playing={!player.paused} />
+  <Ambient image={player.artwork} playing={!player.paused} reactive />
   <!-- First in the DOM so Tab reaches the controls before the lyric lines; it still sits at the bottom. -->
   <CinemaBar hidden={idle} {lines} shiftMs={lyricShift(offset, prefs.value?.lyricsDelayMs)} bind:offset bind:height={barHeight} onhold={hold} />
   <div class="notices"><Toasts /></div>

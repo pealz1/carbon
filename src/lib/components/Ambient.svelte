@@ -1,19 +1,90 @@
 <script lang="ts">
+  import { tick } from "svelte";
+  import { prefersReducedMotion } from "svelte/motion";
   import { fade } from "svelte/transition";
   import { artTones } from "$lib/art-tones.svelte";
+  import { featuresFor, type AudioFeatures } from "$lib/audio-features";
+  import { followSpectrum } from "$lib/local/spectrum";
   import { onScreen } from "$lib/on-screen.svelte";
+  import { player } from "$lib/player.svelte";
+  import { prefs } from "$lib/preferences.svelte";
+  import { bassLevel, breathSeconds, pace, smooth } from "$lib/song-pulse";
   import { css } from "$lib/wallpaper";
 
   // The window's wallpaper: the chrome is drawn straight on it. Black with nothing loaded; with a
   // track, four colour fields read from its artwork (never the artwork itself) drift slowly and
   // cross-fade when the song changes. Only transform and opacity animate.
-  let { image, playing }: { image: string | null; playing: boolean } = $props();
+  // Reactive (cinema): the fields drift with the song's tempo, energy and volume, the light breathes
+  // once a bar, and local files add their real bass.
+  let { image, playing, reactive = false }: { image: string | null; playing: boolean; reactive?: boolean } = $props();
   const tones = artTones(() => image);
 
   const style = $derived(tones.current ? tones.current.fields.map((f, i) => `--f${i}: ${css(f)}`).join("; ") : null);
+
+  /** Cinema drifts this much faster than the window's wallpaper before the song's pace applies. */
+  const CINEMA_DRIFT = 2.2;
+  const BREATH_MS = breathSeconds(null) * 1000;
+  let wallpaper = $state<HTMLElement>();
+  let pulse = $state<HTMLElement>();
+  let features = $state<AudioFeatures | null>(null);
+  const live = $derived(reactive && onScreen.current && !prefersReducedMotion.current && prefs.effects === "full" && prefs.motion !== "none");
+
+  $effect(() => {
+    const id = live && player.source === "spotify" ? player.track?.id : undefined;
+    features = null;
+    if (!id) return;
+    let current = true;
+    void featuresFor(id).then((f) => current && (features = f));
+    return () => (current = false);
+  });
+
+  const input = $derived({ tempo: features?.tempo ?? null, energy: features?.energy ?? null, volume: player.volume, playing });
+
+  // Rates change smoothly on running animations; changing a CSS duration would make the fields jump.
+  $effect(() => {
+    if (!live || !wallpaper) return;
+    const rate = CINEMA_DRIFT * pace(input);
+    void style; // a new song's wash brings new animations
+    const el = wallpaper;
+    void tick().then(() => {
+      for (const a of el.getAnimations({ subtree: true })) if (a instanceof CSSAnimation && a.animationName.startsWith("drift")) a.updatePlaybackRate(rate);
+    });
+  });
+
+  let breath = $state<Animation | null>(null);
+  $effect(() => {
+    if (!live || !pulse) return;
+    const a = pulse.animate([{ transform: "scale(1)", opacity: 0.86 }, { transform: "scale(1.045)", opacity: 1 }], {
+      duration: BREATH_MS,
+      iterations: Infinity,
+      direction: "alternate",
+      easing: "ease-in-out",
+    });
+    breath = a;
+    return () => {
+      a.cancel();
+      breath = null;
+    };
+  });
+  $effect(() => breath?.updatePlaybackRate(input.playing ? BREATH_MS / 1000 / breathSeconds(input.tempo) : 0.25));
+
+  $effect(() => {
+    if (!live || !pulse || player.source !== "local" || !playing) return;
+    const el = pulse;
+    let level = 0;
+    const stop = followSpectrum((bands) => {
+      level = smooth(level, bassLevel(bands));
+      el.style.scale = String(1 + 0.07 * level);
+    });
+    return () => {
+      stop();
+      el.style.scale = "";
+    };
+  });
 </script>
 
-<div class="wallpaper" class:paused={!onScreen.current} aria-hidden="true">
+<div class="wallpaper" class:paused={!onScreen.current} aria-hidden="true" bind:this={wallpaper}>
+  <div class="pulse" bind:this={pulse}>
   {#key style}
     {#if style}
       <div class="wash" class:dim={!playing} {style} in:fade={{ duration: 1400 }} out:fade={{ duration: 1400 }}>
@@ -24,6 +95,7 @@
       </div>
     {/if}
   {/key}
+  </div>
   <div class="grain"></div>
 </div>
 
@@ -37,10 +109,16 @@
     background: var(--black);
   }
 
+  .pulse,
   .wash,
   .grain {
     position: absolute;
     inset: 0;
+  }
+
+  /* Bass scales from the middle; the engine's ~30 updates a second glide into each other. */
+  .pulse {
+    transition: scale 120ms linear;
   }
 
   /* The deepest tone fills the gaps between fields, so the chrome reads as one continuous wash. */
