@@ -1,6 +1,7 @@
 // One catalog for everything that can go wrong: Spotify's Web API, its Web Playback SDK, the
 // network and Carbon's local audio engine. Each failure maps to what happened, what Carbon does
 // about it on its own, and what the listener can do if it keeps happening.
+import { isMac } from "$lib/platform";
 import { ApiError, NetworkError, type ApiNotice } from "$lib/spotify/api";
 
 /** Events from Spotify's Web Playback SDK, plus Carbon failing to connect it or waiting in vain. */
@@ -51,13 +52,13 @@ const SDK: Record<SdkEvent, Problem> = {
   initialization_error: problem(
     "Spotify's player couldn't start inside Carbon.",
     "",
-    "Restart Carbon. If it keeps happening, update the Microsoft Edge WebView2 Runtime, which plays Spotify's protected audio.",
+    isMac ? "Choose Play on a Spotify device on the playlist, or update Safari in Software Update." : "Restart Carbon. If it keeps happening, update the Microsoft Edge WebView2 Runtime, which plays Spotify's protected audio.",
     "restart",
   ),
   authentication_error: problem("Spotify didn't accept Carbon's sign-in for playback.", "Carbon renewed it and reconnected once.", "Sign in again.", "sign-in"),
   account_error: PREMIUM,
   playback_error: problem("Spotify couldn't play this song.", "", "Try another song. If none play, restart Carbon."),
-  autoplay_failed: problem("Windows stopped the music from starting on its own.", "", "Press Start playback.", "start-playback"),
+  autoplay_failed: problem("The system stopped the music from starting on its own.", "", "Press Start playback.", "start-playback"),
   connect_failed: problem("Carbon's player couldn't connect to Spotify.", "", "Check your connection. Carbon tries again when you press play.", "reconnect"),
   not_ready: DEVICE_LOST,
 };
@@ -87,7 +88,7 @@ function apiProblem(e: ApiError): Problem {
 
 function engineProblem(message: string): Problem {
   if (/engine stopped/i.test(message)) return problem(message, "", "", "restart");
-  if (/audio device|Couldn't (open|start) /i.test(message)) return problem(message, "", "Pick another output on the Sound page or check Windows sound settings.");
+  if (/audio device|Couldn't (open|start) /i.test(message)) return problem(message, "", "Pick another output on the Sound page or check your system sound settings.");
   if (/Couldn't (play|keep playing)/i.test(message)) return problem(message, "", "If other files fail too, check they open in another player.");
   return problem(message);
 }

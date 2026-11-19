@@ -106,7 +106,7 @@
           <label class="chip" class:on={sources[s.id]}><input type="checkbox" bind:checked={sources[s.id]} />{s.label}</label>
         {/each}
       </div>
-      <p class="hint">Spotify only shares the songs of playlists you own, so playlists you follow can't be used.</p>
+      <p class="hint">Includes playlists you own or collaborate on and other playlists Spotify lets Carbon read.</p>
     </fieldset>
 
     <fieldset class="field">

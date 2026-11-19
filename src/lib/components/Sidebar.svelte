@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { commandKey } from "$lib/platform";
   import { page } from "$app/state";
   import { dialogs } from "$lib/dialogs.svelte";
   import { isActive, sectionsFor } from "$lib/nav";
@@ -14,9 +15,9 @@
 </script>
 
 <aside class="sidebar" class:rail={view.rail} aria-label="Sidebar">
-  <button class="search" class:active={path === "/search"} onclick={() => (dialogs.palette = true)} aria-haspopup="dialog" aria-label="Search" title={view.rail ? "Search (Ctrl K)" : undefined}>
+  <button class="search" class:active={path === "/search"} onclick={() => (dialogs.palette = true)} aria-haspopup="dialog" aria-label="Search" title={view.rail ? `Search (${commandKey} K)` : undefined}>
     <span class="label">Search</span>
-    <kbd>Ctrl K</kbd>
+    <kbd>{commandKey} K</kbd>
     <Icon name="search" size={16} />
   </button>
 

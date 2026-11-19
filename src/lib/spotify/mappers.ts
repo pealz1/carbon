@@ -17,14 +17,13 @@ const PREFERRED_IMAGE_WIDTH = 300;
 
 /** Smallest image at least PREFERRED_IMAGE_WIDTH wide, else the largest available. */
 export function pickImage(images: RawImage[] | null | undefined, minWidth = PREFERRED_IMAGE_WIDTH): string | null {
-  if (!images?.length) return null;
-  const sized = images.filter((i) => (i.width ?? 0) >= minWidth).sort((a, b) => (a.width ?? 0) - (b.width ?? 0));
-  return (sized[0] ?? images[0]).url;
+  const sorted = images?.filter((image) => image?.url).sort((a, b) => (a.width ?? 0) - (b.width ?? 0));
+  return sorted?.find((image) => (image.width ?? 0) >= minWidth)?.url ?? sorted?.at(-1)?.url ?? null;
 }
 
 /** Largest image, for full-screen artwork. */
 export const pickLargestImage = (images: RawImage[] | null | undefined): string | null =>
-  images?.length ? [...images].sort((a, b) => (b.width ?? 0) - (a.width ?? 0))[0].url : null;
+  pickImage(images, Infinity);
 
 const idFromUri = (uri: string): string => uri.split(":").pop() ?? uri;
 
@@ -56,6 +55,10 @@ export function trackFromRow(row: { item?: RawTrack | null; track?: RawTrack | n
 }
 
 export const compactTracks = (tracks: (Track | null)[]): Track[] => tracks.filter((t): t is Track => t !== null);
+
+/** Summary lists can omit access information. An actual items response takes precedence. */
+export const mayReadPlaylist = (p: PlaylistSummary, me: string | undefined): boolean =>
+  p.tracksReadable ?? (!!me && (p.ownerId === me || p.collaborative));
 
 export function toPlaylistSummary(p: RawPlaylist): PlaylistSummary {
   return {

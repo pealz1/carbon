@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { isMac } from "$lib/platform";
   import { dialogs } from "$lib/dialogs.svelte";
   import { menu, type MenuEntry } from "$lib/menu.svelte";
   import { popouts } from "$lib/popout/host.svelte";
@@ -13,7 +14,7 @@
   const appWindow = getCurrentWindow();
   let maximized = $state(false);
 
-  const syncMaximized = () =>
+  const syncMaximized = () => !isMac &&
     appWindow.isMaximized().then(
       (on) => (maximized = on),
       (e) => console.warn("[titlebar] couldn't read the window state", e),
@@ -56,8 +57,9 @@
       </button>
       <button class="tb" onclick={(e) => menu.open(e, moreItems())} aria-label="More" aria-haspopup="menu" title="More"><Icon name="more" size={18} /></button>
     </div>
-    <span class="rule" aria-hidden="true"></span>
+    {#if !isMac}<span class="rule" aria-hidden="true"></span>{/if}
   {/if}
+  {#if !isMac}
   <div class="window">
     <button class="tb" onclick={() => appWindow.minimize()} aria-label="Minimize"><Icon name="minimize" size={16} /></button>
     <button class="tb" onclick={() => appWindow.toggleMaximize()} aria-label={maximized ? "Restore" : "Maximize"}>
@@ -65,6 +67,7 @@
     </button>
     <button class="tb close" onclick={() => appWindow.close()} aria-label="Close"><Icon name="close" size={16} /></button>
   </div>
+  {/if}
 </header>
 
 <style>

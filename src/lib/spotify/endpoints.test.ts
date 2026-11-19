@@ -27,6 +27,47 @@ describe("endpoints", () => {
   beforeEach(() => useTokenSource({ get: async () => "token", refresh: async () => "token" }));
   afterEach(() => vi.unstubAllGlobals());
 
+  it("uses embedded playlist rows and keeps the raw offset across unavailable items", async () => {
+    const fetchMock = routes({ "/playlists/ours": { id: "ours", uri: "spotify:playlist:ours", name: "Shared", owner: { id: "someone-else" }, collaborative: true,
+      items: { items: [{ item: track("a") }, { item: null }], next: "more", total: 7 } } });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await sp.playlistPage("ours");
+    expect(result.first).toMatchObject({ items: [{ id: "a" }], total: 7, nextOffset: 2 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("distinguishes empty playlists, denied lists and sign-in failures", async () => {
+    const meta = { id: "p", uri: "spotify:playlist:p", name: "A playlist", public: true };
+    const items = vi.fn().mockResolvedValueOnce(Response.json({ items: [], total: 0, next: null }))
+      .mockResolvedValueOnce(new Response(null, { status: 403 }))
+      .mockResolvedValueOnce(Response.json({ error: { message: "Insufficient client scope" } }, { status: 403 }));
+    vi.stubGlobal("fetch", (url: string) => url.includes("/items?") ? items() : Response.json(meta));
+    expect((await sp.playlistPage("empty")).first).toEqual({ items: [], total: 0, nextOffset: null });
+    expect((await sp.playlistPage("followed")).first).toBeNull();
+    await expect(sp.playlistPage("scope")).rejects.toMatchObject({ status: 403, message: "Insufficient client scope" });
+  });
+
+  it("recovers public titles and covers without sending credentials to Spotify Embeds", async () => {
+    const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => url.includes("/oembed?")
+      ? Response.json({ title: "Public mix", thumbnail_url: "https://i.scdn.co/mix", html: "ignored" })
+      : new Response(null, { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { playlist, first } = await sp.playlistPage("publicMix");
+    expect(first).toBeNull();
+    expect(playlist).toMatchObject({ name: "Public mix", image: "https://i.scdn.co/mix", public: true });
+    expect(await sp.playlistArtwork("publicMix", true)).toBe(playlist.image);
+    const publicCalls = fetchMock.mock.calls.filter(([url]) => url.includes("/oembed?"));
+    expect(publicCalls).toHaveLength(1);
+    expect(publicCalls[0][1]).toEqual({ credentials: "omit", referrerPolicy: "no-referrer" });
+    expect(await sp.playlistArtwork("private", false)).toBeNull();
+    expect(fetchMock.mock.calls.filter(([url]) => url.includes("/oembed?"))).toHaveLength(1);
+  });
+
+  it("recovers from a broken playlist image through the authenticated covers endpoint", async () => {
+    vi.stubGlobal("fetch", routes({ "/playlists/p/images": [{ url: "expired", width: 300 }, { url: "fresh", width: 640 }] }));
+    expect(await sp.playlistArtwork("p", false, "expired")).toBe("fresh");
+  });
+
   it("pages liked songs from either row shape and reports the next offset", async () => {
     vi.stubGlobal("fetch", routes({ "/me/tracks": { items: [{ track: track("t1") }, { item: track("t2") }], next: "more", total: 120 } }));
     const page = await sp.likedTracks(0);

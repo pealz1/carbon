@@ -52,11 +52,16 @@ class Devices {
   }
 
   /** Moves Spotify playback to `device`, playing if it was playing (and paused if it wasn't). */
-  async moveTo(device: Device): Promise<void> {
-    const play = this.remote ? this.playing : !player.paused;
+  async moveTo(device: Device, contextUri?: string): Promise<void> {
+    const play = !!contextUri || (this.remote ? this.playing : !player.paused);
     this.moving = device.id;
     try {
-      await sp.transferTo(device.id, play);
+      if (contextUri) {
+        await sp.playOn(device.id, { context_uri: contextUri });
+        if (!player.paused && player.source !== "spotify") player.togglePlay();
+      } else {
+        await sp.transferTo(device.id, play);
+      }
       this.list = this.list.map((d) => ({ ...d, active: d.id === device.id }));
       this.remote = this.isCarbon(device) ? null : { ...device, active: true };
       this.playing = play;

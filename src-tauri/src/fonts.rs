@@ -42,7 +42,13 @@ pub fn installed() -> Result<Vec<String>, String> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn installed() -> Result<Vec<String>, String> {
+    let families = core_text::font_manager::copy_available_font_family_names();
+    Ok(tidy(families.iter().map(|name| name.to_string()).collect()))
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn installed() -> Result<Vec<String>, String> {
     Ok(Vec::new())
 }

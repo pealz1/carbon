@@ -619,7 +619,7 @@ impl<E: Events> Player<E> {
         let idle = self.paused_at.is_some_and(|t| t.elapsed() >= RELEASE_AFTER_PAUSE);
         if self.status == Status::Paused && idle && self.output.is_some() {
             // The timeline stays, so the paused position is still reported and resumable.
-            if let Some(out) = self.output.as_ref() {
+            if let Some(out) = self.output.as_mut() {
                 out.pause_stream();
             }
             self.output = None;

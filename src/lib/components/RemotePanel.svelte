@@ -85,7 +85,7 @@
       <Toggle
         checked={s.remoteEnabled}
         label="Phone remote"
-        description="Control Carbon from your phone, a stream overlay or a deck on the same Wi-Fi. The first time, Windows asks whether Carbon may use the network: allow it on private networks."
+        description="Control Carbon from your phone, a stream overlay or a deck on the same Wi-Fi. Allow local network access on your trusted Wi-Fi when prompted."
         onchange={(on) => apply({ remoteEnabled: on })}
       />
     {/key}

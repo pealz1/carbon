@@ -13,6 +13,67 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  macos:
+    name: Native tests (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+
+  macos-bundle:
+    name: Universal macOS installer
+    runs-on: macos-15
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      APPLE_SIGNING_IDENTITY: "-"
+      VITE_REQUIRE_CARBON_ACCOUNT: "true"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm run tauri -- build --target universal-apple-darwin --config '{"bundle":{"createUpdaterArtifacts":false}}'
+      - name: Verify bundle
+        run: |
+          bundle=src-tauri/target/universal-apple-darwin/release/bundle
+          app="$bundle/macos/Carbon.app"
+          plist="$app/Contents/Info.plist"
+          binary="$app/Contents/MacOS/$(plutil -extract CFBundleExecutable raw "$plist")"
+          lipo "$binary" -verify_arch x86_64 arm64
+          codesign --verify --strict --deep "$app"
+          test "$(plutil -extract LSMinimumSystemVersion raw "$plist")" = "11.0"
+          test "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$plist")" = "carbon"
+          hdiutil verify "$bundle"/dmg/*.dmg
+          open -n "$app"
+          for attempt in {1..30}; do
+            if "$binary" now-playing --json > "$RUNNER_TEMP/carbon-state.json"; then break; fi
+            sleep 1
+          done
+          jq -e '.status == "stopped"' "$RUNNER_TEMP/carbon-state.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Carbon-macOS-universal
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
   check:
     name: Lint, type-check and test
     runs-on: windows-latest

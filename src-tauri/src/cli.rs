@@ -11,10 +11,9 @@ use std::fs::{self, File, TryLockError};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::plugin::TauriPlugin;
-use tauri::{AppHandle, Manager, RunEvent, Runtime};
+use tauri::{AppHandle, Manager, RunEvent};
 
 /// The folder name Tauri gives the app's local data dir; `tauri.conf.json` has the same value.
 const IDENTIFIER: &str = "com.pealz.carbon";
@@ -81,19 +80,12 @@ pub fn second_launch(app: &AppHandle, args: &[String]) {
     }
 }
 
-/// The link Carbon was started with (`carbon://…` clicked, or `play-uri`, while it was closed),
-/// handed to the webview once it can follow it.
+/// Some until the frontend subscribes. macOS can deliver URLs before the webview is ready.
+type LaunchLinks = Mutex<Option<Vec<Target>>>;
+
 #[tauri::command]
-pub fn launch_link() -> Option<Target> {
-    static TAKEN: AtomicBool = AtomicBool::new(false);
-    if TAKEN.swap(true, Ordering::Relaxed) {
-        return None;
-    }
-    let args: Vec<String> = std::env::args().collect();
-    match parse(&args) {
-        Some(Action::Link(target)) => Some(target),
-        _ => None,
-    }
+pub fn launch_links(state: tauri::State<'_, LaunchLinks>) -> Vec<Target> {
+    state.lock().unwrap_or_else(|p| p.into_inner()).take().unwrap_or_default()
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -156,6 +148,9 @@ impl NowPlaying {
 /// Carbon's local data folder. Found without Tauri, so the running app and a `now-playing` launch
 /// (which never starts Tauri) always agree on it.
 fn data_dir() -> Option<PathBuf> {
+    #[cfg(target_os = "macos")]
+    return dirs::data_local_dir().map(|dir| dir.join(IDENTIFIER));
+    #[cfg(not(target_os = "macos"))]
     std::env::var_os("LOCALAPPDATA").map(|dir| PathBuf::from(dir).join(IDENTIFIER))
 }
 
@@ -286,13 +281,31 @@ pub fn run_early() -> Option<i32> {
 }
 
 /// Keeps the now-playing file for as long as Carbon runs, and removes it on the way out.
-pub fn plugin<R: Runtime>() -> TauriPlugin<R> {
+pub fn plugin() -> TauriPlugin<tauri::Wry> {
     tauri::plugin::Builder::new("carbon-cli")
         .setup(|app, _| {
             app.manage(StateFile::open(data_dir()));
+            let args: Vec<_> = std::env::args().collect();
+            let links = match parse(&args) {
+                Some(Action::Link(target)) => vec![target],
+                _ => Vec::new(),
+            };
+            app.manage(LaunchLinks::new(Some(links)));
             Ok(())
         })
         .on_event(|app, event| {
+            #[cfg(target_os = "macos")]
+            match event {
+                RunEvent::Opened { urls } => {
+                    let state = app.state::<LaunchLinks>();
+                    let mut pending = state.lock().unwrap_or_else(|p| p.into_inner());
+                    for target in urls.iter().filter_map(|url| links::from_url(url.as_str())) {
+                        if let Some(list) = pending.as_mut() { list.push(target); } else { links::deliver(app, &target); }
+                    }
+                }
+                RunEvent::Reopen { .. } => tray::show_main(app),
+                _ => {}
+            }
             if let RunEvent::Exit = event
                 && let Some(file) = app.try_state::<StateFile>()
             {

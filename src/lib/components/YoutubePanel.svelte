@@ -43,7 +43,7 @@
       onchange={(on) => prefs.update({ sponsorBlock: on })}
     />
   {/if}
-  <p class="muted">Your YouTube session is stored in Carbon's browser profile, encrypted by Windows, so the player is signed in too.</p>
+  <p class="muted">Carbon uses the same browser profile for YouTube sign-in and playback.</p>
   <p class="note">
     Carbon talks to YouTube Music through its private web API, the one music.youtube.com uses. Google doesn't offer it to other apps and may change or block it
     at any time, and using it may break YouTube's Terms of Service, which could put your Google account at risk. Songs play in YouTube's official player, with

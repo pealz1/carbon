@@ -12,6 +12,7 @@ export interface SaveResult {
   id: string;
   /** Set when the details saved but the cover upload didn't. */
   coverError: string | null;
+  itemsError?: string;
 }
 
 /** Creates (id null) or updates a playlist, then uploads a cover if one was picked. */
@@ -19,7 +20,14 @@ export async function savePlaylist(id: string | null, draft: PlaylistDraft, cove
   const fields = toFields(draft);
   const playlistId = id ?? (await sp.createPlaylist(fields)).id;
   if (id) await sp.updatePlaylist(id, fields);
-  if (addUris.length) await sp.addToPlaylist(playlistId, addUris);
+  let itemsError: string | undefined;
+  if (addUris.length) {
+    try {
+      await sp.addToPlaylist(playlistId, addUris);
+    } catch (e) {
+      itemsError = `The playlist saved. Check which songs were added before trying again. ${describeError(e)}`;
+    }
+  }
   let coverError: string | null = null;
   if (cover) {
     try {
@@ -30,7 +38,7 @@ export async function savePlaylist(id: string | null, draft: PlaylistDraft, cove
     }
   }
   await refreshSidebar();
-  return { id: playlistId, coverError };
+  return { id: playlistId, coverError, ...(itemsError && { itemsError }) };
 }
 
 async function refreshSidebar(): Promise<void> {
@@ -82,4 +90,4 @@ export async function removeTracks(playlist: Pick<PlaylistSummary, "id" | "name"
 
 /** Playlists a song can be added to: your own, plus collaborative ones. */
 export const editablePlaylists = (playlists: PlaylistSummary[], meId: string | undefined): PlaylistSummary[] =>
-  playlists.filter((p) => p.ownerId === meId || p.collaborative);
+  playlists.filter((p) => !!meId && p.tracksReadable !== false && (p.ownerId === meId || p.collaborative));

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { isMac } from "$lib/platform";
   import { comboFrom, comboKeys, HOTKEY_ACTIONS, sameShortcut } from "$lib/hotkeys";
   import { hotkeysSuspend, type HotkeyAction, type Hotkeys, type HotkeyStatus } from "$lib/native";
 
@@ -73,7 +74,7 @@
         </span>
       </button>
       {#if recording === action && !problem}
-        <p class="hint">Hold Ctrl, Alt or Win with a key. Esc cancels, Backspace clears.</p>
+        <p class="hint">Hold {isMac ? "Control, Option or Command" : "Ctrl, Alt or Win"} with a key. Esc cancels, Backspace clears.</p>
       {:else if problem}
         <p class="problem" id="hotkey-{action}-problem" role="status">{problem}</p>
       {/if}

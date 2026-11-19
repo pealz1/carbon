@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Carbon: a free, open-source Spotify and YouTube Music client for Windows</title>
-  <meta name="description" content="Carbon is a free, open-source Spotify and YouTube Music client for Windows 10 and 11, built in Rust. A liquid-glass interface, word-synced lyrics, media keys, Discord and Last.fm, and signed updates.">
+  <title>Carbon: a free, open-source Spotify and YouTube Music client for Windows and macOS</title>
+  <meta name="description" content="Carbon is a free, open-source Spotify and YouTube Music client for Windows and macOS, built in Rust. A liquid-glass interface, word-synced lyrics, media keys, Discord and Last.fm, and signed updates.">
   <link rel="canonical" href="https://getcarbon.cc/">
   <meta name="theme-color" content="#090907">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -24,7 +24,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Carbon">
   <meta property="og:title" content="Carbon: your music, in liquid glass">
-  <meta property="og:description" content="A free, open-source Spotify and YouTube Music client for Windows 10 and 11. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
+  <meta property="og:description" content="A free, open-source Spotify and YouTube Music client for Windows and macOS. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
   <meta property="og:url" content="https://getcarbon.cc/">
   <meta property="og:image" content="https://getcarbon.cc/assets/og.png?v=4">
   <meta property="og:image:width" content="1200">
@@ -32,7 +32,7 @@
   <meta property="og:image:alt" content="The Carbon logo beside the Carbon app window on a laptop screen.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Carbon: your music, in liquid glass">
-  <meta name="twitter:description" content="A free, open-source Spotify and YouTube Music client for Windows 10 and 11. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
+  <meta name="twitter:description" content="A free, open-source Spotify and YouTube Music client for Windows and macOS. Word-synced lyrics, media keys, Discord and Last.fm, signed updates.">
   <meta name="twitter:image" content="https://getcarbon.cc/assets/og.png?v=4">
   <meta name="twitter:image:alt" content="The Carbon logo beside the Carbon app window on a laptop screen.">
 </head>
@@ -61,11 +61,11 @@
       <div class="wrap hero__top">
         <h1 class="hero__title" id="hero-title">Your music,<br>in liquid glass.</h1>
         <div class="hero__aside">
-          <p class="hero__lead">Carbon is a free, open-source Spotify and YouTube Music client for Windows 10 and 11. Built in Rust, it plays your library itself, fills lyrics word by word and keeps your sign-in on your PC.</p>
+          <p class="hero__lead">Carbon is a free, open-source Spotify and YouTube Music client for Windows and macOS. Built in Rust, it plays your library itself, fills lyrics word by word and keeps your sign-in on your PC.</p>
           <div class="cta">
             <a class="btn btn--primary btn--lg" href="https://github.com/pealz1/carbon/releases/latest" data-tilt="10">
               <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
-              Download for Windows
+              Download Carbon
             </a>
             <a class="btn btn--glass btn--lg" href="https://github.com/pealz1/carbon" data-tilt="10">
               <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg>
@@ -75,7 +75,7 @@
           <ul class="facts">
             <li>Free</li>
             <li>Spotify Premium or YouTube Music</li>
-            <li>Windows 10 &amp; 11</li>
+            <li>Windows &amp; macOS</li>
           </ul>
         </div>
       </div>
@@ -208,7 +208,7 @@
             </div>
             <div class="tile__body">
               <h3>Private by design</h3>
-              <p>No ads, no analytics, no tracking. Your Spotify sign-in stays in Windows Credential Manager.</p>
+              <p>No ads, no analytics, no tracking. Your Spotify sign-in stays in Windows Credential Manager or macOS Keychain.</p>
             </div>
             <div class="tile__detail" id="detail-private"><p>You sign in on Spotify’s own page, so Carbon never sees your Spotify password. A Carbon account stores only your email and a salted password hash.</p></div>
             <button class="tile__trigger" type="button" aria-expanded="false" aria-controls="detail-private"><span class="sr-only">More about privacy</span></button>
@@ -219,8 +219,8 @@
           <article class="tile tile--native" data-tilt="7" data-hold-root>
             <div class="tile__glass" aria-hidden="true"><span class="tile__spec"></span></div>
             <div class="tile__body">
-              <h3>Feels native on Windows</h3>
-              <p>Media keys, the Windows media overlay, a tray icon with controls, and launch at startup.</p>
+              <h3>Desktop playback controls</h3>
+              <p>Use media keys or control playback from the Windows tray or Mac menu bar.</p>
             </div>
             <div class="tile__art art-native" aria-hidden="true">
               <span class="art-native__keys">
@@ -235,7 +235,7 @@
               </span>
             </div>
             <div class="tile__detail" id="detail-native"><p>Close the window and the music keeps going from the tray. Launching Carbon again brings back the window you already have instead of opening a second copy.</p></div>
-            <button class="tile__trigger" type="button" aria-expanded="false" aria-controls="detail-native"><span class="sr-only">More about Windows integration</span></button>
+            <button class="tile__trigger" type="button" aria-expanded="false" aria-controls="detail-native"><span class="sr-only">More about desktop integration</span></button>
             <span class="tile__hint" aria-hidden="true">Hold</span>
             <span class="tile__progress" aria-hidden="true"></span>
           </article>
@@ -292,17 +292,17 @@
         <canvas class="get__canvas" data-hex aria-hidden="true"></canvas>
       </div>
       <div class="wrap get__body">
-        <h2 id="get-title">Get Carbon for Windows.</h2>
+        <h2 id="get-title">Get Carbon for your desktop.</h2>
         <p class="get__lead">Free and open source. On first launch you’ll create your own Spotify Client ID; the setup guide walks you through it in about two minutes.</p>
         <div class="cta cta--center">
           <a class="btn btn--primary btn--lg" href="https://github.com/pealz1/carbon/releases/latest" data-tilt="10">
             <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
-            Download for Windows
+            Download Carbon
           </a>
           <a class="btn btn--glass btn--lg" href="/setup" data-tilt="10">Setup guide</a>
         </div>
         <dl class="reqs">
-          <div><dt>System</dt><dd>Windows 10 or 11</dd></div>
+          <div><dt>System</dt><dd>Windows 10 or 11, or macOS 11+ with Safari 16.4+</dd></div>
           <div><dt>Account</dt><dd>Spotify Premium</dd></div>
           <div><dt>Price</dt><dd>Free</dd></div>
           <div><dt>License</dt><dd>MIT</dd></div>
@@ -355,7 +355,7 @@
           </details>
           <details class="qa">
             <summary>Is my Spotify login safe?<span class="qa__icon" aria-hidden="true"></span></summary>
-            <div class="qa__a"><p>You sign in on Spotify’s own page, so your Spotify password never reaches Carbon. The token Carbon receives stays on your PC in Windows Credential Manager, and Carbon never needs your Client secret. The <a class="link" href="/privacy">privacy policy</a> has the details.</p></div>
+            <div class="qa__a"><p>You sign in on Spotify’s own page, so your Spotify password never reaches Carbon. The token Carbon receives stays in Windows Credential Manager or macOS Keychain, and Carbon never needs your Client secret. The <a class="link" href="/privacy">privacy policy</a> has the details.</p></div>
           </details>
           <details class="qa" data-support-faq>
             <summary>How can I support Carbon?<span class="qa__icon" aria-hidden="true"></span></summary>
@@ -369,8 +369,8 @@
             <div class="qa__a"><p>The installer isn’t signed with a paid code-signing certificate yet, so Windows may warn you the first time. Choose <strong>More info</strong>, then <strong>Run anyway</strong>. App updates are signed separately and verified before they install.</p></div>
           </details>
           <details class="qa">
-            <summary>Is there a Mac, Linux or phone version?<span class="qa__icon" aria-hidden="true"></span></summary>
-            <div class="qa__a"><p>Not yet. Carbon is built for Windows 10 and 11 today, and Carbon for mobile is in development. Follow progress on <a class="link" href="https://github.com/pealz1/carbon">GitHub</a>.</p></div>
+            <summary>Which Macs can run Carbon?<span class="qa__icon" aria-hidden="true"></span></summary>
+            <div class="qa__a"><p>Choose the universal DMG for Intel or Apple silicon. Carbon requires macOS 11 or later with Safari 16.4 or newer. Version 0.7.0 is ad-hoc signed and Gatekeeper may show a warning.</p></div>
           </details>
         </div>
       </div>
@@ -382,7 +382,7 @@
       <div class="foot">
         <div class="foot__brand">
           <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg?v=3" width="30" height="30" alt="" loading="lazy"><img class="brand__word" src="/assets/carbon-wordmark.svg?v=3" width="119" height="27" alt="" loading="lazy"></a>
-          <p>A free, open-source Spotify and YouTube Music client for Windows.</p>
+          <p>A free, open-source Spotify and YouTube Music client for Windows and macOS.</p>
         </div>
         <nav aria-labelledby="f-product">
           <h2 id="f-product">Product</h2>

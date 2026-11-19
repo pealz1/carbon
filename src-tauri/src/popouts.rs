@@ -101,7 +101,7 @@ pub async fn popout_open(app: AppHandle, kind: Popout) -> Result<(), String> {
         .min_inner_size(spec.min.0, spec.min.1)
         .always_on_top(true)
         .decorations(false)
-        .transparent(true)
+        .transparent(cfg!(windows))
         .shadow(true)
         .theme(Some(Theme::Dark))
         .disable_drag_drop_handler()

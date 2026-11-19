@@ -15,6 +15,7 @@
   import type { PlaylistSummary } from "$lib/spotify/types";
   import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
+  import SpotifyPlaylistCover from "./SpotifyPlaylistCover.svelte";
 
   // The sidebar's playlist tree: Carbon playlists, then pinned, folders and the rest from Spotify.
   const SECTION = "playlists";
@@ -89,11 +90,7 @@
     oncontextmenu={(e) => menu.open(e, playlistMenu(playlist))}
     use:hold={holdFor(() => playlistMenu(playlist))}
   >
-    {#if playlist.image}
-      <img src={playlist.image} alt="" width="24" height="24" loading="lazy" decoding="async" draggable="false" />
-    {:else}
-      <span class="tile"><Icon name="note" size={13} /></span>
-    {/if}
+    <span class="tile"><SpotifyPlaylistCover id={playlist.id} image={playlist.image} allowPublic={playlist.public !== false} size={13} /></span>
     <span class="name">{playlist.name}</span>
     {#if player.contextUri === playlist.uri && !player.paused}
       <span class="live" aria-label="Playing"></span>

@@ -5,6 +5,7 @@
   import Modal from "$lib/components/Modal.svelte";
   import { describeError } from "$lib/errors";
   import { session } from "$lib/session.svelte";
+  import { mayReadPlaylist } from "$lib/spotify/mappers";
   import { toasts } from "$lib/toast.svelte";
   import { combine, combinedName, type CombineMode } from "./combine";
   import { createFilled, stoppable, Stopped } from "./copy";
@@ -25,7 +26,7 @@
 
   const sources = $derived<Source[]>([
     LIKED,
-    ...session.playlists.filter((p) => p.ownerId === session.profile?.id).map((p): Source => ({ kind: "playlist", id: p.id, name: p.name })),
+    ...session.playlists.filter((p) => mayReadPlaylist(p, session.profile?.id)).map((p): Source => ({ kind: "playlist", id: p.id, name: p.name })),
   ]);
 
   let mode = $state<CombineMode>("union");
