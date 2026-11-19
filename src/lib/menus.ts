@@ -1,6 +1,9 @@
 // Context menu contents for tracks, albums, playlists, artists and folders.
 // Labels that depend on live state (liked, pinned) are getters, so an open menu stays truthful.
 import { goto } from "$app/navigation";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { copyText } from "$lib/clipboard";
+import { describeError } from "$lib/errors";
 import { blockArtistMenuItem, blockItems } from "$lib/blocklist.svelte";
 import { bookmarkPageItem, bookmarkSongItems } from "$lib/bookmarks/bookmarks.svelte";
 import { collectItem } from "$lib/collections/collections.svelte";
@@ -36,16 +39,29 @@ export function spotifyLink(uri: string): string | null {
 export async function copyLink(uri: string): Promise<void> {
   const link = spotifyLink(uri);
   if (!link) return toasts.error("This doesn't have a Spotify link.");
-  try {
-    await navigator.clipboard.writeText(link);
-    toasts.show("Link copied.");
-  } catch (e) {
-    console.error("[menu] copy failed", e);
-    toasts.error("Couldn't copy the link.");
-  }
+  await copyText(link, "Link copied.");
 }
 
-const copyItem = (uri: string): MenuItem => ({ label: "Copy Spotify link", icon: "link", action: () => copyLink(uri), disabled: !spotifyLink(uri) });
+/** Share submenu: the link, the name as text, or the page on Spotify. `name` is what "Copy name" copies. */
+export function shareItem(uri: string, name: string): MenuItem {
+  const link = spotifyLink(uri);
+  return {
+    label: "Share",
+    icon: "export",
+    items: [
+      { label: "Copy Spotify link", icon: "link", disabled: !link, action: () => copyLink(uri) },
+      { label: "Copy name", icon: "duplicate", action: () => copyText(name) },
+      {
+        label: "Open in Spotify",
+        icon: "export",
+        disabled: !link,
+        action: () => link && openUrl(link).catch((e) => toasts.error(`Couldn't open Spotify: ${describeError(e)}`)),
+      },
+    ],
+  };
+}
+
+const byline = (name: string, artists: { name: string }[]) => (artists.length ? `${name} – ${artists.map((a) => a.name).join(", ")}` : name);
 
 /** `tracks` (same order as `uris`) lets the songs join a Carbon queue, which local files need. */
 async function queue(uris: string[], tracks?: Track[]): Promise<void> {
@@ -97,6 +113,7 @@ export function trackMenu(track: Track, options: TrackMenuOptions = {}): MenuEnt
   // YouTube Music songs get their own menu: they never go to Spotify playlists.
   if (isYoutubeUri(track.uri)) return ytTrackMenu(track, options);
   return [
+    { label: "Play", icon: "play", action: () => player.playTracks([track.uri], 0, [track]) },
     toQueue,
     { label: "Add to playlist", icon: "plus", items: addToPlaylistItems([track.uri]) },
     likeItem(track.uri, "Save to Liked Songs", "Remove from Liked Songs"),
@@ -116,7 +133,7 @@ export function trackMenu(track: Track, options: TrackMenuOptions = {}): MenuEnt
     "separator",
     ...blockItems(track),
     ...bookmarkSongItems(track),
-    copyItem(track.uri),
+    shareItem(track.uri, byline(track.name, track.artists)),
   ];
 }
 
@@ -148,14 +165,15 @@ export function albumMenu(album: Card, tracks: Track[] = []): MenuEntry[] {
     collectItem({ ...album, subtitle: album.subtitle || (tracks[0]?.artists ?? []).map((a) => a.name).join(", ") }),
     bookmarkPageItem({ path: `/album/${album.id}`, title: album.title, subtitle: "Album", image: album.image }),
     "separator",
+    ...goToArtists(tracks[0]?.artists ?? []),
     exportItem({ kind: "album", id: album.id, name: album.title }),
-    copyItem(album.uri),
+    shareItem(album.uri, album.subtitle ? `${album.title} – ${album.subtitle}` : album.title),
   ];
 }
 
 export function artistMenu(artist: Card): MenuEntry[] {
   const ref = { id: artist.id, name: artist.title, uri: artist.uri };
-  return [...playItems(artist.uri), "separator", { label: "Go to artist", icon: "artist", action: () => goto(`/artist/${artist.id}`) }, blockArtistMenuItem(ref), bookmarkPageItem({ path: `/artist/${artist.id}`, title: artist.title, subtitle: "Artist", image: artist.image }), copyItem(artist.uri)];
+  return [...playItems(artist.uri), "separator", { label: "Go to artist", icon: "artist", action: () => goto(`/artist/${artist.id}`) }, blockArtistMenuItem(ref), bookmarkPageItem({ path: `/artist/${artist.id}`, title: artist.title, subtitle: "Artist", image: artist.image }), shareItem(artist.uri, artist.title)];
 }
 
 function moveToFolderItems(playlistId: string): MenuEntry[] {
@@ -180,7 +198,7 @@ export function playlistMenu(playlist: PlaylistSummary, largeImage?: string | nu
   const bookmark = bookmarkPageItem({ path: `/playlist/${playlist.id}`, title: playlist.name, subtitle: "Playlist", image: playlist.image });
   if (!listed) {
     // Not in your library (e.g. a search result): nothing to organise yet.
-    return [...playItems(playlist.uri), "separator", likeItem(playlist.uri, "Save to library", "Remove from library"), ...(readable ? [tools] : []), bookmark, copyItem(playlist.uri)];
+    return [...playItems(playlist.uri), "separator", likeItem(playlist.uri, "Save to library", "Remove from library"), ...(readable ? [tools] : []), bookmark, shareItem(playlist.uri, playlist.name)];
   }
   return [
     ...playItems(playlist.uri, playlist.trackCount ?? undefined),
@@ -198,7 +216,7 @@ export function playlistMenu(playlist: PlaylistSummary, largeImage?: string | nu
     ...(readable ? [tools] : [{ label: "View playlist", icon: "note", action: () => goto(`/playlist/${playlist.id}`) } satisfies MenuItem]),
     "separator",
     bookmark,
-    copyItem(playlist.uri),
+    shareItem(playlist.uri, playlist.name),
     owned
       ? { label: "Delete…", icon: "trash", danger: true, action: () => (dialogs.playlist = { mode: "edit", playlist, largeImage, confirmDelete: true }) }
       : { label: "Remove from library", icon: "trash", danger: true, action: () => deletePlaylist(playlist) },
@@ -252,7 +270,7 @@ export function cardMenu(card: Card): MenuEntry[] {
       likeItem(card.uri, "Save to Liked Songs", "Remove from Liked Songs"),
       "separator",
       ...blockItems({ id: card.id, uri: card.uri, name: card.title, artists: [], album: null, durationMs: 0, explicit: false }),
-      copyItem(card.uri),
+      shareItem(card.uri, card.subtitle ? `${card.title} – ${card.subtitle}` : card.title),
     ];
   }
   const summary = session.playlists.find((p) => p.id === card.id) ?? {

@@ -106,7 +106,7 @@ class Player {
   #sdkModes = { shuffle: false, repeat: "off" as RepeatMode };
   #fixingModes: Promise<unknown> | null = null;
   #mixed = new MixedPlayback({
-    volume: () => this.volume,
+    volume: () => this.outputVolume,
     repeat: () => this.repeat,
     position: () => this.position(),
     durationMs: () => this.durationMs,
@@ -122,7 +122,7 @@ class Player {
   });
   /** YouTube Music, played through YouTube's embedded player. Never shares a queue with the others. */
   #youtube = new YoutubePlayback({
-    volume: () => this.volume,
+    volume: () => this.outputVolume,
     repeat: () => this.repeat,
     setModes: (shuffle, repeat) => ((this.shuffle = shuffle), (this.repeat = repeat), this.#report()),
     show: (track) => this.#show(track),
@@ -135,7 +135,7 @@ class Player {
   /** The listener's own server (Navidrome, Jellyfin): its songs stream through an audio element, in a queue of their own. */
   #stream = new StreamPlayback(
     {
-      volume: () => this.volume,
+      volume: () => this.outputVolume,
       repeat: () => this.repeat,
       setModes: (shuffle, repeat) => ((this.shuffle = shuffle), (this.repeat = repeat), this.#report()),
       show: (track) => this.#show(track),
@@ -147,7 +147,7 @@ class Player {
   );
   /** Internet radio: one live station at a time, never in a queue with anything. */
   #radio = new RadioPlayback({
-    volume: () => this.volume,
+    volume: () => this.outputVolume,
     show: (track) => this.#show(track),
     sync: (paused, positionMs, durationMs, stalled) => this.#sync(paused, positionMs, durationMs, stalled),
     fail: (message) => this.#warn(message),
@@ -203,6 +203,11 @@ class Player {
 
   isCurrent = (uri: string): boolean => this.track?.uri === uri;
 
+  /** What the backends play at: the slider's volume, squared for finer low volumes (Settings → Playback). */
+  get outputVolume(): number {
+    return prefs.value?.volumeCurve ? this.volume ** 2 : this.volume;
+  }
+
   /** Carbon's Spotify Connect device id, or null while the SDK isn't ready. */
   get deviceId(): string | null {
     return this.#device;
@@ -226,7 +231,7 @@ class Player {
     await loadSdk();
     const sdk = new window.Spotify.Player({
       name: PLAYER_NAME,
-      volume: this.volume,
+      volume: this.outputVolume,
       // Without a token the SDK never connects; #join's timeout turns that into an error.
       getOAuthToken: (cb) => getAccessToken().then(cb, (e) => this.#fail(e)),
     });
@@ -671,11 +676,12 @@ class Player {
     } catch {
       // per-device convenience only; failing to persist is harmless
     }
-    void this.#sdk?.setVolume(this.volume);
-    this.#mixed.setVolume(this.volume);
-    this.#radio.setVolume(this.volume);
-    if (this.#youtube.active) this.#youtube.setVolume(this.volume);
-    this.#stream.setVolume(this.volume);
+    const out = this.outputVolume;
+    void this.#sdk?.setVolume(out);
+    this.#mixed.setVolume(out);
+    this.#radio.setVolume(out);
+    if (this.#youtube.active) this.#youtube.setVolume(out);
+    this.#stream.setVolume(out);
     this.#report();
   };
 
