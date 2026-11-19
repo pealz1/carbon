@@ -12,6 +12,7 @@ const attributes = new Set([
   "message",
   "emptyLabel",
 ]);
+// Matched without case: the sign-in screen's screen-reader "carbon" is the app, not the element.
 const brands = new Set([
   "Spotify",
   "YouTube Music",
@@ -28,9 +29,10 @@ const brands = new Set([
   "Plex",
   "Jellyfin",
   "Navidrome",
-]);
+].map((brand) => brand.toLowerCase()));
 /** @param {string} text */
-const words = (text) => /[a-z]{2}/i.test(text) && !brands.has(text) && !/^(@|https?:|carbon:|spotify:|ytm:)/.test(text);
+const words = (text) =>
+  /[a-z]{2}/i.test(text) && !brands.has(text.toLowerCase()) && !/^(@|https?:|carbon:|spotify:|ytm:)/.test(text);
 
 /** Only authored labels enter translation. Song names, usernames, API replies and form values stay as supplied. */
 /** @param {string} content */

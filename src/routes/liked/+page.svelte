@@ -20,7 +20,7 @@
 <DetailHeader
   title="Liked Songs"
   image={null}
-  placeholder="heart"
+  placeholderIcon="heart"
   playUri={contextUri}
   shuffleCount={liked.total ?? undefined}
   menuItems={() => toolItems({ kind: "liked", name: "Liked Songs" })}

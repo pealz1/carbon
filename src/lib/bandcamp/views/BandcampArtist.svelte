@@ -22,7 +22,7 @@
   <Status error={artist.error} onretry={artist.reload} />
 {:else if artist.data}
   {@const a = artist.data}
-  <DetailHeader title={a.name} image={a.image} {chips} playUri={a.releases.length ? a.uri : undefined} round placeholder="artist" />
+  <DetailHeader title={a.name} image={a.image} {chips} playUri={a.releases.length ? a.uri : undefined} round placeholderIcon="artist" />
   <Shelf title="Releases" cards={a.releases} wrap />
   {#if !a.releases.length}<Status empty="Nothing released on Bandcamp yet." />{/if}
 {/if}

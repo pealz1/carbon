@@ -55,7 +55,7 @@
   <DetailHeader
     title={playlist.name}
     image={playable.find((t) => t.album?.image)?.album?.image ?? null}
-    placeholder="listAdd"
+    placeholderIcon="listAdd"
     onplay={playable.length ? () => play(null) : undefined}
     onshuffle={playable.length ? shuffle : undefined}
     chips={[

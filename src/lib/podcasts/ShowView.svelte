@@ -32,7 +32,7 @@
   <DetailHeader
     title={s.name}
     image={s.largeImage}
-    placeholder="podcast"
+    placeholderIcon="podcast"
     {chips}
     description={s.description}
     onplay={next ? () => player.playEpisode(next.uri, next.resumeMs) : undefined}

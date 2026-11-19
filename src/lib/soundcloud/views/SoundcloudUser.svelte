@@ -26,7 +26,7 @@
   <Status error={user.error} onretry={user.reload} />
 {:else if user.data}
   {@const u = user.data}
-  <DetailHeader title={u.name} image={u.image} {chips} playUri={playable.length ? u.uri : undefined} shuffleCount={playable.length} round placeholder="artist" />
+  <DetailHeader title={u.name} image={u.image} {chips} playUri={playable.length ? u.uri : undefined} shuffleCount={playable.length} round placeholderIcon="artist" />
   {#if u.tracks.length}
     <section>
       <h2>Latest songs</h2>
