@@ -32,6 +32,7 @@ window.addEventListener("message", function connect(event) {
           }
           port.postMessage({
             songs: sounds.map((s) => ({
+              id: String(s.id ?? ""),
               title: s.title,
               artist: s.publisher_metadata?.artist || s.user?.username || "",
               durationMs: s.duration || 0,

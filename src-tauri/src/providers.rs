@@ -463,6 +463,30 @@ pub async fn provider_diagnostics(catalog: State<'_, Catalog>) -> Result<Vec<Dia
     Ok(vec![carbon, apple, deezer, sc, mix, archive])
 }
 
+/// Public oEmbed supplies metadata for entries the official widget identifies by track ID.
+#[tauri::command]
+pub async fn provider_soundcloud_metadata(catalog: State<'_, Catalog>, value: String) -> Result<Option<Value>, String> {
+    let resource = if numeric(&value) {
+        format!("https://api.soundcloud.com/tracks/{value}")
+    } else if value.len() <= 2048 && Url::parse(&value).is_ok_and(|u| allowed(&u, &["soundcloud.com", "www.soundcloud.com"])) {
+        value
+    } else {
+        return Err("Invalid public SoundCloud resource.".into());
+    };
+    let response = catalog
+        .http
+        .get("https://soundcloud.com/oembed")
+        .query(&[("url", resource.as_str()), ("format", "json")])
+        .send()
+        .await
+        .map_err(|_| "Could not reach SoundCloud.")?;
+    if matches!(response.status().as_u16(), 401 | 403 | 404) {
+        return Ok(None);
+    }
+    let info = json_response(response, "SoundCloud").await?;
+    Ok(Some(serde_json::json!({"title":info["title"],"author":info["author_name"],"image":info["thumbnail_url"]})))
+}
+
 /// Compatibility with saved Carbon artist and playlist links, using SoundCloud's documented resources.
 #[tauri::command]
 pub async fn soundcloud_get(catalog: State<'_, Catalog>, path: String, params: Vec<(String, String)>) -> Result<Value, String> {

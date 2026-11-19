@@ -15,6 +15,7 @@ export interface Link {
   country: string;
 }
 export interface Song {
+  unavailable?: boolean;
   title: string;
   artist: string;
   durationMs: number;

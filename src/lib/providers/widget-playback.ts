@@ -57,11 +57,21 @@ export function playWidget(
     }
     onState(paused, position, duration);
   };
-  void invoke<string>("provider_widget_url").then(src=>{
-    if(closed)return;
-    frame.onload=()=>{if(!closed)frame.contentWindow?.postMessage({type:"play-public-soundcloud",url},new URL(src).origin,[channel.port2]);};
-    frame.src=src;document.body.append(frame);
-  }).catch(()=>{if(!closed)onError("Could not start the local SoundCloud player.");});
+  void invoke<string>("provider_widget_url")
+    .then((src) => {
+      if (closed) return;
+      frame.onload = () => {
+        if (!closed)
+          frame.contentWindow?.postMessage({ type: "play-public-soundcloud", url }, new URL(src).origin, [
+            channel.port2,
+          ]);
+      };
+      frame.src = src;
+      document.body.append(frame);
+    })
+    .catch(() => {
+      if (!closed) onError("Could not start the local SoundCloud player.");
+    });
   return {
     get position() {
       return position;

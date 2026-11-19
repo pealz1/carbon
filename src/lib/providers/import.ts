@@ -141,7 +141,9 @@ export async function matchSongs(
       signal.throwIfAborted();
       const index = next++,
         source = songs[index];
-      if (source.track?.uri.startsWith("ytm:video:"))
+      if (source.unavailable)
+        results[index] = { source, candidates: [], selected: null, reason: "Unavailable from provider" };
+      else if (source.track?.uri.startsWith("ytm:video:"))
         results[index] = {
           source,
           candidates: [source.track],

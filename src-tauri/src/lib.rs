@@ -200,6 +200,7 @@ pub fn run() {
             providers::provider_credentials,
             providers::provider_open,
             provider_widget::provider_widget_url,
+            providers::provider_soundcloud_metadata,
             offline::offline_storage, offline::offline_available, offline::offline_save, offline::offline_remove,
             providers::soundcloud_client_id,
             providers::soundcloud_authorize,
