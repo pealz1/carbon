@@ -24,6 +24,12 @@ const summary = (id: string, ownerId = "me", collaborative = false) => ({ id, na
 describe("playlist actions", () => {
   afterEach(() => vi.clearAllMocks());
 
+  it("opens the existing copy when Spotify stops accepting songs after creation", async () => {
+    vi.mocked(sp.addToPlaylist).mockRejectedValueOnce(new Error("offline"));
+    expect(await savePlaylist(null, draft, null, ["spotify:track:1"])).toMatchObject({ id: "new", itemsError: expect.stringContaining("playlist saved") });
+    expect(session.refreshPlaylists).toHaveBeenCalled();
+  });
+
   it("creates a private collaborative playlist, adds songs and uploads the cover", async () => {
     const result = await savePlaylist(null, draft, "QUJD", ["spotify:track:1"]);
     expect(result).toEqual({ id: "new", coverError: null });

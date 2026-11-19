@@ -1,7 +1,6 @@
 name: Release
 
-# Push a tag like v0.2.0 to build the signed Windows installer, publish it as a GitHub release
-# and update latest.json, which installed copies of Carbon check for updates.
+# Build both installers into one draft and publish once the updater lists both Mac architectures and Windows.
 on:
   push:
     tags: ["v*"]
@@ -11,7 +10,15 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        include:
+          - runner: windows-latest
+            args: ""
+          - runner: macos-15
+            args: "--target universal-apple-darwin"
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
 
@@ -21,6 +28,8 @@ jobs:
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - uses: swatinem/rust-cache@v2
         with:
@@ -31,6 +40,7 @@ jobs:
       # The bundler downloads these from GitHub releases without retrying, which sometimes 504s.
       # Seed its cache with retries instead. Keep versions in sync with tauri-bundler's NSIS module.
       - name: Pre-fetch NSIS tools
+        if: runner.os == 'Windows'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -69,15 +79,49 @@ jobs:
             echo "VITE_REQUIRE_CARBON_ACCOUNT=true"
           } > .env.local
 
+      - name: Configure Apple signing
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo 'MACOSX_DEPLOYMENT_TARGET=11.0' >> "$GITHUB_ENV"
+          if [[ -z "$APPLE_CERTIFICATE" ]]; then
+            echo 'APPLE_SIGNING_IDENTITY=-' >> "$GITHUB_ENV"
+          else
+            for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+              if [[ -n "${!name}" ]]; then printf '%s=%s\n' "$name" "${!name}" >> "$GITHUB_ENV"; fi
+            done
+          fi
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          args: ${{ matrix.args }}
           tagName: ${{ github.ref_name }}
           releaseName: Carbon ${{ github.ref_name }}
           releaseBody: Download the installer below. New here? The setup guide is at https://getcarbon.cc/setup.
-          releaseDraft: false
+          releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Verify updater and publish
+        run: |
+          gh release download "$TAG" -p latest.json
+          jq -e '[.platforms["windows-x86_64"], .platforms["darwin-aarch64"], .platforms["darwin-x86_64"]] | all(.[]; (.signature | length) > 0 and (.url | startswith("https://")))' latest.json
+          gh release edit "$TAG" --draft=false --latest

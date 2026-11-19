@@ -71,7 +71,8 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayState> {
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip("Carbon")
         .menu(&menu)
-        .show_menu_on_left_click(false)
+        .icon_as_template(cfg!(target_os = "macos"))
+        .show_menu_on_left_click(cfg!(target_os = "macos"))
         .on_menu_event(|app, event| match event.id().as_ref() {
             "toggle" => emit(app, MediaCommand::Toggle),
             "next" => emit(app, MediaCommand::Next),
@@ -87,7 +88,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayState> {
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
+            if !cfg!(target_os = "macos") && let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
                 show_main(tray.app_handle());
             }
         });

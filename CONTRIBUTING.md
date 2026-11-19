@@ -12,9 +12,10 @@ Thanks for helping make Carbon better. Bug reports, fixes, features and design p
 
 You'll need:
 
-- Windows 10 or 11 with the WebView2 runtime (preinstalled on Windows 11)
+- Windows 10 or 11 with WebView2, or macOS with Xcode Command Line Tools and Safari 16.4 or newer
 - [Node.js](https://nodejs.org) 22 or newer
-- [Rust](https://rustup.rs) (stable) with the MSVC toolchain
+- [Rust](https://rustup.rs) (stable), with the MSVC toolchain on Windows
+- For a universal Mac installer, install both Rust targets with `rustup target add aarch64-apple-darwin x86_64-apple-darwin` and run `npm run tauri -- build --target universal-apple-darwin` on a Mac. Set `APPLE_SIGNING_IDENTITY=-` for a local ad-hoc build.
 - A Spotify **Premium** account and your own Spotify app (free, ~2 minutes): see [getcarbon.cc/setup](https://getcarbon.cc/setup). Use the redirect URI `http://127.0.0.1:8888/callback`.
 
 ```bash

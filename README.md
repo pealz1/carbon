@@ -4,7 +4,7 @@
 
 <br>
 
-**A fast, beautiful Spotify and YouTube Music client for Windows, built in Rust.**
+**A fast, beautiful Spotify and YouTube Music client for Windows and macOS, built in Rust.**
 
 [![Latest release](https://img.shields.io/github/v/release/pealz1/carbon?style=flat-square&color=fae91d&label=release)](https://github.com/pealz1/carbon/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/pealz1/carbon/total?style=flat-square&color=33332e)](https://github.com/pealz1/carbon/releases)
@@ -33,10 +33,10 @@ Carbon is a native Rust app that plays your music itself, looks like it belongs 
 - **Your top music.** Your most played artists, songs and albums over the last four weeks, six months or all time, plus a listening history and recap that Carbon keeps on your PC.
 - **Skips what you don't want.** Block songs and artists, skip explicit songs, live or remix versions, genres, songs you keep skipping, and the non-music parts of YouTube music videos.
 - **Plays music itself.** Spotify's official Web Playback SDK, right inside Carbon. No Spotify app needed.
-- **Feels native.** Media keys, the Windows media overlay, a tray icon with controls and the mini player, opens at startup (on from install), a show/hide shortcut, keep playing when closed, and updates that download and install themselves while Carbon sits quietly in the tray.
+- **Feels native.** Media keys, system playback controls, a tray or menu bar icon with controls and the mini player, opens at startup (on from install), a show/hide shortcut, keep playing when closed, and updates that download and install themselves while Carbon sits quietly in the background.
 - **Discord status.** Shows what you're listening to, with album art and a live progress bar.
 - **Last.fm and ListenBrainz scrobbling.** Built in, following Last.fm's scrobbling rules. Use either, both or neither; listens made offline are sent later.
-- **Private by design.** No ads, no analytics, no tracking. Your Spotify sign-in lives in Windows Credential Manager.
+- **Private by design.** No ads, no analytics, no tracking. Your Spotify sign-in lives in Windows Credential Manager or macOS Keychain.
 - **Your playlists, your way.** Create and edit playlists, change covers, like songs, and organize with folders, tags and pins. Sort, de-duplicate, combine and copy playlists, select many songs at once, rate songs, bookmark pages, group albums into collections, and back your whole library up to a file.
 - **Your own files too.** A built-in audio engine plays local music gapless, with a 10-band EQ, loudness levelling (ReplayGain tags or its own analysis), a compressor, silence trimming, playback speed, crossfade and a spectrum visualizer. Edit tags, and CUE sheets split an album file into its tracks. Carbon playlists mix local files with Spotify songs.
 - **Cinema mode.** Full-screen artwork and lyrics, with controls that get out of the way.
@@ -49,13 +49,17 @@ Carbon is a native Rust app that plays your music itself, looks like it belongs 
 
 ## Get started
 
-1. **Download** the installer from the [latest release](https://github.com/pealz1/carbon/releases/latest) and run it.
+1. **Download** the installer from the [latest release](https://github.com/pealz1/carbon/releases/latest) and run it. On macOS, open the universal DMG and drag Carbon to Applications.
 2. **Create your Spotify app.** Spotify lets each developer app serve only five listeners, so Carbon runs on your own free one. It takes about two minutes: [step-by-step guide](https://getcarbon.cc/setup).
 3. **Paste your Client ID** into Carbon, sign in with Spotify, and press play.
 
-You'll need Windows 10 or 11 and **Spotify Premium** (Spotify only allows Premium accounts to play through apps like Carbon).
+Carbon targets Windows 10 and 11 and macOS 11 Big Sur or later with Safari 16.4 or newer. The Mac app runs natively on Intel and Apple silicon. Spotify playback requires **Spotify Premium**.
+
+Owned and collaborative playlists open as editable track lists when Spotify grants access. For other public playlists, Carbon shows Spotify’s embedded player. To make a sortable copy, select songs in Spotify, copy their links, then choose **Make an editable copy** in Carbon.
 
 > Windows may show a SmartScreen warning the first time, because Carbon isn't signed with a paid code-signing certificate yet. Choose **More info → Run anyway**.
+
+> The 0.7.0 Mac disk image is ad-hoc signed. Gatekeeper can show a warning because this release has no Apple notarization.
 
 ## Support Carbon
 
@@ -74,7 +78,7 @@ You'll need Node.js 22+, stable Rust and your own Spotify Client ID. [CONTRIBUTI
 
 ## Built with
 
-[Tauri 2](https://tauri.app) and Rust for the core · [Svelte 5](https://svelte.dev) for the interface · Spotify's [Web Playback SDK](https://developer.spotify.com/documentation/web-playback-sdk) · lyrics from [LRCLIB](https://lrclib.net) · stations from [Radio Browser](https://www.radio-browser.info) · [souvlaki](https://github.com/Sinono3/souvlaki) for Windows media controls
+[Tauri 2](https://tauri.app) and Rust for the core · [Svelte 5](https://svelte.dev) for the interface · Spotify's [Web Playback SDK](https://developer.spotify.com/documentation/web-playback-sdk) · lyrics from [LRCLIB](https://lrclib.net) · stations from [Radio Browser](https://www.radio-browser.info) · [souvlaki](https://github.com/Sinono3/souvlaki) for native media controls
 
 ## Contributing
 

@@ -285,7 +285,7 @@
 
     <section class="panel plate">
       <h2>System</h2>
-      <Toggle checked={startup} label="Open at startup" description="Starts quietly in the tray when you sign in to Windows. Click the tray icon, or press the show/hide shortcut, to open it." onchange={toggleStartup} />
+      <Toggle checked={startup} label="Open at startup" description="Starts in the background when you sign in to your computer. Click the tray icon, or press the show/hide shortcut, to open it." onchange={toggleStartup} />
       <Toggle checked={s.closeToTray} label="Keep playing when closed" description="Closing the window keeps Carbon in the tray. Quit from the tray icon." onchange={(v) => prefs.update({ closeToTray: v })} />
     </section>
 

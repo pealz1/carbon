@@ -9,7 +9,13 @@ export class Pager<T> {
   error = $state<string | null>(null);
   #next = $state<number | null>(0);
 
-  constructor(private readonly fetchPage: (offset: number) => Promise<Page<T>>) {}
+  constructor(private readonly fetchPage: (offset: number) => Promise<Page<T>>, first?: Page<T>) {
+    if (first) {
+      this.items = first.items;
+      this.total = first.total;
+      this.#next = first.nextOffset;
+    }
+  }
 
   get done(): boolean {
     return this.#next === null;

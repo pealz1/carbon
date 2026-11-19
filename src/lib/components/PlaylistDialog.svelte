@@ -21,7 +21,8 @@
   const currentImage = request.mode === "edit" ? (request.largeImage ?? request.playlist.image) : null;
 
   let draft = $state<PlaylistDraft>({
-    name: editing?.name ?? "",
+    // svelte-ignore state_referenced_locally
+    name: editing?.name ?? (request.mode === "create" ? request.name ?? "" : ""),
     description: editing?.description ?? "",
     public: editing?.public ?? false,
     collaborative: editing?.collaborative ?? false,
@@ -74,7 +75,8 @@
     try {
       const result = await savePlaylist(editing?.id ?? null, draft, cover, addUris);
       if (result.coverError) toasts.error(result.coverError);
-      else toasts.show(editing ? "Playlist updated." : `Created ${draft.name.trim()}.`);
+      if (result.itemsError) toasts.error(result.itemsError);
+      if (!result.coverError && !result.itemsError) toasts.show(editing ? "Playlist updated." : `Created ${draft.name.trim()}.`);
       close();
       if (!editing) void goto(`/playlist/${result.id}`);
     } catch (e) {

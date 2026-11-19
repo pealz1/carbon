@@ -202,7 +202,10 @@ describe("playlistMenu", () => {
   it("only offers removal for playlists you follow, and saving for ones outside your library", () => {
     expect(find(playlistMenu(playlist("theirs", "friend")), "Remove from library")).toBeDefined();
     expect(find(playlistMenu(playlist("theirs", "friend")), "Edit details…")).toBeUndefined();
-    expect(find(playlistMenu(playlist("theirs", "friend")), "Sort and export: only playlists you own")!.disabled).toBe(true);
+    expect(find(playlistMenu(playlist("theirs", "friend")), "Save a copy…")).toBeUndefined();
+    const shared = { ...playlist("theirs", "friend"), collaborative: true, tracksReadable: true };
+    expect(find(playlistMenu(shared), "Playlist tools")!.items).toBeDefined();
+    expect(find(playlistMenu(shared), "Edit details…")).toBeUndefined();
     const outside = playlistMenu(playlist("elsewhere", "friend"));
     expect(items(outside).map((i) => i.label)).toEqual(["Play", "Shuffle play", "Save to library", "Bookmark", "Copy Spotify link"]);
   });

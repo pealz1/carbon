@@ -8,13 +8,14 @@
   import Popover from "./Popover.svelte";
   import Slider from "./Slider.svelte";
 
+  let { contextUri }: { contextUri?: string } = $props();
   let open = $state(false);
   let button = $state<HTMLButtonElement>();
   const remote = $derived(devices.remote);
   const others = $derived(devices.list.filter((d) => !devices.isCarbon(d)));
   // Local files and YouTube Music play in Carbon only.
-  const movable = $derived(player.source === "spotify");
-  const label = $derived(remote ? `Playing on ${remote.name}. Devices` : "Devices");
+  const movable = $derived(!!contextUri || player.source === "spotify");
+  const label = $derived(contextUri ? "Play on a Spotify device" : remote ? `Playing on ${remote.name}. Devices` : "Devices");
 
   const ICONS: Record<string, IconName> = { Computer: "screen", TV: "screen", Smartphone: "phone", Tablet: "phone" };
   const iconFor = (device: Device): IconName => ICONS[device.type] ?? "speaker";
@@ -40,7 +41,7 @@
   aria-label={label}
   aria-haspopup="dialog"
   aria-expanded={open}
-  title={remote ? `Playing on ${remote.name}` : "Devices"}
+  title={label}
 >
   <Icon name="devices" size={18} />
 </button>
@@ -48,7 +49,7 @@
 {#if open && button}
   <Popover anchor={button} label="Devices" onclose={() => (open = false)}>
     <header>
-      <h2>Devices</h2>
+      <h2>{contextUri ? "Play on a Spotify device" : "Devices"}</h2>
       {#if !movable}<p class="muted">Only Spotify playback moves between devices.</p>{/if}
     </header>
 
@@ -60,8 +61,8 @@
             <button
               class="device"
               class:current
-              disabled={current || device.restricted || !movable || devices.moving !== null}
-              onclick={() => devices.moveTo(device)}
+              disabled={(!contextUri && current) || device.restricted || !movable || devices.moving !== null}
+              onclick={() => devices.moveTo(device, contextUri)}
               aria-current={current ? "true" : undefined}
             >
               <span class="icon"><Icon name={iconFor(device)} size={20} /></span>

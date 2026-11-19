@@ -27,6 +27,19 @@ describe("request handling", () => {
     useTokenSource(tokens);
   });
 
+  it("keeps an old account's in-flight playlist out of the next account's cache", async () => {
+    let finish!: (response: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => { finish = resolve; }));
+    const old = get("/playlists/private");
+    await vi.waitFor(() => expect(finish).toBeDefined());
+    useTokenSource({ get: async () => "other", refresh: async () => "other" });
+    fetchMock.mockResolvedValueOnce(json(200, { name: "new" }));
+    expect(await get("/playlists/private")).toEqual({ name: "new" });
+    finish(json(200, { name: "old" }));
+    await old;
+    expect(await get("/playlists/private")).toEqual({ name: "new" });
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     fetchMock.mockReset();

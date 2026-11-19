@@ -67,7 +67,7 @@
     <button class="link" onclick={() => openUrl(TOKEN_PAGE)}>Find your token</button>
   {/if}
   {#if error}<p class="warn" role="alert">{error}</p>{/if}
-  <p class="muted">The token stays in Windows Credential Manager. Listens made offline wait on this PC and are sent later.</p>
+  <p class="muted">Your system keychain stores the token. Carbon sends offline listens when you reconnect.</p>
 </section>
 
 <style>

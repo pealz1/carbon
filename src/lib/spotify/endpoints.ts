@@ -1,7 +1,7 @@
 // Typed wrappers for the Web API endpoints development-mode apps can still use (Feb 2026).
 // Not available: artist top tracks, new releases, browse categories, batch /tracks|/albums|/artists.
 import { ARTIST_ALBUMS_LIMIT, PAGE_SIZE, SEARCH_LIMIT } from "$lib/config";
-import { get, getFresh, invalidate, send, sendRaw } from "./api";
+import { ApiError, get, getFresh, invalidate, send, sendRaw } from "./api";
 import {
   albumCard,
   artistCard,
@@ -16,7 +16,7 @@ import {
   trackFromRow,
   uniqueBy,
 } from "./mappers";
-import type { Card, Paging, PlaylistSummary, Profile, RawAlbum, RawArtist, RawImage, RawPlaylist, RawTrack, Track } from "./types";
+import type { Card, Paging, PlaylistSummary, Profile, RawAlbum, RawArtist, RawImage, RawPlaylist, RawPlaylistRow, RawTrack, Track } from "./types";
 
 const q = (params: Record<string, string | number>) => new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]));
 
@@ -81,17 +81,84 @@ export interface PlaylistDetail extends PlaylistSummary {
   largeImage: string | null;
 }
 
+const detail = (raw: RawPlaylist): PlaylistDetail => ({ ...toPlaylistSummary(raw), largeImage: pickLargestImage(raw.images) });
+
 export async function playlist(id: string): Promise<PlaylistDetail> {
-  const raw = await get<RawPlaylist>(`/playlists/${encodeURIComponent(id)}`);
-  return { ...toPlaylistSummary(raw), largeImage: pickLargestImage(raw.images) };
+  return detail(await get<RawPlaylist>(playlistPath(id)));
 }
 
-/** Only playlists you own return items to development-mode apps; others throw 403/404. */
+export const playlistUnavailable = (e: unknown): boolean =>
+  e instanceof ApiError && (e.status === 404 || (e.status === 403 && e.reason !== "PREMIUM_REQUIRED" && !/scope|registered|premium/i.test(e.message)));
+
+function trackPage(raw: Paging<RawPlaylistRow>, offset: number): Page<Track> {
+  return { items: compactTracks(raw.items.map(trackFromRow)), total: raw.total ?? null, nextOffset: nextOffset(raw, offset) };
+}
+
 export async function playlistTracks(id: string, offset = 0): Promise<Page<Track>> {
-  const raw = await get<Paging<{ item?: RawTrack; track?: RawTrack }>>(
+  const raw = await get<Paging<RawPlaylistRow>>(
     `/playlists/${encodeURIComponent(id)}/items?${q({ limit: PAGE_SIZE, offset })}`,
   );
-  return { items: compactTracks(raw.items.map(trackFromRow)), total: raw.total ?? null, nextOffset: nextOffset(raw, offset) };
+  return trackPage(raw, offset);
+}
+
+export const playlistUrl = (id: string) => `https://open.spotify.com/playlist/${encodeURIComponent(id)}`;
+
+type PublicPlaylist = { title: string; image: string | null };
+const publicPreviews = new Map<string, { until: number; data: Promise<PublicPlaylist | null> }>();
+
+function publicPlaylist(id: string): Promise<PublicPlaylist | null> {
+  const cached = publicPreviews.get(id);
+  if (cached && cached.until > Date.now()) return cached.data;
+  const data = fetchPreview(id).catch((e) => { publicPreviews.delete(id); throw e; });
+  publicPreviews.set(id, { until: Date.now() + 60_000, data });
+  if (publicPreviews.size > 100) publicPreviews.delete(publicPreviews.keys().next().value!);
+  return data;
+}
+
+/** Public metadata only. The Spotify bearer token is never sent to the embed service. */
+async function fetchPreview(id: string): Promise<PublicPlaylist | null> {
+  const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(playlistUrl(id))}`, { credentials: "omit", referrerPolicy: "no-referrer" });
+  if (response.status === 403 || response.status === 404 || response.status === 400) return null;
+  if (!response.ok) throw new ApiError(response.status, "Couldn't load the Spotify preview.");
+  const data = await response.json();
+  if (typeof data?.title !== "string" || !data.title.trim()) return null;
+  return { title: data.title, image: typeof data.thumbnail_url === "string" && data.thumbnail_url.startsWith("https://") ? data.thumbnail_url : null };
+}
+
+export async function playlistArtwork(id: string, allowPublic: boolean, failed?: string | null): Promise<string | null> {
+  try {
+    const images = await get<RawImage[]>(`${playlistPath(id)}/images`);
+    const image = pickImage(images?.filter((i) => i?.url && i.url !== failed));
+    if (image) return image;
+  } catch (e) {
+    if (!playlistUnavailable(e)) throw e;
+  }
+  return allowPublic ? (await publicPlaylist(id))?.image ?? null : null;
+}
+
+export async function playlistPage(id: string, listed?: PlaylistSummary): Promise<{ playlist: PlaylistDetail; first: Page<Track> | null }> {
+  let raw: RawPlaylist;
+  try {
+    raw = await get<RawPlaylist>(playlistPath(id));
+  } catch (e) {
+    if (!playlistUnavailable(e)) throw e;
+    if (listed) return { playlist: { ...listed, largeImage: listed.image }, first: null };
+    const preview = await publicPlaylist(id);
+    if (!preview) throw e;
+    return { playlist: { ...detail({ id, uri: `spotify:playlist:${id}`, name: preview.title, public: true }), image: preview.image, largeImage: preview.image }, first: null };
+  }
+  const p = detail(raw);
+  const page = raw.items ?? raw.tracks;
+  // Full playlist responses often contain the first page already.
+  if (page && Array.isArray(page.items) && page.next !== undefined) {
+    return { playlist: p, first: trackPage({ ...page, items: page.items, next: page.next }, page.offset ?? 0) };
+  }
+  try {
+    return { playlist: p, first: await playlistTracks(id) };
+  } catch (e) {
+    if (!playlistUnavailable(e)) throw e;
+    return { playlist: p, first: null };
+  }
 }
 
 export interface AlbumDetail {
@@ -268,8 +335,11 @@ export async function deletePlaylist(id: string): Promise<void> {
 }
 
 export async function addToPlaylist(id: string, uris: string[]): Promise<void> {
-  for (const run of chunk(uris, PLAYLIST_BATCH)) await send("POST", `${playlistPath(id)}/items`, { uris: run });
-  invalidatePlaylist(id);
+  try {
+    for (const run of chunk(uris, PLAYLIST_BATCH)) await send("POST", `${playlistPath(id)}/items`, { uris: run });
+  } finally {
+    invalidatePlaylist(id);
+  }
 }
 
 /** Removes every occurrence of each URI. */

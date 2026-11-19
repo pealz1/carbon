@@ -8,6 +8,7 @@
   import { pageHref } from "$lib/youtube/uri";
   import { css } from "$lib/wallpaper";
   import Icon from "./Icon.svelte";
+  import SpotifyPlaylistCover from "./SpotifyPlaylistCover.svelte";
 
   // An album, playlist, artist or song tile. Artwork is shown whole and untouched, so the play and
   // "…" buttons sit beside the caption, never on the art. `feature` sets it on a plate coloured
@@ -47,7 +48,9 @@
   use:hold={{ onhold: (at, node) => menu.openAt(at.x, at.y, cardMenu(card), node) }}
 >
   <div class="art">
-    {#if card.image}
+    {#if card.uri.startsWith("spotify:playlist:")}
+      <div class="placeholder"><SpotifyPlaylistCover id={card.id} image={card.image} size={34} /></div>
+    {:else if card.image}
       <img src={card.image} alt="" width="300" height="300" loading="lazy" decoding="async" draggable="false" />
     {:else}
       <div class="placeholder"><Icon name={card.kind === "artist" ? "artist" : "note"} size={34} /></div>

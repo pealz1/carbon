@@ -43,7 +43,7 @@
 
 <section class="panel plate" id="servers">
   <h2>Your music servers</h2>
-  <p class="muted">Play the music on a server you run. Carbon signs in once and keeps the session in Windows Credential Manager; your password isn't stored.</p>
+  <p class="muted">Play the music on a server you run. Carbon keeps the sign-in token in your system keychain.</p>
   {#each KINDS as { kind, title, hint, placeholder, token } (kind)}
     {@const info = serverSession.of(kind)}
     {@const form = forms[kind]}

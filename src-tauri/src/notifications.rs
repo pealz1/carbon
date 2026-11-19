@@ -121,7 +121,25 @@ fn show(app: &AppHandle, info: &PlaybackInfo, art: Option<&Path>) {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn show(app: &AppHandle, info: &PlaybackInfo, art: Option<&Path>) {
+    use mac_notification_sys::{Notification, send_notification, set_application};
+    static ID: std::sync::Once = std::sync::Once::new();
+    ID.call_once(|| {
+        if let Err(e) = set_application(&app.config().identifier) {
+            eprintln!("[notifications] {e}");
+        }
+    });
+    let mut options = Notification::new();
+    if let Some(path) = art.and_then(Path::to_str) {
+        options.content_image(path);
+    }
+    if let Err(e) = send_notification(&info.title, Some(&info.artist_line()), &info.album, Some(&options)) {
+        eprintln!("[notifications] {e}");
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn show(_app: &AppHandle, _info: &PlaybackInfo, _art: Option<&Path>) {}
 
 #[cfg(test)]

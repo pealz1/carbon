@@ -28,7 +28,7 @@
     album: "Albums can't be changed, so there's only export.",
     youtube: "Sorting and duplicates work on your Spotify and Carbon playlists; YouTube Music playlists can be exported.",
   };
-  const NOT_YOURS = "This playlist isn't yours, so Carbon can't change it. It can be copied when Spotify shares its songs with apps like Carbon.";
+  const NOT_YOURS = "You can copy or export the songs Spotify shares with Carbon.";
   const why = $derived(source.kind === "playlist" ? (source.readOnly ? NOT_YOURS : undefined) : WHY[source.kind]);
 
   // svelte-ignore state_referenced_locally

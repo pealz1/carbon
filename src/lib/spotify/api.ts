@@ -48,6 +48,7 @@ const inflight = new Map<string, Promise<unknown>>();
 export function useTokenSource(source: TokenSource | null): void {
   tokens = source;
   cache.clear();
+  inflight.clear();
 }
 
 export function onApiNotice(listener: ((notice: ApiNotice) => void) | null): void {
@@ -58,7 +59,12 @@ export const clearCache = (): void => cache.clear();
 
 /** Drops cached GETs whose path starts with any prefix, so views re-read after a write. */
 export function invalidate(...prefixes: string[]): void {
-  for (const key of [...cache.keys()]) if (prefixes.some((p) => key.startsWith(p))) cache.delete(key);
+  for (const key of [...cache.keys(), ...inflight.keys()]) {
+    if (prefixes.some((p) => key.startsWith(p))) {
+      cache.delete(key);
+      inflight.delete(key);
+    }
+  }
 }
 
 export function retryAfterMs(header: string | null, max: number = TIMING.maxRetryAfterMs): number {
@@ -146,11 +152,12 @@ export function get<T>(path: string, ttlMs: number = TIMING.apiCacheTtlMs): Prom
   const promise = request("GET", path)
     .then((res) => parse<T>(res))
     .then((data) => {
+      if (inflight.get(path) !== promise) return data;
       if (cache.size >= MAX_CACHE_ENTRIES) cache.delete(cache.keys().next().value!);
       cache.set(path, { expires: Date.now() + ttlMs, data });
       return data;
     })
-    .finally(() => inflight.delete(path));
+    .finally(() => { if (inflight.get(path) === promise) inflight.delete(path); });
   inflight.set(path, promise);
   return promise;
 }

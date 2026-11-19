@@ -25,6 +25,7 @@ mod servers;
 mod settings;
 mod soundcloud;
 mod system;
+#[cfg(windows)]
 mod taskbar;
 mod token_store;
 mod tray;
@@ -64,6 +65,7 @@ fn playback_update(
     media.update(info.as_ref());
     app.state::<visibility::YoutubePlaying>().update(info.as_ref());
     app.state::<notifications::Notifier>().update(&app, info.as_ref());
+    #[cfg(windows)]
     taskbar::set_playing(&app, info.as_ref().is_some_and(|i| !i.paused));
     tray.update(&app, info.as_ref());
     remote.publish(info.as_ref());
@@ -119,6 +121,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let media = MediaState::default();
     media.attach(&handle, &window);
     app.manage(media);
+    #[cfg(windows)]
     taskbar::attach(&handle, &window);
 
     // Launched at login with --minimized: stay in the tray until the user opens Carbon.
@@ -286,7 +289,7 @@ pub fn run() {
             popouts::popout_command,
             hotkeys::hotkeys_status,
             hotkeys::hotkeys_suspend,
-            cli::launch_link,
+            cli::launch_links,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Carbon");

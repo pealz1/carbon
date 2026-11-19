@@ -28,6 +28,6 @@ export async function startDeepLinks(): Promise<UnlistenFn> {
   const stop = await listen<LinkTarget>("deep-link", (event) => follow(event.payload));
   // shortcut: followed as soon as the window is up, so a song may arrive before the player is ready
   // and then shows the player's usual "couldn't play" notice; queue it if cold-start plays matter.
-  follow(await invoke<LinkTarget | null>("launch_link"));
+  for (const target of await invoke<LinkTarget[]>("launch_links")) follow(target);
   return stop;
 }

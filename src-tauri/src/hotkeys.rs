@@ -71,7 +71,7 @@ pub fn parse(combo: &str) -> Result<Shortcut, String> {
     let shortcut = Shortcut::from_str(combo).map_err(|_| format!("\u{201c}{combo}\u{201d} isn't a shortcut Carbon understands"))?;
     let held = shortcut.mods.intersects(Modifiers::CONTROL | Modifiers::ALT | Modifiers::SUPER);
     if !held && !LONE_KEYS.contains(&shortcut.key) {
-        return Err(format!("\u{201c}{combo}\u{201d} needs Ctrl, Alt or the Windows key"));
+        return Err(format!("\u{201c}{combo}\u{201d} needs Control, Alt, Command or the Windows key"));
     }
     Ok(shortcut)
 }

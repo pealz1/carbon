@@ -88,7 +88,15 @@ pub fn clear_profile(app: &AppHandle) -> Result<(), String> {
 #[cfg(not(windows))]
 pub fn clear_profile(app: &AppHandle) -> Result<(), String> {
     match app.get_webview_window(MAIN) {
-        Some(main) => main.clear_all_browsing_data().map_err(|e| e.to_string()),
+        Some(main) => {
+            for cookie in main.cookies().map_err(|e| e.to_string())? {
+                let domain = cookie.domain().unwrap_or_default().trim_start_matches('.');
+                if ["google.com", "youtube.com"].iter().any(|host| domain == *host || domain.ends_with(&format!(".{host}"))) {
+                    main.delete_cookie(cookie).map_err(|e| e.to_string())?;
+                }
+            }
+            Ok(())
+        }
         None => Ok(()),
     }
 }
