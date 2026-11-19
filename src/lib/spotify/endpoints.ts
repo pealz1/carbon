@@ -1,6 +1,7 @@
 // Typed wrappers for the Web API endpoints development-mode apps can still use (Feb 2026).
 // Not available: artist top tracks, new releases, browse categories, batch /tracks|/albums|/artists.
 import { ARTIST_ALBUMS_LIMIT, PAGE_SIZE, SEARCH_LIMIT } from "$lib/config";
+import { releaseDate } from "$lib/format";
 import { ApiError, get, getFresh, invalidate, send, sendRaw } from "./api";
 import {
   albumCard,
@@ -171,10 +172,16 @@ export interface AlbumDetail {
   year: string;
   type: string;
   tracks: Track[];
+  /** "30 April 2020", at the precision Spotify gives. */
+  released: string;
+  label: string;
+  /** The (P) line, else the (C) line. */
+  copyright: string;
+  genres: string[];
 }
 
 export async function album(id: string): Promise<AlbumDetail> {
-  const raw = await get<RawAlbum & { tracks: Paging<RawTrack> }>(`/albums/${encodeURIComponent(id)}`);
+  const raw = await get<RawAlbum & AlbumExtras & { tracks: Paging<RawTrack> }>(`/albums/${encodeURIComponent(id)}`);
   const ref = toAlbumRef(raw);
   return {
     id: ref.id,
@@ -186,7 +193,19 @@ export async function album(id: string): Promise<AlbumDetail> {
     year: raw.release_date?.slice(0, 4) ?? "",
     type: raw.album_type ?? "album",
     tracks: compactTracks(raw.tracks.items.map((t) => toTrack(t, ref))),
+    released: releaseDate(raw.release_date, raw.release_date_precision),
+    label: raw.label ?? "",
+    copyright: (raw.copyrights?.find((c) => c.type === "P") ?? raw.copyrights?.[0])?.text ?? "",
+    genres: raw.genres ?? [],
   };
+}
+
+/** Fields only the full album object has; Spotify leaves some out for some apps. */
+interface AlbumExtras {
+  release_date_precision?: string;
+  label?: string;
+  copyrights?: { text: string; type: string }[];
+  genres?: string[];
 }
 
 /** Spotify's player leaves `explicit` out of its track objects; the catalogue has it. */

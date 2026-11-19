@@ -21,6 +21,7 @@
     showAlbum = false,
     showArt = true,
     numbered = false,
+    numbers,
     compact = false,
     removeFrom,
     onremove,
@@ -31,6 +32,8 @@
     showAlbum?: boolean;
     showArt?: boolean;
     numbered?: boolean;
+    /** Each row's number when the list is filtered or sorted (its place in the original order). */
+    numbers?: number[];
     compact?: boolean;
     /** Lets the menu remove songs from this playlist (only pass for playlists you can edit). */
     removeFrom?: Pick<PlaylistSummary, "id" | "name">;
@@ -111,7 +114,7 @@
         {#if current && !player.paused}
           <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
         {:else if numbered}
-          <span class="index tabular">{i + 1}</span>
+          <span class="index tabular">{numbers?.[i] ?? i + 1}</span>
         {/if}
         <span class="play-icon"><Icon name="play" size={14} /></span>
       </button>

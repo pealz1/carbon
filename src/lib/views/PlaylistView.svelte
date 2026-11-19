@@ -5,6 +5,8 @@
   import LoadMore from "$lib/components/LoadMore.svelte";
   import Status from "$lib/components/Status.svelte";
   import TrackList from "$lib/components/TrackList.svelte";
+  import TrackTools from "$lib/components/TrackTools.svelte";
+  import { arrange, type TrackSort } from "$lib/track-tools";
   import { dialogs } from "$lib/dialogs.svelte";
   import { formatTotal } from "$lib/format";
   import { pastedSpotifyItems } from "$lib/links";
@@ -30,6 +32,10 @@
   const owned = $derived(!!p?.ownerId && p.ownerId === session.profile?.id);
   const canEditTracks = $derived(owned || (info.data?.listed && p?.collaborative));
   const totalMs = $derived(tracks?.items.reduce((sum, t) => sum + t.durationMs, 0));
+  let query = $state("");
+  let sort = $state<TrackSort>("default");
+  let descending = $state(false);
+  const shown = $derived(arrange(tracks?.items ?? [], query, sort, descending));
 
   const chips = $derived.by<Chip[]>(() => {
     if (!p) return [];
@@ -69,6 +75,13 @@
     description={p.description}
     playUri={p.uri}
     shuffleCount={tracks?.total ?? p.trackCount ?? undefined}
+    share={{ uri: p.uri, name: p.name }}
+    facts={[
+      ...(p.ownerName ? [{ label: "Made by", value: p.ownerName }] : []),
+      ...(tracks ? [{ label: "Songs", value: String(tracks.total ?? tracks.items.length) }] : []),
+      ...(tracks?.done && totalMs ? [{ label: "Length", value: formatTotal(totalMs) }] : []),
+      { label: "Visibility", value: p.collaborative ? "Collaborative" : p.public === false ? "Private" : "Public" },
+    ]}
     menuItems={() => playlistMenu(p!, p!.largeImage)}
   >
     {#snippet byline()}
@@ -81,7 +94,9 @@
   </DetailHeader>
 
   {#if tracks}
-    <TrackList tracks={tracks.items} contextUri={p.uri} showAlbum showArt numbered removeFrom={canEditTracks ? p : undefined} onremove={dropRow} />
+    {#if tracks.items.length > 1}<TrackTools bind:query bind:sort bind:descending defaultLabel="Playlist order" album count={shown.tracks.length} />{/if}
+    <TrackList tracks={shown.tracks} numbers={shown.numbers} contextUri={p.uri} showAlbum showArt numbered removeFrom={canEditTracks ? p : undefined} onremove={dropRow} />
+    {#if query && tracks.items.length && !shown.tracks.length}<Status empty={tracks.done ? `No songs match “${query}”.` : `No loaded songs match “${query}” yet.`} />{/if}
     {#if tracks.done && !tracks.items.length}<Status empty={tracks.total === 0 ? "This playlist is empty." : "No playable songs in this playlist."} />{/if}
     <LoadMore pager={tracks} />
   {:else if p.public !== false}
