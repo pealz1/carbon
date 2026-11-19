@@ -13,6 +13,57 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  linux:
+    name: Linux packages (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-22.04, ubuntu-22.04-arm]
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+      NO_STRIP: "true"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/linux-desktop
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+      - run: npm run tauri -- build --config '{"bundle":{"createUpdaterArtifacts":false}}'
+      - name: Check packages and launch Carbon
+        run: |
+          bundle=src-tauri/target/release/bundle
+          dpkg-deb --info "$bundle"/deb/*.deb >/dev/null
+          rpm -qp "$bundle"/rpm/*.rpm >/dev/null
+          app=$(realpath "$bundle"/appimage/*.AppImage)
+          (cd "$RUNNER_TEMP" && "$app" --appimage-extract >/dev/null)
+          xvfb-run -a dbus-run-session -- bash -ec '
+            "$RUNNER_TEMP/squashfs-root/AppRun" >"$RUNNER_TEMP/carbon.log" 2>&1 &
+            pid=$!
+            trap "kill $pid 2>/dev/null || true" EXIT
+            for attempt in {1..30}; do
+              if "$RUNNER_TEMP/squashfs-root/AppRun" now-playing --json 2>/dev/null | jq -e ".status == \"stopped\""; then exit 0; fi
+              sleep 1
+            done
+            cat "$RUNNER_TEMP/carbon.log"
+            exit 1'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Carbon-${{ matrix.runner }}
+          path: |
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+          if-no-files-found: error
+
   macos:
     name: Native tests (${{ matrix.runner }})
     strategy:

@@ -48,9 +48,11 @@ pub fn installed() -> Result<Vec<String>, String> {
     Ok(tidy(families.iter().map(|name| name.to_string()).collect()))
 }
 
-#[cfg(not(any(windows, target_os = "macos")))]
+#[cfg(target_os = "linux")]
 pub fn installed() -> Result<Vec<String>, String> {
-    Ok(Vec::new())
+    let output = std::process::Command::new("fc-list").arg("--format=%{family}\n").output().map_err(|e| e.to_string())?;
+    if !output.status.success() { return Err("Could not read the system font list.".into()); }
+    Ok(tidy(String::from_utf8_lossy(&output.stdout).lines().flat_map(|line| line.split(',')).map(|s| s.trim().to_owned()).collect()))
 }
 
 /// The en-us name when the family has one, else its first name.

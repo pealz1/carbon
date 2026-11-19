@@ -56,6 +56,10 @@ tauri-plugin-global-shortcut = "2"
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 cpal = "0.18"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
+dirs = "6"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 # Output only. Newer CoreAudio backends link the macOS 14.2 process-tap recording API.
 coreaudio-rs = "0.14"
