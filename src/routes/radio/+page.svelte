@@ -140,7 +140,7 @@
     max-width: 520px;
     padding: 0 var(--sp-4);
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.06);
+    background: var(--glass);
     box-shadow: inset 0 0 0 1px var(--glass-edge);
     color: var(--text-muted);
   }

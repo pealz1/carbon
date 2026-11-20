@@ -41,6 +41,7 @@
   class:artist={card.kind === "artist"}
   class:feature
   class:live
+  class:keep-dark={!!tones.current}
   style={tones.current ? `--plate-tone: ${css(tones.current.fields[0])}` : undefined}
   oncontextmenu={openMenu}
   role={href ? undefined : "group"}
@@ -212,7 +213,8 @@
     color: var(--accent-ink);
   }
 
-  /* Feature: the tile becomes a plate coloured from its own artwork. */
+  /* Feature: the tile becomes a plate coloured from its own artwork. That tone is dark in every
+     theme, so a toned card takes .keep-dark. */
   .feature {
     --plate-tone: var(--graphite-900);
     padding: var(--sp-3) var(--sp-3) var(--sp-4);
@@ -226,7 +228,7 @@
     background: var(--plate-tone);
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.12),
-      inset 0 0 0 100vmax rgb(255 255 255 / 0.05);
+      inset 0 0 0 100vmax rgb(var(--tint) / 0.05);
   }
 
   .feature .title {
@@ -234,6 +236,6 @@
   }
 
   .feature .subtitle {
-    color: rgb(255 255 255 / 0.7);
+    color: rgb(var(--tint) / 0.7);
   }
 </style>
