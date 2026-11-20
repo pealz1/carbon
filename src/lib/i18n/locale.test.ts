@@ -29,7 +29,9 @@ it("has a translation for every label in the interface", () => {
 });
 it("never sends an icon name through translation", () => {
   const icon = Object.entries(sources).find(([file]) => file.endsWith("/components/Icon.svelte"))![1];
-  const names = new Set([...icon.match(/const PATHS = \{([\s\S]*?)\} as const/)![1].matchAll(/^\s{4}(\w+):/gm)].map((m) => m[1]));
+  // Every icon table in Icon.svelte (SHAPES, STROKES): a label that matches a name is an icon leaking into translation.
+  const tables = [...icon.matchAll(/const (?:SHAPES|STROKES) = \{([\s\S]*?)\} as const/g)].map((m) => m[1]).join("\n");
+  const names = new Set([...tables.matchAll(/^\s{4}(\w+):/gm)].map((m) => m[1]));
   expect(names.size).toBeGreaterThan(20);
   // Real words that happen to share an icon's name: "{n} more", "Scroll {title} back".
   const words = new Set(["back", "close", "forward", "more"]);
