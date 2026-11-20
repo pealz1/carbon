@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CARBON } from "./config";
 
 const invoke = vi.fn();
 const openUrl = vi.fn(async (_url: string) => {});
@@ -107,7 +108,7 @@ describe("account session", () => {
     invoke.mockResolvedValueOnce("revoked");
     await account.boot();
     expect(account.status).toBe("signed-out");
-    expect(invoke).toHaveBeenCalledWith("carbon_token_clear", undefined);
+    expect(invoke).toHaveBeenCalledWith("carbon_token_clear", { apiUrl: CARBON.apiUrl });
   });
 
   it("signs in through the browser with PKCE and saves the token", async () => {
@@ -123,7 +124,7 @@ describe("account session", () => {
     vi.stubGlobal("fetch", fetchMock);
     await account.signIn();
     expect(account.status).toBe("signed-in");
-    expect(invoke).toHaveBeenCalledWith("carbon_token_save", { token: "fresh" });
+    expect(invoke).toHaveBeenCalledWith("carbon_token_save", { apiUrl: CARBON.apiUrl, token: "fresh" });
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).code).toBe("abc");
   });
 
@@ -146,6 +147,6 @@ describe("account session", () => {
     await account.signOut();
     expect(account.status).toBe("signed-out");
     expect(account.user).toBeNull();
-    expect(invoke).toHaveBeenCalledWith("carbon_token_clear", undefined);
+    expect(invoke).toHaveBeenCalledWith("carbon_token_clear", { apiUrl: CARBON.apiUrl });
   });
 });

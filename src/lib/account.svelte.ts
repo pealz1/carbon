@@ -1,10 +1,10 @@
 // Carbon account session (feature-flagged). The app token lives in Windows Credential Manager
-// ("carbon-session"); without one, nothing here touches the network.
+// under the configured accounts server. Without one, nothing here touches the network.
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { withTimeout } from "$lib/auth";
 import { CarbonError, describeCarbonError, musicRequest, exchangeCode, fetchMe, loginUrl, logout, type CarbonUser } from "$lib/carbon-account";
-import { REQUIRE_CARBON_ACCOUNT, TIMING } from "$lib/config";
+import { CARBON, REQUIRE_CARBON_ACCOUNT, TIMING } from "$lib/config";
 import { challengeFor, randomString } from "$lib/pkce";
 
 type Status = "unknown" | "signed-out" | "signing-in" | "signed-in";
@@ -24,7 +24,7 @@ class Account {
   /** Restores a saved session and refreshes the profile. Only a 401 signs you out. */
   async boot(): Promise<void> {
     try {
-      this.#token = await invoke<string | null>("carbon_token_load");
+      this.#token = await invoke<string | null>("carbon_token_load", { apiUrl: CARBON.apiUrl });
     } catch (e) {
       console.error("[account] couldn't read the saved session", e);
       this.error = "Couldn't read your saved Carbon sign-in.";
@@ -58,7 +58,7 @@ class Account {
       const code = params.get("code");
       if (!code) throw new Error("Carbon sent no sign-in code.");
       const { token, user } = await exchangeCode(code, verifier);
-      await invoke("carbon_token_save", { token });
+      await invoke("carbon_token_save", { apiUrl: CARBON.apiUrl, token });
       this.#token = token;
       this.user = user;
       this.status = "signed-in";
@@ -91,7 +91,7 @@ class Account {
     this.user = null;
     this.status = "signed-out";
     try {
-      await invoke("carbon_token_clear");
+      await invoke("carbon_token_clear", { apiUrl: CARBON.apiUrl });
     } catch (e) {
       console.error("[account] couldn't remove the saved session", e);
       this.error = "Couldn't remove your saved Carbon sign-in.";

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
+import { CARBON } from "./config";
 
 const invoke = vi.fn(async (..._args: unknown[]) => null);
 const listen = vi.fn(async (_event: string, handler: (e: { payload: unknown }) => void) => {
@@ -43,6 +44,7 @@ describe("native bridge", () => {
       "listenbrainz_disconnect",
     ]);
     expect(invoke.mock.calls[2][1]).toEqual({ library });
+    expect(invoke).toHaveBeenCalledWith("lastfm_connect", { apiUrl: CARBON.apiUrl });
     expect(invoke.mock.calls[11][1]).toEqual({ token: "token-1" });
   });
 
