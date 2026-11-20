@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import { activeLocale, languages, selectLocale, type Locale } from "$lib/i18n/locale.svelte";
+  import { activeLocale, languages, selectLocale, t, type Locale } from "$lib/i18n/locale.svelte";
   import type { Effects } from "$lib/native";
   import { prefs } from "$lib/preferences.svelte";
   import Icon from "./Icon.svelte";
@@ -71,8 +71,8 @@
               {#each FEELS as feel (feel.id)}
                 <button role="radio" aria-checked={effects === feel.id} class="feel plate" class:on={effects === feel.id} onclick={() => prefs.update({ effects: feel.id })}>
                   <span class="icon"><Icon name={feel.icon} size={20} /></span>
-                  <span class="name">{feel.label}</span>
-                  <span class="hint">{feel.hint}</span>
+                  <span class="name">{t(feel.label)}</span>
+                  <span class="hint">{t(feel.hint)}</span>
                 </button>
               {/each}
             </div>

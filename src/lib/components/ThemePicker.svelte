@@ -13,6 +13,7 @@
 </script>
 
 <script lang="ts">
+  import { t } from "$lib/i18n/locale.svelte";
   import { THEMES } from "$lib/native";
   import { prefs } from "$lib/preferences.svelte";
   import Icon from "./Icon.svelte";
@@ -43,10 +44,10 @@
         <span class="bar"><i></i></span>
       </span>
       <span class="name">
-        {info.label}
+        {t(info.label)}
         {#if current === id}<span class="tick"><Icon name="check" size={13} /></span>{/if}
       </span>
-      <span class="hint">{info.hint}</span>
+      <span class="hint">{t(info.hint)}</span>
     </button>
   {/each}
 </div>

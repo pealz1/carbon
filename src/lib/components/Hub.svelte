@@ -13,7 +13,7 @@
 
 <header class="head">
   <h1>{title}</h1>
-  <p>{lede}</p>
+  <p>{t(lede)}</p>
 </header>
 
 <ul class="tiles">

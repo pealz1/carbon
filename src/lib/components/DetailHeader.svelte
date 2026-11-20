@@ -16,6 +16,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { artTones } from "$lib/art-tones.svelte";
+  import { t } from "$lib/i18n/locale.svelte";
   import { menu, type MenuEntry } from "$lib/menu.svelte";
   import { shareItem } from "$lib/menus";
   import { player } from "$lib/player.svelte";
@@ -190,8 +191,8 @@
         {#if facts.length}
           <dl>
             {#each facts as fact (fact.label)}
-              <dt>{fact.label}</dt>
-              <dd>{fact.value}</dd>
+              <dt>{t(fact.label)}</dt>
+              <dd>{t(fact.value)}</dd>
             {/each}
           </dl>
         {/if}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { menu, type MenuEntry } from "$lib/menu.svelte";
+  import { t } from "$lib/i18n/locale.svelte";
   import type { TrackSort } from "$lib/track-tools";
   import Icon from "./Icon.svelte";
 
@@ -24,13 +25,13 @@
   } = $props();
 
   const SORTS = $derived<{ id: TrackSort; label: string }[]>([
-    { id: "default", label: defaultLabel },
-    { id: "title", label: "Title" },
-    { id: "artist", label: "Artist" },
-    ...(album ? [{ id: "album" as const, label: "Album" }] : []),
-    { id: "duration", label: "Length" },
+    { id: "default", label: t(defaultLabel) },
+    { id: "title", label: t("Title") },
+    { id: "artist", label: t("Artist") },
+    ...(album ? [{ id: "album" as const, label: t("Album") }] : []),
+    { id: "duration", label: t("Length") },
   ]);
-  const current = $derived(SORTS.find((s) => s.id === sort)?.label ?? defaultLabel);
+  const current = $derived(SORTS.find((s) => s.id === sort)?.label ?? t(defaultLabel));
 
   function pickSort(event: MouseEvent) {
     const items: MenuEntry[] = SORTS.map((s) => ({ label: s.label, icon: s.id === sort ? "check" : undefined, action: () => (sort = s.id) }));
@@ -39,8 +40,8 @@
 
   function pickOrder(event: MouseEvent) {
     menu.open(event, [
-      { label: "Ascending", icon: descending ? undefined : "check", action: () => (descending = false) },
-      { label: "Descending", icon: descending ? "check" : undefined, action: () => (descending = true) },
+      { label: t("Ascending"), icon: descending ? undefined : "check", action: () => (descending = false) },
+      { label: t("Descending"), icon: descending ? "check" : undefined, action: () => (descending = true) },
     ]);
   }
 </script>
