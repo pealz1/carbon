@@ -101,6 +101,8 @@
       try {
         const theme = localStorage.getItem("carbon.theme");
         if (theme) document.documentElement.dataset.theme = theme;
+        // WebView2 can bend a backdrop through an SVG filter (liquid glass); WebKit cannot.
+        if (/\bChrome\/\d+/.test(navigator.userAgent)) document.documentElement.dataset.engine = "chromium";
       } catch {}
     </script>
     %sveltekit.head%

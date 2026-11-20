@@ -22,6 +22,7 @@
   import BarPopover from "./BarPopover.svelte";
   import CinemaLayouts from "./CinemaLayouts.svelte";
   import Icon from "./Icon.svelte";
+  import LiquidFilter from "./LiquidFilter.svelte";
   import LikeButton from "./LikeButton.svelte";
   import LyricScrubber from "./LyricScrubber.svelte";
   import LyricsControls from "./LyricsControls.svelte";
@@ -54,6 +55,7 @@
   /** The time after the scrubber: what's left of the song, then when it ends, then when the queue does. */
   const CLOCKS = ["left", "song", "queue"] as const;
   let bar = $state<HTMLElement>();
+  let width = $state(0);
   let position = $state(player.position());
   let now = $state(Date.now());
   let clock = $state<(typeof CLOCKS)[number]>("left");
@@ -119,6 +121,7 @@
 <footer
   bind:this={bar}
   bind:offsetHeight={height}
+  bind:offsetWidth={width}
   class="bar"
   class:hidden
   style={tint}
@@ -128,6 +131,7 @@
   onfocusin={focusIn}
   onfocusout={focusOut}
 >
+  <LiquidFilter id="cinema-glass" {width} {height} />
   <div class="seek">
     <span class="time tabular">{formatDuration(position)}</span>
     <LyricScrubber {position} durationMs={player.durationMs} {lines} {shiftMs} onseek={player.seek} />
@@ -240,10 +244,17 @@
     inset: 0;
     z-index: -1;
     border-radius: inherit;
-    background: var(--grain), linear-gradient(100deg, var(--tint-a), var(--tint-b)), var(--glass-strong);
+    background: var(--glass-sheen), var(--grain), linear-gradient(100deg, var(--tint-a), var(--tint-b)), var(--glass-strong);
     backdrop-filter: var(--glass-blur);
-    box-shadow: var(--glass-shadow);
+    box-shadow: var(--glass-rim), 0 28px 64px -18px rgb(0 0 0 / 0.8);
     pointer-events: none;
+  }
+
+  /* Liquid glass where the engine can bend a backdrop (WebView2): clearer and less frosted, with
+     the light behind bending at the rim. Full effects only. */
+  :global([data-engine="chromium"][data-effects="full"]) .bar::before {
+    background: var(--glass-sheen), linear-gradient(100deg, var(--tint-a), var(--tint-b)), rgb(10 10 12 / 0.46);
+    backdrop-filter: url(#cinema-glass) blur(5px) saturate(1.7) brightness(0.82);
   }
 
   /* The artwork's colour pooling under the bar, as if the glass were lit from the song. */
