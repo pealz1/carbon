@@ -127,8 +127,6 @@ jobs:
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           CARBON_DISCORD_APP_ID: ${{ secrets.CARBON_DISCORD_APP_ID }}
-          CARBON_LASTFM_API_KEY: ${{ secrets.CARBON_LASTFM_API_KEY }}
-          CARBON_LASTFM_SECRET: ${{ secrets.CARBON_LASTFM_SECRET }}
           VITE_REQUIRE_CARBON_ACCOUNT: "true"
           APPIMAGE_EXTRACT_AND_RUN: "1"
           NO_STRIP: "true"

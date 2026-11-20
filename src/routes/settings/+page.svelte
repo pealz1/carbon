@@ -127,7 +127,7 @@
     try {
       const username = await lastfmConnect();
       lastfm = { configured: true, username };
-      notice = `Scrobbling to ${username}.`;
+      notice = `Connected to Last.fm as ${username}.`;
     } catch (e) {
       notice = describeError(e);
     } finally {
@@ -299,7 +299,7 @@
         checked={s.lastfmScrobbling}
         disabled={!lastfm?.username}
         label="Scrobble to Last.fm"
-        description={lastfm?.username ? `Connected as ${lastfm.username}.` : "Connect your Last.fm account first."}
+        description={lastfm?.username ? `Connected as ${lastfm.username}.` : "When enabled, Carbon’s account service forwards the artist, track, album, duration and play time to Last.fm."}
         onchange={(v) => prefs.update({ lastfmScrobbling: v })}
       />
       {#if lastfm?.configured}
@@ -309,7 +309,7 @@
           <button class="pill accent" onclick={connectLastfm} disabled={lastfmBusy}>{lastfmBusy ? "Waiting for Last.fm…" : "Connect Last.fm"}</button>
         {/if}
       {:else}
-        <p class="muted">Last.fm isn't set up in this build.</p>
+        <p class="muted">Sign in to your Carbon account to connect Last.fm.</p>
       {/if}
     </section>
 

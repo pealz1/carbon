@@ -51,7 +51,7 @@
   <main id="main" class="wrap">
     <header class="doc-hero">
       <h1>Privacy Policy</h1>
-      <p class="doc-meta">Last updated: November 11, 2026</p>
+      <p class="doc-meta">Last updated November 19, 2026</p>
       <p class="doc-note">This policy is written in plain language. <strong>The short version:</strong> Carbon has no ads, no analytics and no tracking cookies. Your Spotify sign-in, settings and listening stay on your PC. For a Carbon account we keep your email, a hashed password and the security records needed to protect it, and we never sell your information.</p>
     </header>
 
@@ -110,24 +110,26 @@
           <p>The Supporters wall on getcarbon.cc lists only people who opt in, with the name and optional link they choose. Ask us at any time and we will remove you.</p>
           <h3>Messages you send us</h3>
           <p>If you email us, we keep your message and our reply so we can help you.</p>
-          <h3>What we do not collect</h3>
-          <p>We do not collect your Spotify password, your listening history, your library or playlists, your Last.fm or Discord credentials, analytics, telemetry or advertising identifiers.</p>
+          <h3>Last.fm scrobbling</h3>
+          <p>If you connect Last.fm in the updated desktop app and enable scrobbling, Carbon’s account service receives the artist, track, album, duration and play time. It signs and forwards each request to Last.fm. The service handles your Last.fm session key in memory and returns an encrypted connection to your device. It does not save scrobbles or Last.fm session keys in its database or application logs. Listening history sync is a separate setting.</p>
+          <p>Earlier versions sent plays directly to Last.fm. You must connect Last.fm again in Settings before the updated app sends a play through Carbon. You can pause scrobbling or disconnect Last.fm there at any time. Spotify and Last.fm handle their own passwords.</p>
+          <p>Carbon does not collect Discord credentials, analytics, telemetry or advertising identifiers.</p>
         </section>
 
         <section id="device" aria-labelledby="device-h">
           <h2 id="device-h">What stays on your PC</h2>
-          <p>The Carbon app keeps the following on your computer and does not send it to us:</p>
+          <p>The Carbon app stores the following on your computer:</p>
           <ul>
             <li>your Spotify sign-in tokens and your Carbon app sign-in token, stored in Windows Credential Manager or macOS Keychain;</li>
             <li>your Spotify Client ID and app settings;</li>
-            <li>your Last.fm connection, if you set one up.</li>
+            <li>an encrypted Last.fm connection, if you set one up. The app presents it with your Carbon app session when submitting plays.</li>
           </ul>
           <p>You sign in to Spotify on Spotify’s own page, so Carbon never sees your Spotify password.</p>
         </section>
 
         <section id="services" aria-labelledby="services-h">
           <h2 id="services-h">Services Carbon talks to</h2>
-          <p>The app connects directly from your PC to these services, only for the reasons given:</p>
+          <p>These services receive information when you use the corresponding feature:</p>
           <div class="table-wrap">
             <table>
               <thead><tr><th scope="col">Service</th><th scope="col">What it receives</th><th scope="col">When</th></tr></thead>
@@ -135,13 +137,13 @@
                 <tr><td>Spotify</td><td>Your sign-in and playback requests</td><td>Whenever you use the app</td></tr>
                 <tr><td>LRCLIB</td><td>The current track’s title, artist, album and duration</td><td>When Carbon looks up lyrics</td></tr>
                 <tr><td>Discord</td><td>What you are playing, passed to the Discord app on your PC, which shares it as your status</td><td>Only while the Discord desktop app is running</td></tr>
-                <tr><td>Last.fm</td><td>The tracks you play (scrobbles)</td><td>Only after you connect Last.fm in Settings</td></tr>
+                <tr><td>Last.fm</td><td>Now-playing updates and completed plays, forwarded by Carbon’s account service</td><td>When you connect Last.fm and enable scrobbling</td></tr>
                 <tr><td>GitHub</td><td>A standard request for update information</td><td>When Carbon checks for and downloads updates</td></tr>
                 <tr><td>Carbon accounts</td><td>Your account requests, as described above</td><td>When you sign in or manage your account</td></tr>
               </tbody>
             </table>
           </div>
-          <p>Each of these services handles the information it receives under its own privacy policy. Like any internet request, each one also sees your IP address.</p>
+          <p>Each service handles information under its own privacy policy. Services you contact directly see your IP address. Last.fm sees your IP when you approve the connection in your browser and Carbon’s server IP when it receives a forwarded play.</p>
         </section>
 
         <section id="use" aria-labelledby="use-h">
