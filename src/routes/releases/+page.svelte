@@ -34,7 +34,7 @@
   <div class="tools">
     <div class="segmented" role="radiogroup" aria-label="How far back">
       {#each SPANS as w (w)}
-        <button role="radio" aria-checked={weeks === w} class:active={weeks === w} onclick={() => goto(`?weeks=${w}`, { replaceState: true, noScroll: true, keepFocus: true })}>
+        <button role="radio" aria-checked={weeks === w} class:active={weeks === w} onclick={() => goto(`?weeks=${w}`, { replace: true, reset: false })}>
           {w} weeks
         </button>
       {/each}

@@ -39,7 +39,7 @@
     const filter = next.source === undefined ? source : next.source;
     if (filter) params.set("source", filter);
     shown = PAGE;
-    void goto(`?${params}`, { replaceState: true, noScroll: true, keepFocus: true });
+    void goto(`?${params}`, { replace: true, reset: false });
   }
 
   function status(): string {

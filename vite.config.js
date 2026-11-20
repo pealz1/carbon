@@ -2,6 +2,9 @@
 import { defineConfig } from "vite";
 import { configDefaults } from "vitest/config";
 import { sveltekit } from "@sveltejs/kit/vite";
+import adapter from "@sveltejs/adapter-static";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+import { translateMarkup } from "./src/lib/i18n/preprocess.js";
 // @ts-expect-error type error without @types/node package
 import process from "node:process";
 // @ts-expect-error type error without @types/node package
@@ -39,7 +42,11 @@ function kuromojiDictionary() {
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
-  plugins: [kuromojiDictionary(), sveltekit()],
+  plugins: [kuromojiDictionary(), sveltekit({
+    adapter: adapter({ fallback: "index.html" }),
+    preprocess: [translateMarkup, vitePreprocess()],
+  })],
+  resolve: { alias: { $lib: `${process.cwd()}/src/lib` } },
 
   // The SDK in packages/ and the private backend in cloud/ have their own test runs.
   test: {

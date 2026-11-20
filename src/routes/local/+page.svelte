@@ -36,12 +36,12 @@
   onMount(() => void lib.load());
 
   function nav(patch: Record<string, string | null>) {
-    const next = new URLSearchParams(params);
+    const next = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(patch)) {
       if (v) next.set(k, v);
       else next.delete(k);
     }
-    void goto(`?${next}`, { replaceState: true, noScroll: true, keepFocus: true });
+    void goto(`?${next}`, { replace: true, reset: false });
   }
 
   const playAll = (tracks: Track[], shuffle = false) => {

@@ -22,7 +22,7 @@
     const next = query.trim();
     const timer = setTimeout(() => {
       term = next;
-      goto(next ? `?q=${encodeURIComponent(next)}` : "?", { replaceState: true, keepFocus: true, noScroll: true });
+      goto(next ? `?q=${encodeURIComponent(next)}` : "?", { replace: true, reset: false });
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
   });

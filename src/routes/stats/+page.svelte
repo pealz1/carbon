@@ -29,7 +29,7 @@
   </div>
   <div class="segmented" role="radiogroup" aria-label="Time range">
     {#each RANGES as r (r.id)}
-      <button role="radio" aria-checked={range === r.id} class:active={range === r.id} onclick={() => goto(`?range=${r.id}`, { replaceState: true, noScroll: true, keepFocus: true })}>
+      <button role="radio" aria-checked={range === r.id} class:active={range === r.id} onclick={() => goto(`?range=${r.id}`, { replace: true, reset: false })}>
         {r.label}
       </button>
     {/each}

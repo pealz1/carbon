@@ -36,7 +36,7 @@
     const timer = setTimeout(() => {
       term = next;
       const params = new URLSearchParams({ ...(next && { q: next }), ...(type !== "all" && { type }) });
-      goto(`?${params}`, { replaceState: true, keepFocus: true, noScroll: true });
+      goto(`?${params}`, { replace: true, reset: false });
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
   });

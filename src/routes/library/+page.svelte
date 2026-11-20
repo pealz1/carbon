@@ -37,7 +37,7 @@
   });
 
   const setTag = (next: string | null) =>
-    goto(next ? `?tab=playlists&tag=${encodeURIComponent(next)}` : "?tab=playlists", { replaceState: true, noScroll: true, keepFocus: true });
+    goto(next ? `?tab=playlists&tag=${encodeURIComponent(next)}` : "?tab=playlists", { replace: true, reset: false });
 
   const playlistCards = $derived<Card[]>(
     playlists.map((p) => ({
@@ -58,7 +58,7 @@
   <button class="pill" onclick={tools.openImport}><Icon name="import" size={16} />Import</button>
   <div class="segmented" role="tablist" aria-label="Library sections">
     {#each TABS as t (t.id)}
-      <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => goto(`?tab=${t.id}`, { replaceState: true, noScroll: true })}>
+      <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => goto(`?tab=${t.id}`, { replace: true, reset: false })}>
         {t.label}
       </button>
     {/each}

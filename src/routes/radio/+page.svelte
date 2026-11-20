@@ -32,14 +32,14 @@
     const timer = setTimeout(() => {
       if (next === term) return;
       term = next;
-      void goto(address(next, tag), { replaceState: true, keepFocus: true, noScroll: true });
+      void goto(address(next, tag), { replace: true, reset: false });
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
   });
 
-  const pickGenre = (genre: string) => goto(address(term, genre === tag ? "" : genre), { replaceState: true, keepFocus: true, noScroll: true });
+  const pickGenre = (genre: string) => goto(address(term, genre === tag ? "" : genre), { replace: true, reset: false });
 
-  const toggleNear = () => goto(address(term, tag, !near), { replaceState: true, keepFocus: true, noScroll: true });
+  const toggleNear = () => goto(address(term, tag, !near), { replace: true, reset: false });
 
   const found = resource(() => stations(term, tag, near ? region : ""));
   const browsing = $derived(!term && !tag && !near);
