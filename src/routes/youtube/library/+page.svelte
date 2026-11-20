@@ -100,7 +100,7 @@
     text-decoration: none;
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.12),
-      inset 0 0 0 100vmax rgb(255 255 255 / 0.04);
+      inset 0 0 0 100vmax rgb(var(--tint) / 0.04);
   }
 
   .liked-title {

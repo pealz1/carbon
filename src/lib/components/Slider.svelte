@@ -64,7 +64,7 @@
     height: 4px;
     width: 100%;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.16);
+    background: rgb(var(--tint) / 0.16);
     overflow: hidden;
     transition: transform var(--dur-fast) var(--ease-out);
   }

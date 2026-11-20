@@ -269,7 +269,7 @@
       calc(var(--lx) * -3px) 2px 0 color-mix(in oklab, var(--wash2) 70%, black),
       calc(var(--lx) * -6px) 4px 0 color-mix(in oklab, var(--wash2) 40%, black),
       calc(var(--lx) * -22px) calc(26px + var(--ly) * -18px) 54px -14px rgb(0 0 0 / 0.85),
-      0 0 0 1px rgb(255 255 255 / 0.06);
+      0 0 0 1px rgb(var(--tint) / 0.06);
     transition: box-shadow 700ms var(--ease-out);
   }
 
@@ -383,7 +383,7 @@
   }
 
   .byline :global(.person:is(a, button):hover) {
-    background: rgb(255 255 255 / 0.08);
+    background: rgb(var(--tint) / 0.08);
     text-decoration: none;
   }
 
@@ -394,7 +394,7 @@
     display: grid;
     place-items: center;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.1);
+    background: rgb(var(--tint) / 0.1);
     color: var(--text-muted);
     object-fit: cover;
   }
@@ -415,9 +415,9 @@
     height: 24px;
     padding: 0 9px;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.08);
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
-    color: rgb(255 255 255 / 0.78);
+    background: rgb(var(--tint) / 0.08);
+    box-shadow: inset 0 0 0 1px rgb(var(--tint) / 0.1);
+    color: var(--text-muted);
     font-size: var(--fs-micro);
     font-weight: 600;
     letter-spacing: var(--tracking-caps);
@@ -429,7 +429,7 @@
     max-width: 62ch;
     margin: 0;
     overflow: hidden;
-    color: rgb(255 255 255 / 0.68);
+    color: var(--text-muted);
     font-size: var(--fs-body);
     line-height: 1.5;
     -webkit-line-clamp: 3;
@@ -515,8 +515,8 @@
     display: grid;
     place-items: center;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.08);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px rgb(255 255 255 / 0.08);
+    background: rgb(var(--tint) / 0.08);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px var(--glass-edge);
     color: var(--text);
     transition:
       background var(--dur-fast),
@@ -524,7 +524,7 @@
   }
 
   .circle:hover {
-    background: rgb(255 255 255 / 0.15);
+    background: rgb(var(--tint) / 0.15);
   }
 
   .play {
@@ -543,6 +543,11 @@
     font-weight: 700;
     box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.8);
     transition: transform var(--dur-med) var(--ease-spring);
+  }
+
+  /* An artwork pill is mid-tone in every theme, so its text stays ink even when Light flips --ink. */
+  .washed .play {
+    color: var(--accent-ink);
   }
 
   .play::after {

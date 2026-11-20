@@ -64,7 +64,7 @@
     width: 64px;
     height: 40px;
     border-radius: var(--r-sm);
-    background: rgb(255 255 255 / 0.05);
+    background: rgb(var(--tint) / 0.05);
     box-shadow: inset 0 0 0 1px var(--glass-edge);
     transition: box-shadow var(--dur-fast);
   }

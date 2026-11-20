@@ -113,7 +113,7 @@
     height: 15px;
     margin-left: var(--sp-1);
     border-radius: 3px;
-    background: rgb(255 255 255 / 0.2);
+    background: rgb(var(--tint) / 0.2);
     font-size: 9px;
     font-weight: 800;
     vertical-align: 2px;
