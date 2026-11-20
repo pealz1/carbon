@@ -62,6 +62,7 @@
 <div
   bind:this={root}
   class="cinema keep-dark"
+  class:paused={player.paused}
   class:idle
   role="dialog"
   aria-modal="true"
@@ -149,6 +150,23 @@
     border-radius: var(--r-art);
     object-fit: cover;
     box-shadow: var(--shadow-art);
+    animation: hero-in 900ms var(--ease-spring) backwards;
+    transition:
+      scale 700ms var(--ease-spring),
+      box-shadow 700ms var(--ease-out);
+  }
+
+  /* Paused, the cover settles back a little; playing, it springs forward again. */
+  .paused .hero img {
+    scale: 0.9;
+    box-shadow: 0 10px 28px -16px rgb(0 0 0 / 0.8);
+  }
+
+  @keyframes hero-in {
+    from {
+      opacity: 0;
+      transform: scale(1.12);
+    }
   }
 
   .words {
