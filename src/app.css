@@ -1,7 +1,14 @@
 /* Carbon design tokens: black chrome over a living wallpaper, an inset graphite stage, glass
    only where something floats. Every raw value lives here; docs/DESIGN.md explains the system. */
-:root {
+/* Colour. Repeated on .keep-dark (cinema, the artwork viewer and the mini player stay dark under
+   any theme) and .theme-scope (an element with its own data-theme, such as a theme preview). */
+:root,
+.theme-scope,
+.keep-dark {
   color-scheme: dark;
+  /* The channel every translucent overlay is mixed from: white on dark themes, ink on light. */
+  --tint: 255 255 255;
+  --chrome-bg: var(--black);
 
   /* Brand palette (brand/BRAND.md) */
   --black: #000;
@@ -16,23 +23,23 @@
 
   /* Chrome: title bar, sidebar and player bar, drawn straight on the wallpaper. Its text is
      alpha-white so it holds on whatever colour the artwork washes the chrome with. */
-  --chrome-text: rgb(255 255 255 / 0.95);
-  --chrome-text-muted: rgb(255 255 255 / 0.62);
-  --chrome-hover: rgb(255 255 255 / 0.07);
-  --chrome-active: rgb(255 255 255 / 0.12);
-  --chrome-field: rgb(255 255 255 / 0.09);
+  --chrome-text: rgb(var(--tint) / 0.95);
+  --chrome-text-muted: rgb(var(--tint) / 0.62);
+  --chrome-hover: rgb(var(--tint) / 0.07);
+  --chrome-active: rgb(var(--tint) / 0.12);
+  --chrome-field: rgb(var(--tint) / 0.09);
 
   /* Stage: the inset panel content lives on. It stays near-black while the chrome takes colour. */
   --stage: var(--graphite-950);
-  --stage-edge: rgb(255 255 255 / 0.07);
-  --plate: rgb(255 255 255 / 0.035);
-  --row-stripe: rgb(255 255 255 / 0.016);
+  --stage-edge: rgb(var(--tint) / 0.07);
+  --plate: rgb(var(--tint) / 0.035);
+  --row-stripe: rgb(var(--tint) / 0.016);
 
   /* Fills and lines on the stage (names kept from the first glass system) */
-  --glass: rgb(255 255 255 / 0.06);
-  --glass-hover: rgb(255 255 255 / 0.07);
-  --glass-active: rgb(255 255 255 / 0.11);
-  --glass-edge: rgb(255 255 255 / 0.08);
+  --glass: rgb(var(--tint) / 0.06);
+  --glass-hover: rgb(var(--tint) / 0.07);
+  --glass-active: rgb(var(--tint) / 0.11);
+  --glass-edge: rgb(var(--tint) / 0.08);
   --glass-edge-top: rgb(255 255 255 / 0.16);
 
   /* Glass: menus, dialogs, toasts, popovers and the queue. Grain sits under their content. */
@@ -47,6 +54,20 @@
   --text-muted: #a5a59c;
   --text-faint: #86867e;
 
+  /* Danger and warning read on dark and light alike. */
+  --danger: oklch(70% 0.17 25);
+  --warning: oklch(76% 0.15 55);
+  /* Artwork tones; components set these from the art they show (src/lib/wallpaper.ts). */
+  --art-wash: var(--graphite-800);
+  --art-pill: var(--paper);
+
+  /* Depth */
+  --shadow-float: 0 24px 60px -18px rgb(0 0 0 / 0.7);
+  --shadow-art: 0 18px 44px -18px rgb(0 0 0 / 0.85);
+}
+
+:root {
+
   /* Semantic colour. The accent is parameterised so Settings can swap its hue; the default is
      Carbon Yellow. Anything filled with the accent uses Ink text. */
   --accent-l: 92%;
@@ -57,12 +78,6 @@
   --accent-ink: var(--ink);
   --accent-deep: oklch(32% 0.12 var(--accent-h));
   --accent-glow: oklch(var(--accent-l) var(--accent-c) var(--accent-h) / 0.32);
-  --danger: oklch(70% 0.17 25);
-  --warning: oklch(76% 0.15 55);
-  /* Artwork tones; components set these from the art they show (src/lib/wallpaper.ts). */
-  --art-wash: var(--graphite-800);
-  --art-pill: var(--paper);
-
   /* Type: one family, a fixed scale (product UI doesn't need fluid type). */
   --font-display-default: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
   --font-text-default: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
@@ -99,10 +114,6 @@
   --r-xl: 18px;
   --r-pill: 999px;
 
-  /* Depth */
-  --shadow-float: 0 24px 60px -18px rgb(0 0 0 / 0.7);
-  --shadow-art: 0 18px 44px -18px rgb(0 0 0 / 0.85);
-
   /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -122,6 +133,77 @@
   --inset: 8px;
 }
 
+/* Themes (Settings → Appearance, first run). Dynamic, the default, washes the chrome with the
+   artwork; these draw it in one colour. Cinema, the artwork viewer and the mini player keep-dark. */
+[data-theme="dark"] {
+  --chrome-bg: #141412;
+  --graphite-950: #0b0b0a;
+}
+
+[data-theme="oled"] {
+  --chrome-bg: #000;
+  --graphite-950: #000;
+  --graphite-900: #080808;
+  --graphite-800: #121212;
+  --graphite-700: #1e1e1e;
+  --stage-edge: rgb(255 255 255 / 0.09);
+  --glass-strong: rgb(0 0 0 / 0.86);
+  --grain: none;
+}
+
+[data-theme="midnight"] {
+  --chrome-bg: #0a0f1f;
+  --graphite-950: #060914;
+  --graphite-900: #0e1428;
+  --graphite-800: #172038;
+  --graphite-700: #243050;
+  --glass-strong: rgb(12 17 34 / 0.8);
+}
+
+[data-theme="mocha"] {
+  --chrome-bg: #1b140f;
+  --graphite-950: #0f0b08;
+  --graphite-900: #211912;
+  --graphite-800: #2c221a;
+  --graphite-700: #3d3026;
+  --glass-strong: rgb(30 22 16 / 0.8);
+}
+
+[data-theme="forest"] {
+  --chrome-bg: #0c1510;
+  --graphite-950: #070d09;
+  --graphite-900: #101c15;
+  --graphite-800: #18271e;
+  --graphite-700: #24382b;
+  --glass-strong: rgb(14 24 18 / 0.8);
+}
+
+/* Light: ink on paper. Paper and ink swap, so the white Play pill becomes an ink one; the accent
+   darkens to read on white, and text on accent fills stays ink. */
+[data-theme="light"] {
+  color-scheme: light;
+  --tint: 22 21 16;
+  --chrome-bg: #e8e7e0;
+  --graphite-950: #f8f8f4;
+  --graphite-900: #ecebe4;
+  --graphite-800: #e1e0d8;
+  --graphite-700: #d0cfc6;
+  --graphite-300: #6b6a62;
+  --paper: #16150f;
+  --ink: #f8f8f4;
+  --text-muted: #55544c;
+  --text-faint: #6a6961;
+  --glass-edge-top: rgb(255 255 255 / 0.9);
+  --glass-strong: rgb(250 250 246 / 0.84);
+  --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.85), 0 0 0 1px rgb(0 0 0 / 0.08), 0 24px 56px -18px rgb(0 0 0 / 0.28);
+  --scrim: rgb(0 0 0 / 0.3);
+  --shadow-float: 0 24px 60px -18px rgb(0 0 0 / 0.25);
+  --shadow-art: 0 18px 40px -18px rgb(0 0 0 / 0.45);
+  --accent: oklch(calc(var(--accent-l) - 24%) var(--accent-c) var(--accent-h));
+  --accent-strong: oklch(calc(var(--accent-l) - 32%) var(--accent-c) var(--accent-h));
+  --accent-ink: #10100d;
+}
+
 /* Accent presets (Settings → Appearance). Yellow is the :root default. */
 [data-accent="periwinkle"] { --accent-l: 78%; --accent-c: 0.13; --accent-h: 283; }
 [data-accent="ember"] { --accent-l: 74%; --accent-c: 0.16; --accent-h: 45; }
@@ -139,7 +221,8 @@
 [data-swatch="ice"] { --swatch: oklch(82% 0.1 225); }
 
 /* Effects levels (Settings → Appearance). Minimal drops blur, grain and motion for older GPUs. */
-[data-effects="minimal"] {
+[data-effects="minimal"],
+[data-effects="minimal"] .keep-dark {
   --glass-strong: rgb(24 23 20 / 0.98);
   --glass-blur: none;
   --grain: none;
@@ -175,19 +258,31 @@
   -webkit-text-stroke: 0.2px currentColor;
 }
 
-[data-high-contrast] {
+[data-high-contrast],
+[data-high-contrast] .keep-dark {
   --text-muted: #d4d4ca;
   --text-faint: #bcbcb2;
-  --chrome-text-muted: rgb(255 255 255 / 0.86);
-  --chrome-hover: rgb(255 255 255 / 0.14);
-  --chrome-active: rgb(255 255 255 / 0.2);
-  --stage-edge: rgb(255 255 255 / 0.24);
-  --plate: rgb(255 255 255 / 0.07);
-  --glass-hover: rgb(255 255 255 / 0.13);
-  --glass-active: rgb(255 255 255 / 0.18);
-  --glass-edge: rgb(255 255 255 / 0.26);
-  --glass-edge-top: rgb(255 255 255 / 0.34);
+  --chrome-text-muted: rgb(var(--tint) / 0.86);
+  --chrome-hover: rgb(var(--tint) / 0.14);
+  --chrome-active: rgb(var(--tint) / 0.2);
+  --stage-edge: rgb(var(--tint) / 0.24);
+  --plate: rgb(var(--tint) / 0.07);
+  --glass-hover: rgb(var(--tint) / 0.13);
+  --glass-active: rgb(var(--tint) / 0.18);
+  --glass-edge: rgb(var(--tint) / 0.26);
+  --glass-edge-top: rgb(var(--tint) / 0.34);
   --glass-strong: rgb(12 12 10 / 0.97);
+}
+
+[data-theme="light"][data-high-contrast] {
+  --text-muted: #3a3933;
+  --text-faint: #46453f;
+  --glass-edge-top: rgb(0 0 0 / 0.3);
+  --glass-strong: rgb(250 250 246 / 0.97);
+}
+
+[data-theme="light"][data-effects="minimal"] {
+  --glass-strong: rgb(250 250 246 / 0.98);
 }
 
 [data-focus-ring] :focus:not(html, body, main, dialog, [tabindex="-1"]) {
@@ -204,7 +299,7 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--black);
+  background: var(--chrome-bg);
   color: var(--text);
   font-family: var(--font-text);
   font-size: var(--fs-body);
@@ -229,7 +324,7 @@ a {
 a:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
-  text-decoration-color: rgb(255 255 255 / 0.4);
+  text-decoration-color: rgb(var(--tint) / 0.4);
 }
 
 button {

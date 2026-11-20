@@ -32,7 +32,7 @@
   });
 </script>
 
-<section class="mini" class:video={showVideo} aria-label="Mini player" data-tauri-drag-region="deep">
+<section class="mini keep-dark" class:video={showVideo} aria-label="Mini player" data-tauri-drag-region="deep">
   <div class="layout">
     <div class="art">
       {#if showVideo}

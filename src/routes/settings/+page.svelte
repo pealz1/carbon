@@ -11,6 +11,7 @@
   import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import DesktopPanel from "$lib/components/DesktopPanel.svelte";
   import FontPicker from "$lib/components/FontPicker.svelte";
+  import ThemePicker from "$lib/components/ThemePicker.svelte";
   import ListenbrainzPanel from "$lib/components/ListenbrainzPanel.svelte";
   import LyricsSettings from "$lib/components/LyricsSettings.svelte";
   import PlaybackPanel from "$lib/components/PlaybackPanel.svelte";
@@ -216,6 +217,8 @@
 
     <section class="panel plate">
       <h2>Appearance</h2>
+      <p class="eyebrow">Theme</p>
+      <ThemePicker />
       <label>Language <select class="input" value={activeLocale()} onchange={e=>selectLocale(e.currentTarget.value as Locale)}>{#each Object.entries(languages) as [code,name]}<option value={code}>{name}</option>{/each}</select></label>
       <p class="eyebrow">Effects</p>
       <div class="segmented" role="radiogroup" aria-label="Effects">

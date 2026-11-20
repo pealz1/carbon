@@ -83,7 +83,7 @@
   });
 </script>
 
-<div class="wallpaper" class:paused={!onScreen.current} aria-hidden="true" bind:this={wallpaper}>
+<div class="wallpaper" class:paused={!onScreen.current} class:reactive aria-hidden="true" bind:this={wallpaper}>
   <div class="pulse" bind:this={pulse}>
   {#key style}
     {#if style}
@@ -106,7 +106,12 @@
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
-    background: var(--black);
+    background: var(--chrome-bg);
+  }
+
+  /* Fixed themes draw the chrome in one colour; cinema keeps the artwork's light in every theme. */
+  :global([data-theme]:not([data-theme="dynamic"])) .wallpaper:not(.reactive) .wash {
+    display: none;
   }
 
   .pulse,

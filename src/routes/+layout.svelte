@@ -24,6 +24,7 @@
   import QueuePanel from "$lib/components/QueuePanel.svelte";
   import ShortcutsSheet from "$lib/components/ShortcutsSheet.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
+  import Onboarding from "$lib/components/Onboarding.svelte";
   import ServiceGate from "$lib/components/ServiceGate.svelte";
   import TagsDialog from "$lib/components/TagsDialog.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
@@ -189,6 +190,8 @@
   <ContextMenu />
   <QuitGuard />
   <ConfirmDialog />
+  <!-- Once, for people who had Carbon before themes. -->
+  {#if prefs.value && !prefs.value.themeChosen}<Onboarding brief />{/if}
   {#if dialogs.playlist}
     {#key dialogs.playlist}<PlaylistDialog request={dialogs.playlist} />{/key}
   {/if}

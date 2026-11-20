@@ -61,7 +61,7 @@
 
 <div
   bind:this={root}
-  class="cinema"
+  class="cinema keep-dark"
   class:idle
   role="dialog"
   aria-modal="true"

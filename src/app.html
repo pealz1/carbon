@@ -96,6 +96,13 @@
         }
       }
     </style>
+    <!-- The saved theme, before the first frame (preferences.svelte.ts keeps it current). -->
+    <script>
+      try {
+        const theme = localStorage.getItem("carbon.theme");
+        if (theme) document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
     %sveltekit.head%
   </head>
   <body>

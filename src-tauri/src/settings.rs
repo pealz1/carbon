@@ -9,6 +9,8 @@ const FILE: &str = "settings.json";
 const MAX_LYRICS_DELAY_MS: i32 = 1000;
 const MAX_DISPLAY_NAME: usize = 40;
 pub const ACCENTS: [&str; 7] = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"];
+/// Dynamic takes its colour from the artwork; the rest are fixed. Settings → Appearance and first run.
+pub const THEMES: [&str; 7] = ["dynamic", "dark", "oled", "light", "midnight", "mocha", "forest"];
 const LYRICS_SOURCES: [&str; 4] = ["lrclib", "youtube", "netease", "musixmatch"];
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -95,6 +97,9 @@ pub struct Settings {
     pub listenbrainz_scrobbling: bool,
     pub effects: Effects,
     pub accent: String,
+    pub theme: String,
+    /// The theme picker has been shown (first run, or once after the update that added themes).
+    pub theme_chosen: bool,
     pub lyrics_scale: f32,
     /// Lines away from the sung one are softly blurred; off keeps every line sharp.
     pub lyrics_blur: bool,
@@ -194,6 +199,8 @@ impl Default for Settings {
             listenbrainz_scrobbling: true,
             effects: Effects::Full,
             accent: ACCENTS[0].into(),
+            theme: THEMES[0].into(),
+            theme_chosen: false,
             lyrics_scale: 1.0,
             lyrics_blur: true,
             lyrics_delay_ms: 0,
@@ -252,6 +259,9 @@ impl Settings {
     pub fn validate(&self) -> Result<(), String> {
         if !ACCENTS.contains(&self.accent.as_str()) {
             return Err(format!("unknown accent '{}'", self.accent));
+        }
+        if !THEMES.contains(&self.theme.as_str()) {
+            return Err(format!("unknown theme '{}'", self.theme));
         }
         if !(0.75..=1.5).contains(&self.lyrics_scale) {
             return Err("lyrics size must be between 75% and 150%".into());
@@ -448,6 +458,10 @@ mod tests {
     fn rejects_bad_values() {
         let bad_accent = Settings { accent: "neon".into(), ..Settings::default() };
         assert!(bad_accent.validate().is_err());
+        let bad_theme = Settings { theme: "neon".into(), ..Settings::default() };
+        assert!(bad_theme.validate().is_err());
+        let oled = Settings { theme: "oled".into(), ..Settings::default() };
+        assert!(oled.validate().is_ok());
         let bad_scale = Settings { lyrics_scale: 3.0, ..Settings::default() };
         assert!(bad_scale.validate().is_err());
         let bad_delay = Settings { lyrics_delay_ms: -1500, ..Settings::default() };
@@ -525,6 +539,14 @@ b".into(), ..Settings::default() }.validate().is_err());
         assert!(!Settings::default().streamer_widgets);
         assert!(Settings::default().auto_update);
         assert!(!Settings::default().startup_set_up);
+    }
+
+    #[test]
+    fn older_files_get_the_dynamic_theme_and_see_the_picker_once() {
+        let old: Settings = serde_json::from_str(r#"{"accent":"mint"}"#).unwrap();
+        assert_eq!((old.theme.as_str(), old.theme_chosen), ("dynamic", false));
+        let picked: Settings = serde_json::from_str(r#"{"theme":"light","themeChosen":true}"#).unwrap();
+        assert_eq!((picked.theme.as_str(), picked.theme_chosen), ("light", true));
     }
 
     #[test]
