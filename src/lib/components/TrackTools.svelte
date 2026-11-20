@@ -88,7 +88,7 @@
     padding: 0 var(--sp-2) 0 var(--sp-3);
     border-radius: var(--r-pill);
     background: var(--glass);
-    box-shadow: inset 0 0 0 1px var(--glass-edge);
+    box-shadow: var(--rim);
     color: var(--text-faint);
     transition:
       background var(--dur-fast),
@@ -98,7 +98,7 @@
   .find:focus-within,
   .find.filled {
     background: var(--glass-active);
-    box-shadow: inset 0 0 0 1px var(--glass-edge-top);
+    box-shadow: var(--rim-hover);
     color: var(--text-muted);
   }
 
@@ -145,17 +145,21 @@
     padding: 0 var(--sp-3);
     border-radius: var(--r-md);
     background: var(--glass);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.06),
-      inset 0 0 0 1px var(--glass-edge);
+    box-shadow: var(--rim);
     color: var(--text);
     font-size: var(--fs-small);
     font-weight: 650;
-    transition: background var(--dur-fast);
+    transition:
+      background var(--dur-fast),
+      box-shadow var(--dur-med),
+      translate var(--dur-med) var(--ease-spring),
+      transform var(--dur-med) var(--ease-spring);
   }
 
   .pick:hover {
     background: var(--glass-active);
+    box-shadow: var(--rim-hover);
+    translate: 0 -1px;
   }
 
   .pick :global(svg:last-child) {

@@ -235,6 +235,13 @@
     opacity: 1;
   }
 
+  /* Light: the wash is read at a dark level for dark themes, so here it is mixed toward paper. */
+  :global([data-theme="light"]) .detail::before {
+    background:
+      radial-gradient(70% 80% at 18% 24%, color-mix(in oklab, var(--wash), white 72%) 0%, transparent 72%),
+      radial-gradient(60% 80% at 88% 24%, color-mix(in oklab, var(--wash2), white 76%) 0%, transparent 70%);
+  }
+
   .art {
     flex: none;
     width: var(--art-size);
@@ -516,15 +523,19 @@
     place-items: center;
     border-radius: var(--r-pill);
     background: rgb(var(--tint) / 0.08);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px var(--glass-edge);
+    box-shadow: var(--rim);
     color: var(--text);
     transition:
       background var(--dur-fast),
+      box-shadow var(--dur-med),
+      translate var(--dur-med) var(--ease-spring),
       transform var(--dur-med) var(--ease-spring);
   }
 
   .circle:hover {
     background: rgb(var(--tint) / 0.15);
+    box-shadow: var(--rim-hover);
+    translate: 0 -1px;
   }
 
   .play {

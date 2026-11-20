@@ -3,7 +3,7 @@
 // filter applies to the backdrop. Only Chromium (WebView2 on Windows) can filter a backdrop with SVG.
 
 /** Pixel offsets of 0–1 bend strength, pointing inward from the pill's edge, as an RGBA map. */
-export function pillMap(width: number, height: number, bezel: number): Uint8ClampedArray {
+export function pillMap(width: number, height: number, bezel: number): Uint8ClampedArray<ArrayBuffer> {
   const w = Math.max(1, Math.round(width));
   const h = Math.max(1, Math.round(height));
   const r = h / 2;

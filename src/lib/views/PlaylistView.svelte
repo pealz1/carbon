@@ -114,15 +114,19 @@
     place-items: center;
     border-radius: var(--r-pill);
     background: rgb(var(--tint) / 0.08);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px var(--glass-edge);
+    box-shadow: var(--rim);
     color: var(--text);
     transition:
       background var(--dur-fast),
+      box-shadow var(--dur-med),
+      translate var(--dur-med) var(--ease-spring),
       transform var(--dur-med) var(--ease-spring);
   }
 
   .edit:hover {
     background: rgb(var(--tint) / 0.15);
+    box-shadow: var(--rim-hover);
+    translate: 0 -1px;
   }
 
   .notice {

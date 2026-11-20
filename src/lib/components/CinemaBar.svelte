@@ -436,7 +436,9 @@
   }
 
   .more :global(svg) {
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition:
+      transform var(--dur-med) var(--ease-spring),
+      scale var(--dur-med) var(--ease-spring);
   }
 
   .more.open :global(svg) {

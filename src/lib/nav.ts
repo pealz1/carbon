@@ -27,7 +27,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/", label: "Home", icon: "home" },
       { href: "/library", label: "Library", icon: "library" },
       { href: "/liked", label: "Liked Songs", icon: "heart" },
-      { href: "/podcasts", label: "Podcasts", icon: "podcast" },
+      { href: "/podcasts", label: "Podcasts", icon: "podcast", hub: "/browse", blurb: "Shows and episodes you follow on Spotify", hue: 160 },
       { href: "/smart", label: "Smart playlists", icon: "spark", hub: "/you", blurb: "Playlists that fill themselves from rules", hue: 300 },
       { href: "/stats", label: "Your top music", icon: "chart", hub: "/you", blurb: "Your most played artists and songs", hue: 150 },
     ],
@@ -37,9 +37,9 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "YouTube Music",
     items: [
       { href: "/youtube", label: "Home", icon: "home" },
-      { href: "/youtube/search", label: "Search", icon: "search" },
       { href: "/youtube/library", label: "Library", icon: "library" },
       { href: "/youtube/playlist/LM", label: "Liked Music", icon: "heart" },
+      { href: "/youtube/search", label: "Search", icon: "search", hub: "/browse", blurb: "Songs, videos, albums and artists on YouTube Music", hue: 25 },
     ],
   },
   {
@@ -66,21 +66,17 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/server/plex/artists", label: "Artists", icon: "artist" },
     ],
   },
-  // Needs no account, so always there. Browse gathers the open-web sources below it.
+  // Carbon's own, whichever service is connected: three entries, and two pages of tiles for the rest.
   {
-    id: "discover",
-    label: "Discover",
+    id: "carbon",
+    label: "Carbon",
     items: [
       { href: "/browse", label: "Browse", icon: "cloud" },
-      { href: "/radio", label: "Radio", icon: "radio" },
-      { href: "/mixes", label: "Daily mixes", icon: "spark" },
-    ],
-  },
-  // Listening on the open web: no account to connect. Shown on the Browse page.
-  {
-    id: "more",
-    label: "More music",
-    items: [
+      { href: "/local", label: "Local files", icon: "folder" },
+      { href: "/you", label: "Yours", icon: "artist" },
+      // On Browse: listening on the open web, no account needed.
+      { href: "/radio", label: "Radio", icon: "radio", hub: "/browse", blurb: "Live stations from around the world and near you", hue: 350 },
+      { href: "/mixes", label: "Daily mixes", icon: "spark", hub: "/browse", blurb: "Mixes made from what you play, fresh every day", hue: 275 },
       { href: "/soundcloud", label: "SoundCloud", icon: "cloud", hub: "/browse", blurb: "Tracks, sets and mixes from independent artists", hue: 45 },
       { href: "/apple", label: "Apple Music", icon: "note", hub: "/browse", blurb: "Previews, charts and Apple's editors' picks", hue: 15 },
       { href: "/deezer", label: "Deezer", icon: "equalizer", hub: "/browse", blurb: "Charts, playlists and full previews", hue: 290 },
@@ -88,35 +84,21 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/bandcamp", label: "Bandcamp", icon: "album", hub: "/browse", blurb: "Albums straight from the artists", hue: 195 },
       { href: "/archive", label: "Internet Archive", icon: "library", hub: "/browse", blurb: "Live recordings and public-domain music", hue: 90 },
       { href: "/import", label: "Import playlist", icon: "listAdd", hub: "/browse", blurb: "Bring a playlist over from another service", hue: 120 },
-    ],
-  },
-  {
-    id: "pc",
-    label: "On this PC",
-    items: [
-      { href: "/local", label: "Local files", icon: "folder" },
-      { href: "/offline", label: "Offline music", icon: "folder" },
-      { href: "/sound", label: "Sound", icon: "equalizer", hub: "/you", blurb: "Equalizer, crossfade and loudness for local files", hue: 200 },
-    ],
-  },
-  // What Carbon keeps for the listener on this PC, whichever service played it. Always there.
-  {
-    id: "yours",
-    label: "Yours",
-    items: [
-      { href: "/history", label: "History", icon: "clock" },
-      { href: "/collections", label: "Collections", icon: "stack" },
-      { href: "/you", label: "More of yours", icon: "artist" },
-      { href: "/profile", label: "Profile and sync", icon: "artist", hub: "/you", blurb: "Your Carbon account and what syncs", hue: 60 },
+      // On Yours: what Carbon keeps for you on this PC.
+      { href: "/history", label: "History", icon: "clock", hub: "/you", blurb: "Everything you've played, day by day", hue: 210 },
+      { href: "/collections", label: "Collections", icon: "stack", hub: "/you", blurb: "Albums and playlists gathered your way", hue: 40 },
       { href: "/recap", label: "Recap", icon: "calendar", hub: "/you", blurb: "Your listening, week by week and year by year", hue: 340 },
       { href: "/bookmarks", label: "Bookmarks", icon: "bookmark", hub: "/you", blurb: "Pages you saved to come back to", hue: 30 },
+      { href: "/offline", label: "Offline music", icon: "import", hub: "/you", blurb: "Songs saved to play without a connection", hue: 180 },
+      { href: "/sound", label: "Sound", icon: "equalizer", hub: "/you", blurb: "Equalizer, crossfade and loudness for local files", hue: 200 },
+      { href: "/profile", label: "Profile and sync", icon: "artist", hub: "/you", blurb: "Your Carbon account and what syncs", hue: 60 },
     ],
   },
 ];
 
 /**
  * The sections for the services that are connected. Each source of music is its own section, so
- * Spotify and YouTube Music never share one; "Radio" and "On this PC" need no account and are always there.
+ * Spotify and YouTube Music never share one; Carbon's own section needs no account and is always there.
  */
 const GATED: Record<string, (running: Running) => boolean> = {
   spotify: (r) => r.spotify,

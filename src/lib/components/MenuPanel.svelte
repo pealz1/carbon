@@ -137,7 +137,7 @@
         onclick={(e) => activate(i, e.currentTarget)}
         onpointerenter={(e) => hover(i, e.currentTarget)}
       >
-        <span class="icon">{#if entry.icon}<Icon name={entry.icon} size={16} filled={entry.icon === "heart" && entry.label.startsWith("Remove")} />{/if}</span>
+        <span class="icon">{#if entry.icon}<Icon name={entry.icon} size={18} filled={entry.icon === "heart" && entry.label.startsWith("Remove")} />{/if}</span>
         <span class="label">{entry.label}</span>
         {#if entry.items}<Icon name="forward" size={14} />{/if}
       </button>
@@ -166,11 +166,11 @@
     padding: 5px;
     border-radius: var(--r-lg);
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.86);
     transform-origin: top left;
     transition:
       opacity var(--dur-fast) var(--ease-out),
-      transform var(--dur-med) var(--ease-out);
+      transform 320ms var(--ease-spring);
   }
 
   .menu-panel.ready {
@@ -186,23 +186,49 @@
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    min-height: 34px;
+    position: relative;
+    isolation: isolate;
+    min-height: 36px;
     padding: 0 var(--sp-3) 0 calc(var(--sp-3) + var(--depth) * var(--sp-3));
     border-radius: var(--r-md);
     color: var(--text);
     font-size: var(--fs-body);
     text-align: left;
-    transition:
-      background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-med) var(--ease-spring);
     --press: var(--press-wide);
+  }
+
+  /* The highlight grows into place under the pointer: a lit, raised strip, not a flat tint. */
+  button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--glass-active);
+    box-shadow: var(--rim);
+    opacity: 0;
+    scale: 0.94 0.8;
+    transition:
+      opacity var(--dur-fast) var(--ease-out),
+      scale var(--dur-med) var(--ease-spring);
+  }
+
+  button:hover::before,
+  button:focus::before,
+  button.open::before {
+    opacity: 1;
+    scale: 1;
   }
 
   button:hover,
   button:focus,
   button.open {
-    background: var(--glass-active);
     outline: none;
+  }
+
+  button:disabled::before {
+    opacity: 0;
   }
 
   button:focus-visible {
@@ -219,11 +245,21 @@
   }
 
   .icon {
-    width: 16px;
+    width: 20px;
     display: grid;
     place-items: center;
     flex: none;
-    color: var(--text-muted);
+    color: var(--text);
+    opacity: 0.8;
+    transition:
+      opacity var(--dur-fast),
+      scale var(--dur-med) var(--ease-spring);
+  }
+
+  button:hover .icon,
+  button:focus .icon {
+    opacity: 1;
+    scale: 1.12;
   }
 
   .danger .icon {

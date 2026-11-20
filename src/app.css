@@ -40,7 +40,7 @@
   --glass-hover: rgb(var(--tint) / 0.07);
   --glass-active: rgb(var(--tint) / 0.11);
   --glass-edge: rgb(var(--tint) / 0.08);
-  --glass-edge-top: rgb(255 255 255 / 0.16);
+  --glass-edge-top: rgb(var(--tint) / 0.16);
 
   /* Glass: menus, dialogs, toasts, popovers and the queue. Grain sits under their content. */
   --glass-strong: rgb(22 21 18 / 0.76);
@@ -50,6 +50,10 @@
      glow, a shaded bottom edge and a dark hairline outside), so panels read as thick, dark glass. */
   --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.085), rgb(255 255 255 / 0.02) 40%, transparent 62%);
   --glass-rim: inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 0 0 1px rgb(255 255 255 / 0.05), inset 0 0 14px rgb(255 255 255 / 0.035), inset 0 -2px 6px rgb(0 0 0 / 0.28), 0 0 0 0.5px rgb(0 0 0 / 0.6);
+  /* Rim light on controls (fields, pills, round buttons, the active row): bright along the top,
+     faint down the sides, shaded at the bottom, so a control reads as a lit, raised surface. */
+  --rim: inset 0 1px 0 rgb(255 255 255 / 0.15), inset 1px 0 0 rgb(255 255 255 / 0.05), inset -1px 0 0 rgb(255 255 255 / 0.05), inset 0 -1px 0 rgb(0 0 0 / 0.22);
+  --rim-hover: inset 0 1px 0 rgb(255 255 255 / 0.24), inset 1px 0 0 rgb(255 255 255 / 0.08), inset -1px 0 0 rgb(255 255 255 / 0.08), inset 0 -1px 0 rgb(0 0 0 / 0.22), 0 6px 16px -8px rgb(0 0 0 / 0.6);
   --scrim: rgb(0 0 0 / 0.55);
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.075'/%3E%3C/svg%3E");
 
@@ -201,6 +205,8 @@
   --glass-strong: rgb(250 250 246 / 0.84);
   --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.85), 0 0 0 1px rgb(0 0 0 / 0.08), 0 24px 56px -18px rgb(0 0 0 / 0.28);
   --scrim: rgb(0 0 0 / 0.3);
+  --rim: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 0 0 1px rgb(0 0 0 / 0.07), inset 0 -1px 0 rgb(0 0 0 / 0.05);
+  --rim-hover: inset 0 1px 0 rgb(255 255 255 / 1), inset 0 0 0 1px rgb(0 0 0 / 0.1), inset 0 -1px 0 rgb(0 0 0 / 0.06), 0 6px 16px -8px rgb(0 0 0 / 0.25);
   --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.15) 40%, transparent 62%);
   --glass-rim: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 0 0 1px rgb(255 255 255 / 0.4), inset 0 -1px 3px rgb(0 0 0 / 0.06), 0 0 0 0.5px rgb(0 0 0 / 0.14);
   --shadow-float: 0 24px 60px -18px rgb(0 0 0 / 0.25);
@@ -354,6 +360,16 @@ button {
   transition-timing-function: var(--ease-out);
 }
 
+/* Icons swell a little under the pointer and spring back. `scale` composes with any transform a
+   component sets, so it never fights the press. */
+:where(button, a, [role="button"]) > svg {
+  transition: scale var(--dur-med) var(--ease-spring);
+}
+
+:where(button, a, [role="button"]):where(:hover:not(:disabled)) > svg {
+  scale: 1.1;
+}
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -424,8 +440,8 @@ img {
   gap: var(--sp-2);
   padding: 0 var(--sp-4);
   border-radius: var(--r-pill);
-  background: rgb(255 255 255 / 0.08);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  background: rgb(var(--tint) / 0.08);
+  box-shadow: var(--rim);
   color: var(--text);
   font-size: var(--fs-body);
   font-weight: 600;
@@ -434,11 +450,16 @@ img {
   transition:
     background var(--dur-fast),
     color var(--dur-fast),
+    box-shadow var(--dur-med),
+    translate var(--dur-med) var(--ease-spring),
     transform var(--dur-med) var(--ease-spring);
 }
 
+/* Hover lifts a control a pixel and brightens its rim. */
 .pill:hover:not(:disabled) {
-  background: rgb(255 255 255 / 0.15);
+  background: rgb(var(--tint) / 0.15);
+  box-shadow: var(--rim-hover);
+  translate: 0 -1px;
   text-decoration: none;
 }
 
@@ -482,8 +503,8 @@ img {
   gap: 2px;
   padding: 3px;
   border-radius: var(--r-pill);
-  background: rgb(255 255 255 / 0.06);
-  box-shadow: inset 0 0 0 1px var(--glass-edge);
+  background: var(--glass);
+  box-shadow: var(--rim);
 }
 
 .segmented > button {
@@ -506,6 +527,7 @@ img {
 .segmented > button[aria-checked="true"],
 .segmented > button[aria-selected="true"] {
   background: var(--paper);
+  box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.5);
   color: var(--ink);
 }
 
@@ -520,10 +542,19 @@ select,
   padding: 0 var(--sp-3);
   border: 0;
   border-radius: var(--r-md);
-  background: rgb(255 255 255 / 0.06);
-  box-shadow: inset 0 0 0 1px var(--glass-edge);
+  background: var(--glass);
+  box-shadow: var(--rim);
   color: var(--text);
   font: inherit;
+  transition:
+    background var(--dur-fast),
+    box-shadow var(--dur-med);
+}
+
+select:hover,
+.input:hover {
+  background: var(--glass-hover);
+  box-shadow: var(--rim-hover);
 }
 
 select:focus-visible,
@@ -611,14 +642,14 @@ select:focus-visible,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(255 255 255 / 0.1);
+  background: rgb(var(--tint) / 0.1);
   border-radius: var(--r-pill);
   border: 4px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(255 255 255 / 0.22);
+  background-color: rgb(var(--tint) / 0.22);
 }
 
 ::-webkit-scrollbar-corner {
