@@ -588,7 +588,7 @@ dependencies = [
 
 [[package]]
 name = "carbon"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "axum",
  "cc",
