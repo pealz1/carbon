@@ -52,6 +52,7 @@
     "createUpdaterArtifacts": true,
     "publisher": "Carbon",
     "homepage": "https://getcarbon.cc",
+    "homepage": "https://getcarbon.cc",
     "copyright": "© 2026 Carbon contributors",
     "category": "Music",
     "shortDescription": "A fast, beautiful Spotify client",
