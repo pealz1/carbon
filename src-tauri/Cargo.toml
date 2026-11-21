@@ -60,7 +60,7 @@ cpal = "0.18"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
-dirs = "6"
+dirs = "7"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # Output only. Newer CoreAudio backends link the macOS 14.2 process-tap recording API.
@@ -68,7 +68,7 @@ coreaudio-rs = "0.14"
 keyring = { version = "3", features = ["apple-native"] }
 core-text = "22"
 mac-notification-sys = "0.6"
-dirs = "6"
+dirs = "7"
 
 [target.'cfg(windows)'.dependencies]
 # Installed font families via DirectWrite, taskbar thumbnail buttons via the shell. Already in the tree
