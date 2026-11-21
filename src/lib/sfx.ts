@@ -4,8 +4,12 @@ import { peakGain, RECIPES, schedule, soundAllowed, type SoundGate, type UiSound
 
 const SILENT: SoundGate = { enabled: false, volume: 0, paused: true, trackUri: null };
 
+/** A running AudioContext holds an output stream open; after this long without a sound it rests. */
+const REST_AFTER_MS = 4_000;
+
 export function createSfx(gate: () => SoundGate, makeContext: () => AudioContext = () => new AudioContext()) {
   let ctx: AudioContext | null = null;
+  let rest: ReturnType<typeof setTimeout> | undefined;
   return {
     /** Returns whether the sound played. */
     play(name: UiSound): boolean {
@@ -15,6 +19,8 @@ export function createSfx(gate: () => SoundGate, makeContext: () => AudioContext
         ctx ??= makeContext();
         if (ctx.state === "suspended") void ctx.resume();
         schedule(ctx, RECIPES[name], peakGain(state.volume));
+        clearTimeout(rest);
+        rest = setTimeout(() => void ctx?.suspend().catch(() => {}), REST_AFTER_MS);
         return true;
       } catch (e) {
         console.warn("[sfx] couldn't play an interface sound", e);

@@ -3,6 +3,7 @@
 
   export const THEME_INFO: Record<Theme, { label: string; hint: string }> = {
     dynamic: { label: "Dynamic", hint: "Takes its colour from what's playing" },
+    "dynamic-oled": { label: "Dynamic black", hint: "True black until music plays" },
     dark: { label: "Dark", hint: "Graphite, the same every song" },
     oled: { label: "OLED black", hint: "True black, easy on OLED screens" },
     light: { label: "Light", hint: "Ink on warm paper" },
@@ -101,6 +102,34 @@
       radial-gradient(70% 90% at 10% 0%, #6b2f9c, transparent 70%),
       radial-gradient(70% 90% at 100% 100%, #1f6b46, transparent 70%),
       #1a1220;
+  }
+
+  /* Dynamic black: the same light, waking from true black and resting again. */
+  .preview[data-theme="dynamic-oled"] {
+    isolation: isolate;
+  }
+
+  .preview[data-theme="dynamic-oled"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(70% 90% at 10% 0%, #6b2f9c, transparent 70%),
+      radial-gradient(70% 90% at 100% 100%, #1f6b46, transparent 70%);
+    animation: wake 3.6s ease-in-out infinite alternate;
+  }
+
+  @keyframes wake {
+    0%,
+    25% {
+      opacity: 0;
+    }
+
+    75%,
+    100% {
+      opacity: 1;
+    }
   }
 
   .on .preview {

@@ -3,6 +3,7 @@
   // elsewhere or leaving the window, and hands focus back to its button.
   import type { Snippet } from "svelte";
   import { fly } from "svelte/transition";
+  import { keepInView } from "$lib/keep-in-view";
 
   let { anchor, label, onclose, children }: { anchor: HTMLElement; label: string; onclose: () => void; children: Snippet } = $props();
 
@@ -31,6 +32,7 @@
   role="dialog"
   aria-label={label}
   style="right: {place.right}px; bottom: {place.bottom}px"
+  use:keepInView
   transition:fly={{ y: 8, duration: 200 }}
 >
   {@render children()}

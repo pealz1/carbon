@@ -16,6 +16,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { artTones } from "$lib/art-tones.svelte";
+  import { feelFor } from "$lib/audio-features";
+  import { pace } from "$lib/song-pulse";
   import { t } from "$lib/i18n/locale.svelte";
   import { menu, type MenuEntry } from "$lib/menu.svelte";
   import { shareItem } from "$lib/menus";
@@ -28,8 +30,8 @@
   import DevicePicker from "./DevicePicker.svelte";
 
   // Album, playlist, artist and collection headers. The artwork is shown whole and untouched (it
-  // tilts toward the pointer as one piece and opens full size on click); colour read from it washes
-  // the space behind the header and tints the Play pill.
+  // floats, tilts toward the pointer as one piece and opens full size on click); colour read from it
+  // drifts behind the header as a grainy wash, paced by how the songs feel, and tints the Play pill.
   let {
     title,
     image,
@@ -46,6 +48,7 @@
     placeholderIcon = "note",
     share,
     facts = [],
+    feelIds = [],
     children,
   }: {
     title: string;
@@ -72,6 +75,8 @@
     share?: { uri: string; name: string };
     /** Release date, label and the like, shown with the description in the About panel. */
     facts?: Fact[];
+    /** Spotify ids of the list's first songs: their tempo and energy pace the wash. */
+    feelIds?: readonly string[];
     /** Extra actions after Play. */
     children?: Snippet;
   } = $props();
@@ -79,8 +84,18 @@
   const tones = artTones(() => image);
   const live = $derived(!!playUri && player.contextUri === playUri);
   const playing = $derived(live && !player.paused);
+  // A calm list drifts slowly, a fast loud one moves; unknown songs get a neutral pace.
+  let drift = $state(1);
+  $effect(() => {
+    const ids = feelIds;
+    drift = 1;
+    if (!ids.length) return;
+    let current = true;
+    void feelFor(ids).then((feel) => current && feel && (drift = pace({ tempo: feel.tempo, energy: feel.energy, volume: 1, playing: true })));
+    return () => (current = false);
+  });
   const style = $derived(
-    tones.current ? `--wash: ${css(tones.current.wash)}; --wash2: ${css(tones.current.wash2)}; --pill: ${css(tones.current.pill)}` : "",
+    (tones.current ? `--wash: ${css(tones.current.wash)}; --wash2: ${css(tones.current.wash2)}; --pill: ${css(tones.current.pill)}; ` : "") + `--pace: ${drift.toFixed(2)}`,
   );
 
   function play() {
@@ -104,7 +119,8 @@
 </script>
 
 <header class="detail" class:washed={!!tones.current} {style}>
-  <div class="art" class:round>
+  <div class="wash" aria-hidden="true"><i class="blob a"></i><i class="blob b"></i><i class="blob c"></i><i class="grain"></i></div>
+  <div class="art" class:round class:playing>
     {#if image}
       <button
         class="cover"
@@ -216,31 +232,137 @@
     padding: var(--sp-5) var(--page-x, 0px) var(--sp-4);
   }
 
-  /* The wash: two colours from the artwork meeting behind the header, gone by ~520 px down. */
-  .detail::before {
-    content: "";
+  /* The wash: the artwork's colours drifting behind the header under moving grain, gone by
+     ~520 px down. Only transforms animate; --pace (how the songs feel) sets how fast. */
+  .wash {
+    --w1: var(--wash);
+    --w2: var(--wash2);
     position: absolute;
     /* Reaches up past any notice above the header; the stage clips what's above its top. */
     inset: -240px 0 -160px;
     z-index: -1;
-    background:
-      radial-gradient(70% 80% at 18% 24%, var(--wash) 0%, transparent 72%),
-      radial-gradient(60% 80% at 88% 24%, var(--wash2) 0%, transparent 70%);
+    overflow: hidden;
     mask-image: linear-gradient(to bottom, black 55%, transparent);
     opacity: 0;
     transition: opacity var(--dur-slow) var(--ease-out);
     pointer-events: none;
   }
 
-  .washed::before {
+  .washed .wash {
     opacity: 1;
   }
 
   /* Light: the wash is read at a dark level for dark themes, so here it is mixed toward paper. */
-  :global([data-theme="light"]) .detail::before {
-    background:
-      radial-gradient(70% 80% at 18% 24%, color-mix(in oklab, var(--wash), white 72%) 0%, transparent 72%),
-      radial-gradient(60% 80% at 88% 24%, color-mix(in oklab, var(--wash2), white 76%) 0%, transparent 70%);
+  :global([data-theme="light"]) .wash {
+    --w1: color-mix(in oklab, var(--wash), white 72%);
+    --w2: color-mix(in oklab, var(--wash2), white 76%);
+  }
+
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    will-change: transform;
+    animation: var(--path) calc(var(--lap) / var(--pace, 1)) ease-in-out infinite alternate;
+  }
+
+  .blob.a {
+    --path: wash-a;
+    --lap: 34s;
+    left: -12%;
+    top: 0;
+    width: 62%;
+    height: 86%;
+    background: radial-gradient(closest-side, var(--w1), transparent);
+  }
+
+  .blob.b {
+    --path: wash-b;
+    --lap: 43s;
+    right: -14%;
+    top: 4%;
+    width: 56%;
+    height: 80%;
+    background: radial-gradient(closest-side, var(--w2), transparent);
+  }
+
+  .blob.c {
+    --path: wash-c;
+    --lap: 52s;
+    left: 30%;
+    top: 22%;
+    width: 44%;
+    height: 60%;
+    background: radial-gradient(closest-side, color-mix(in oklab, var(--w1), var(--w2)), transparent);
+    opacity: 0.6;
+  }
+
+  @keyframes wash-a {
+    50% {
+      transform: translate(14%, 8%) scale(1.18);
+    }
+
+    100% {
+      transform: translate(30%, -4%) scale(0.92);
+    }
+  }
+
+  @keyframes wash-b {
+    50% {
+      transform: translate(-18%, 10%) scale(0.88);
+    }
+
+    100% {
+      transform: translate(-34%, -2%) scale(1.16);
+    }
+  }
+
+  @keyframes wash-c {
+    50% {
+      transform: translate(-22%, -10%) scale(1.25);
+    }
+
+    100% {
+      transform: translate(18%, 6%) scale(0.9);
+    }
+  }
+
+  /* Film grain over the colour, stepping like projected film. Bigger than the wash so its steps never show an edge. */
+  .grain {
+    position: absolute;
+    inset: -60px;
+    background-image: var(--grain-strong);
+    animation: grain 900ms steps(1) infinite;
+  }
+
+  @keyframes grain {
+    0% {
+      transform: translate(0, 0);
+    }
+
+    17% {
+      transform: translate(-31px, 17px);
+    }
+
+    34% {
+      transform: translate(23px, -41px);
+    }
+
+    51% {
+      transform: translate(-47px, -19px);
+    }
+
+    68% {
+      transform: translate(37px, 29px);
+    }
+
+    85% {
+      transform: translate(-13px, 43px);
+    }
+  }
+
+  /* Balanced: the same colour and grain, standing still. */
+  :global([data-effects="balanced"]) :is(.blob, .grain) {
+    animation: none;
   }
 
   .art {
@@ -265,18 +387,45 @@
     transform: rotateX(calc(var(--ly) * -9deg)) rotateY(calc(var(--lx) * 11deg));
     transition: transform 700ms var(--ease-out);
     cursor: zoom-in;
+    /* Arrives, then floats: a slow sway on `translate` and `rotate`, which add to the pointer's tilt. */
+    animation:
+      art-in 720ms var(--ease-spring) backwards,
+      sway 13s ease-in-out 720ms infinite alternate;
+  }
+
+  /* Under the pointer the sway holds still and the pointer leads. */
+  .cover:hover {
+    transition-duration: 160ms;
+    animation-play-state: running, paused;
+  }
+
+  @keyframes sway {
+    0% {
+      translate: 0 2px;
+      rotate: 1 0.5 0 -3deg;
+    }
+
+    50% {
+      translate: 0 -5px;
+      rotate: 0.3 1 0 3.4deg;
+    }
+
+    100% {
+      translate: 0 1px;
+      rotate: 1 -0.7 0 2.8deg;
+    }
+  }
+
+  :global([data-effects="balanced"]) .cover {
     animation: art-in 720ms var(--ease-spring) backwards;
   }
 
-  .cover:hover {
-    transition-duration: 160ms;
-  }
-
   .cover :is(img, .placeholder) {
+    /* The slab's sides: always showing at the bottom left, sliding as the cover leans. */
     box-shadow:
-      calc(var(--lx) * -3px) 2px 0 color-mix(in oklab, var(--wash2) 70%, black),
-      calc(var(--lx) * -6px) 4px 0 color-mix(in oklab, var(--wash2) 40%, black),
-      calc(var(--lx) * -22px) calc(26px + var(--ly) * -18px) 54px -14px rgb(0 0 0 / 0.85),
+      calc(var(--lx) * -5px - 2px) 3px 0 color-mix(in oklab, var(--wash2) 70%, black),
+      calc(var(--lx) * -10px - 4px) 6px 0 color-mix(in oklab, var(--wash2) 40%, black),
+      calc(var(--lx) * -22px - 6px) calc(30px + var(--ly) * -18px) 54px -14px rgb(0 0 0 / 0.85),
       0 0 0 1px rgb(var(--tint) / 0.06);
     transition: box-shadow 700ms var(--ease-out);
   }
@@ -304,6 +453,23 @@
   .art:has(.cover:hover)::after {
     opacity: 0.9;
     transform: scale(1.06);
+  }
+
+  /* Playing from here: the glow breathes. */
+  .art.playing:not(.round)::after {
+    animation: glow 2.6s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1.1);
+    }
   }
 
   @keyframes art-in {

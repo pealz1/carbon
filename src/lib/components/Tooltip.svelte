@@ -1,9 +1,23 @@
 <script lang="ts">
   // One tooltip for the whole app. It takes over native `title` tooltips (moving the text to
   // data-tip so Windows doesn't draw its own) and shows after a short rest, on hover or keyboard focus.
+  import { nudge } from "$lib/keep-in-view";
+
   const DELAY_MS = 400;
   const EDGE = 12;
+  const GAP = 8;
+  /** x is the owner's centre; y its near edge. The tip is centred on x once its width is known. */
   let tip = $state<{ text: string; x: number; y: number; below: boolean } | null>(null);
+  let box = $state<HTMLElement>();
+  let at = $state<{ left: number; top: number } | null>(null);
+
+  // Measured after it renders, then kept inside the window: a tip near an edge slides in, never clips.
+  $effect(() => {
+    if (!tip || !box) return void (at = null);
+    const left = tip.x - box.offsetWidth / 2;
+    const top = tip.below ? tip.y + GAP : tip.y - GAP - box.offsetHeight;
+    at = { left: left + nudge(left, box.offsetWidth, innerWidth, EDGE), top: top + nudge(top, box.offsetHeight, innerHeight, EDGE) };
+  });
   let owner: HTMLElement | null = null;
   let timer = 0;
 
@@ -19,8 +33,7 @@
   function place(el: HTMLElement, text: string) {
     const rect = el.getBoundingClientRect();
     const below = rect.top < 64;
-    const x = Math.min(innerWidth - EDGE, Math.max(EDGE, rect.left + rect.width / 2));
-    tip = { text, x, y: below ? rect.bottom + 8 : rect.top - 8, below };
+    tip = { text, x: rect.left + rect.width / 2, y: below ? rect.bottom : rect.top, below };
   }
 
   function arm(target: EventTarget | null) {
@@ -54,7 +67,7 @@
 />
 
 {#if tip}
-  <div class="tooltip glass" class:below={tip.below} role="tooltip" style="left: {tip.x}px; top: {tip.y}px">{tip.text}</div>
+  <div bind:this={box} class="tooltip glass" class:placed={!!at} role="tooltip" style="left: {at?.left ?? 0}px; top: {at?.top ?? 0}px">{tip.text}</div>
 {/if}
 
 <style>
@@ -71,17 +84,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     pointer-events: none;
-    transform: translate(-50%, -100%);
-    animation: tip-in var(--dur-fast) var(--ease-out);
+    visibility: hidden;
   }
 
-  .tooltip.below {
-    transform: translate(-50%, 0);
+  .tooltip.placed {
+    visibility: visible;
+    animation: tip-in var(--dur-fast) var(--ease-out);
   }
 
   @keyframes tip-in {
     from {
       opacity: 0;
+      transform: scale(0.96);
     }
   }
 </style>

@@ -23,7 +23,7 @@
 <svelte:window onresize={syncMaximized} />
 
 <header class="titlebar" data-tauri-drag-region>
-  <span class="mark" data-tauri-drag-region><Logo size={18} /></span>
+  <button class="mark" onclick={() => location.reload()} aria-label="Refresh Carbon" title="Refresh"><Logo size={18} /></button>
   {#if controls}
     <nav class="lead" aria-label="History and layout">
       <button class="tb" onclick={() => history.back()} aria-label="Back" title="Back"><Icon name="back" size={18} /></button>
@@ -67,11 +67,31 @@
     color: var(--chrome-text-muted);
   }
 
+  /* The mark refreshes the app: it turns once under the pointer, like a reload arrow. */
   .mark {
     display: grid;
     place-items: center;
-    width: 24px;
-    margin-right: var(--sp-3);
+    width: 32px;
+    height: 32px;
+    margin: 0 var(--sp-2) 0 -4px;
+    border-radius: var(--r-md);
+    transition:
+      background var(--dur-fast),
+      transform var(--dur-spring) var(--ease-spring);
+  }
+
+  .mark:hover {
+    background: var(--chrome-hover);
+  }
+
+  .mark > :global(*) {
+    transition:
+      rotate 600ms var(--ease-out),
+      scale var(--dur-spring) var(--ease-spring);
+  }
+
+  .mark:hover > :global(*) {
+    rotate: 360deg;
   }
 
   .lead,

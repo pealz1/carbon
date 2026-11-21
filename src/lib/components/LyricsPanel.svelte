@@ -1,16 +1,12 @@
 <script lang="ts">
-  import { player } from "$lib/player.svelte";
   import Lyrics from "./Lyrics.svelte";
 
-  // Lyrics docked at the window's right edge, on the chrome; the stage narrows to make room.
+  // Lyrics docked at the window's right edge, on the wallpaper; the stage narrows to make room.
+  // The layout only mounts this while a song is loaded.
 </script>
 
 <aside class="lyrics-panel" aria-label="Lyrics">
-  {#if player.track}
-    <Lyrics variant="panel" />
-  {:else}
-    <p class="idle">Lyrics show up here when something plays.</p>
-  {/if}
+  <Lyrics variant="panel" />
 </aside>
 
 <style>
@@ -19,12 +15,13 @@
     min-height: 0;
     padding: 0 var(--sp-2) 0 var(--sp-3);
     color: var(--chrome-text);
+    animation: dock-in var(--dur-slow) var(--ease-out) backwards;
   }
 
-  .idle {
-    margin: var(--sp-5) var(--sp-3);
-    color: var(--chrome-text-muted);
-    font-size: var(--fs-body);
-    line-height: 1.5;
+  @keyframes dock-in {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
   }
 </style>

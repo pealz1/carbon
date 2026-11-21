@@ -1,6 +1,7 @@
 import { account } from "$lib/account.svelte";
 import { describeError } from "$lib/errors";
 import { carbonPlaylists } from "$lib/local/playlists.svelte";
+import { onScreen } from "$lib/on-screen.svelte";
 import { prefs } from "$lib/preferences.svelte";
 import { history } from "./history.svelte";
 import { readLibrary, restore, upload, type OnlinePlaylist } from "./cloud";
@@ -114,7 +115,12 @@ class MusicSync {
     }
   }
   start() {
-    const refresh = () => void this.run();
+    // In the tray nothing is waiting on a sync: a skipped one runs when the window comes back.
+    let missed = false;
+    const refresh = () => {
+      if (onScreen.current) void this.run();
+      else missed = true;
+    };
     const timer = setInterval(refresh, 300000);
     window.addEventListener("online", refresh);
     const stop = $effect.root(() => {
@@ -122,6 +128,11 @@ class MusicSync {
         const id = account.user?.id;
         if (id) queueMicrotask(refresh);
         else history.setOnline(null, []);
+      });
+      $effect(() => {
+        if (!onScreen.current || !missed) return;
+        missed = false;
+        queueMicrotask(refresh);
       });
     });
     return () => {

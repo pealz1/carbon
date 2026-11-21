@@ -43,6 +43,7 @@ export function hold(node: HTMLElement, options: HoldOptions) {
     const now = performance.now();
     if (timer.tick(now)) {
       paint(null);
+      document.removeEventListener("scroll", onScroll, scrollOptions);
       playSound("hold");
       return current.onhold(at, node);
     }
@@ -50,8 +51,14 @@ export function hold(node: HTMLElement, options: HoldOptions) {
     if (timer.holding) frame = requestAnimationFrame(loop);
   };
 
+  // Scrolling cancels a hold. Listened for only while one is in progress: a list of thousands of
+  // rows would otherwise put thousands of listeners on every scroll.
+  const onScroll = () => stop();
+  const scrollOptions = { capture: true, passive: true } as const;
+
   const stop = () => {
     cancelAnimationFrame(frame);
+    document.removeEventListener("scroll", onScroll, scrollOptions);
     paint(null);
     if (timer.end()) swallowNextClick(node);
   };
@@ -60,20 +67,19 @@ export function hold(node: HTMLElement, options: HoldOptions) {
     if (event.button !== 0 || (event.target as Element).closest("input, textarea, select")) return;
     at = { x: event.clientX, y: event.clientY };
     timer.begin(performance.now(), event.clientX, event.clientY);
+    document.addEventListener("scroll", onScroll, scrollOptions);
     frame = requestAnimationFrame(loop);
   };
 
   const move = (event: PointerEvent) => timer.holding && !timer.move(event.clientX, event.clientY) && stop();
 
   node.classList.add("holdable");
-  const unlisten = [
-    listen(node, [["pointerdown", down as EventListener], ["pointermove", move as EventListener, { passive: true }], ...CANCELLERS.map((type): [string, EventListener] => [type, stop])]),
-    listen(document, [["scroll", () => timer.holding && stop(), { capture: true, passive: true }]]),
-  ];
+  const unlisten = listen(node, [["pointerdown", down as EventListener], ["pointermove", move as EventListener, { passive: true }], ...CANCELLERS.map((type): [string, EventListener] => [type, stop])]);
 
   const destroy = () => {
     cancelAnimationFrame(frame);
-    unlisten.forEach((off) => off());
+    document.removeEventListener("scroll", onScroll, scrollOptions);
+    unlisten();
   };
   return { update: (next: HoldOptions) => void (current = next), destroy };
 }

@@ -163,7 +163,9 @@ impl<E: Events> Player<E> {
 
     pub fn run(mut self, commands: Receiver<Command>) {
         loop {
-            let wait = if self.status == Status::Playing { Duration::from_millis(5) } else { Duration::from_millis(200) };
+            // The ring buffer holds 0.3 s, so topping it up ~66 times a second is plenty; waking
+            // every 5 ms kept a core from resting through a whole evening of music.
+            let wait = if self.status == Status::Playing { Duration::from_millis(15) } else { Duration::from_millis(200) };
             match commands.recv_timeout(wait) {
                 Ok(c) => self.handle(c),
                 Err(RecvTimeoutError::Timeout) => {}

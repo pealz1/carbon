@@ -129,6 +129,9 @@
     if (page.url.pathname === "/" && to !== "/") void goto(to, { replaceState: true });
   });
 
+  // Lyrics sit beside the page whenever a song is loaded (the title bar button turns them off).
+  const lyricsDocked = $derived(view.lyrics && !!player.track);
+
   // Native page transitions; only the page content (view-transition-name: page) moves.
   onNavigate((navigation) => {
     const { effects, motion } = document.documentElement.dataset;
@@ -145,7 +148,7 @@
 <svelte:head><title>Carbon</title></svelte:head>
 <svelte:window onkeydown={(e) => services.screen === "app" && handleKey(e)} onresize={() => view.syncFullscreen()} />
 
-{#if !popout}<Ambient image={player.track?.album?.image ?? null} playing={!player.paused} />{/if}
+{#if !popout}<Ambient image={player.track?.album?.image ?? null} playing={!player.paused} reactive />{/if}
 
 {#if popout}
   {@render children()}
@@ -156,7 +159,7 @@
 {:else if services.screen !== "app"}
   <ServiceGate />
 {:else}
-  <div class="app" class:rail={view.rail} class:lyrics={view.lyrics} class:compact={compact.on} inert={view.cinema}>
+  <div class="app" class:rail={view.rail} class:lyrics={lyricsDocked} class:alive={!!player.track && !player.paused} class:compact={compact.on} inert={view.cinema}>
     <TitleBar />
     <Sidebar />
     <div class="stage">
@@ -181,7 +184,7 @@
       {#if view.queue}<QueuePanel onclose={() => (view.queue = false)} />{/if}
       <Toasts />
     </div>
-    {#if view.lyrics}<LyricsPanel />{/if}
+    {#if lyricsDocked}<LyricsPanel />{/if}
     <NowPlayingBar />
   </div>
   {#if view.cinema}<Cinema />{/if}
@@ -251,10 +254,10 @@
   .stage {
     grid-area: stage;
     position: relative;
+    isolation: isolate;
     min-height: 0;
     margin-right: var(--inset);
     border-radius: var(--r-lg);
-    background: var(--stage);
     box-shadow:
       0 0 0 1px var(--stage-edge),
       0 30px 80px -40px rgb(0 0 0 / 0.9);
@@ -263,8 +266,38 @@
     container: stage / inline-size;
   }
 
+  /* The stage's colour is its own layer, so it can thin without anything on the stage fading. */
+  .stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--stage);
+    transition: opacity 1400ms var(--ease-out);
+  }
+
+  /* While music plays in a Dynamic theme the stage thins, and the wallpaper's light moves behind the page. */
+  :global(:root:is(:not([data-theme]), [data-theme="dynamic"], [data-theme="dynamic-oled"])) .app.alive .stage::before {
+    opacity: 0.72;
+  }
+
   .app.lyrics .stage {
     margin-right: 0;
+  }
+
+  /* A narrow window keeps the page; lyrics stay a click away in cinema or their own window. */
+  @media (max-width: 1080px) {
+    .app.lyrics {
+      --aside: 0px;
+    }
+
+    .app.lyrics .stage {
+      margin-right: var(--inset);
+    }
+
+    .app :global(.lyrics-panel) {
+      display: none;
+    }
   }
 
   main {

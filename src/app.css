@@ -55,6 +55,8 @@
   --rim: inset 0 1px 0 rgb(255 255 255 / 0.15), inset 1px 0 0 rgb(255 255 255 / 0.05), inset -1px 0 0 rgb(255 255 255 / 0.05), inset 0 -1px 0 rgb(0 0 0 / 0.22);
   --rim-hover: inset 0 1px 0 rgb(255 255 255 / 0.24), inset 1px 0 0 rgb(255 255 255 / 0.08), inset -1px 0 0 rgb(255 255 255 / 0.08), inset 0 -1px 0 rgb(0 0 0 / 0.22), 0 6px 16px -8px rgb(0 0 0 / 0.6);
   --scrim: rgb(0 0 0 / 0.55);
+  /* The same noise, heavier: for colour washes (album and playlist headers), where film grain should show. */
+  --grain-strong: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.2'/%3E%3C/svg%3E");
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.075'/%3E%3C/svg%3E");
 
   /* Text on the stage. Faint still clears 4.5:1 on a hovered row. */
@@ -122,23 +124,35 @@
   --r-xl: 18px;
   --r-pill: 999px;
 
-  /* Motion */
+  /* Motion. --ease-spring with --dur-spring is the release: where the engine can draw one
+     (linear(), below) it is a real spring that overshoots and settles, else a bezier stands in. */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --dur-press: 90ms;
   --dur-fast: 140ms;
   --dur-med: 240ms;
+  --dur-spring: 240ms;
   --dur-slow: 900ms;
   --press: 0.96;
   --press-wide: 0.985;
+  /* How much further a control sinks while it is held down. */
+  --press-held: 0.985;
 
   /* Layout */
   --titlebar-h: 56px;
   --sidebar-w: 240px;
   --rail-w: 68px;
   --player-h: 96px;
-  --lyrics-w: 300px;
+  --lyrics-w: 340px;
   --inset: 8px;
+}
+
+/* A damped spring (stiffness 300, damping 20): one clear overshoot, then it settles. */
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring: linear(0, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.077 20.5%, 1.149 24.3%, 1.163 27%, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991 46.8%, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1);
+    --dur-spring: 520ms;
+  }
 }
 
 /* Themes (Settings → Appearance, first run). Dynamic, the default, washes the chrome with the
@@ -148,7 +162,9 @@
   --graphite-950: #0b0b0a;
 }
 
-[data-theme="oled"] {
+/* Dynamic black is OLED black that the wallpaper lights while music plays (Ambient.svelte). */
+[data-theme="oled"],
+[data-theme="dynamic-oled"] {
   --chrome-bg: #000;
   --graphite-950: #000;
   --graphite-900: #080808;
@@ -238,6 +254,7 @@
   --glass-strong: rgb(24 23 20 / 0.98);
   --glass-blur: none;
   --grain: none;
+  --grain-strong: none;
 }
 
 [data-effects="minimal"] *,
@@ -254,13 +271,15 @@
 [data-motion="none"] {
   --press: 1;
   --press-wide: 1;
+  --press-held: 1;
 }
 
 [data-motion="playful"] {
-  --ease-spring: cubic-bezier(0.3, 1.9, 0.6, 1);
   --dur-med: 320ms;
+  --dur-spring: 680ms;
   --press: 0.9;
   --press-wide: 0.965;
+  --press-held: 0.97;
 }
 
 /* Weight on body only: explicit weights stay, and the hairline stroke thickens those too
@@ -348,16 +367,26 @@ button {
   cursor: pointer;
 }
 
-/* Press feedback for every control: in fast, back out on a spring. Components add their own
-   transitions for colour; they keep `transform` in the list so the spring survives. */
+/* Press, hold and release for every control. Press: in fast. Hold: after a beat the control sinks
+   a little further and dims, so a held button feels held. Release: back out on the spring.
+   Components add their own transitions for colour; they keep `transform` in the list so the
+   spring survives. The hold runs on `scale` and `filter`, which no component transitions. */
 :where(button, [role="button"], .pressable) {
-  transition: transform var(--dur-med) var(--ease-spring);
+  transition: transform var(--dur-spring) var(--ease-spring);
 }
 
 :where(button, [role="button"], .pressable):where(:active:not(:disabled, [aria-disabled="true"])) {
   transform: scale(var(--press));
   transition-duration: var(--dur-press);
   transition-timing-function: var(--ease-out);
+  animation: held 700ms 160ms var(--ease-out) forwards;
+}
+
+@keyframes held {
+  to {
+    scale: var(--press-held);
+    filter: brightness(0.9);
+  }
 }
 
 /* Icons swell a little under the pointer and spring back. `scale` composes with any transform a
@@ -632,28 +661,40 @@ select:focus-visible,
   white-space: nowrap;
 }
 
+/* Scrollbars: none on anything that scrolls sideways (tab rows, shelves); long pages get a thin
+   thumb that only shows while the pointer is over that scroller. Never the system's own. */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 0;
 }
 
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
   background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(var(--tint) / 0.1);
+  background: transparent;
   border-radius: var(--r-pill);
-  border: 4px solid transparent;
+  border: 3px solid transparent;
   background-clip: padding-box;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(var(--tint) / 0.22);
+:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--tint) / 0.16);
 }
 
-::-webkit-scrollbar-corner {
-  background: transparent;
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background-color: rgb(var(--tint) / 0.34);
+}
+
+/* Out of sight (minimised, in the tray, behind another window): every looping animation rests.
+   src/lib/on-screen.svelte.ts sets data-away. */
+[data-away] *,
+[data-away] *::before,
+[data-away] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,5 @@
 <script lang="ts">
   import {t} from "$lib/i18n/locale.svelte";
-  import { commandKey } from "$lib/platform";
   import { page } from "$app/state";
   import { dialogs } from "$lib/dialogs.svelte";
   import { hubOf, isActive, sidebarSections } from "$lib/nav";
@@ -16,9 +15,8 @@
 </script>
 
 <aside class="sidebar" class:rail={view.rail} aria-label="Sidebar">
-  <button class="search" class:active={path === "/search"} onclick={() => (dialogs.palette = true)} aria-haspopup="dialog" aria-label="Search" title={view.rail ? `Search (${commandKey} K)` : undefined}>
+  <button class="search" class:active={path === "/search"} onclick={() => (dialogs.palette = true)} aria-haspopup="dialog" aria-label="Search" title={view.rail ? "Search" : undefined}>
     <span class="label">Search</span>
-    <kbd>{commandKey} K</kbd>
     <Icon name="search" size={18} />
   </button>
 
@@ -101,15 +99,6 @@
     text-align: left;
   }
 
-  kbd {
-    padding: 1px 6px;
-    border-radius: var(--r-sm);
-    box-shadow: inset 0 0 0 1px var(--chrome-field);
-    font-family: inherit;
-    font-size: var(--fs-micro);
-    font-weight: 600;
-  }
-
   .scroll {
     flex: 1;
     min-height: 0;
@@ -119,7 +108,6 @@
     gap: var(--sp-4);
     margin-right: calc(var(--sp-2) * -1);
     padding-right: var(--sp-1);
-    scrollbar-width: thin;
   }
 
   nav {
@@ -285,7 +273,6 @@
   }
 
   .rail .search .label,
-  .rail kbd,
   .rail :global(.section-head),
   .rail .gear {
     display: none;
