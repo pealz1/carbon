@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { endsAt, lineAt, queueEndsAt, SECTION_GAP_MS, sectionStarts } from "./cinema";
+import { endsAt, lineAt, queueEndsAt } from "./cinema";
 import type { LyricLine } from "./lrc";
 
 // Placeholder text only: no real lyrics in fixtures.
@@ -9,8 +9,8 @@ const lines: LyricLine[] = [
   { timeMs: 16_000, text: "" },
   { timeMs: 30_000, text: "after a break" },
   { timeMs: 33_000, text: "next" },
-  { timeMs: 33_000 + SECTION_GAP_MS, text: "after a long gap" },
-  { timeMs: 33_000 + SECTION_GAP_MS + 2_000, text: "last" },
+  { timeMs: 41_000, text: "after a long gap" },
+  { timeMs: 43_000, text: "last" },
 ];
 
 describe("lineAt", () => {
@@ -25,25 +25,6 @@ describe("lineAt", () => {
 
   it("returns nothing without lines", () => {
     expect(lineAt([], 5_000, 0)).toBeNull();
-  });
-});
-
-describe("sectionStarts", () => {
-  it("marks the first line, lines after a break and lines after a long gap", () => {
-    expect(sectionStarts(lines)).toEqual([10_000, 30_000, 33_000 + SECTION_GAP_MS]);
-  });
-
-  it("ignores leading breaks and short gaps", () => {
-    const steady: LyricLine[] = [
-      { timeMs: 0, text: "" },
-      { timeMs: 5_000, text: "a" },
-      { timeMs: 5_000 + SECTION_GAP_MS - 1, text: "b" },
-    ];
-    expect(sectionStarts(steady)).toEqual([5_000]);
-  });
-
-  it("is empty without lines", () => {
-    expect(sectionStarts([])).toEqual([]);
   });
 });
 

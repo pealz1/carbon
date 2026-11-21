@@ -392,7 +392,7 @@
 
   /* Liquid fill: text lights up left-to-right as it's sung, with a soft glow. */
   .fill {
-    background: linear-gradient(90deg, var(--text) calc(var(--p) * 100%), rgb(255 255 255 / 0.32) calc(var(--p) * 100% + 6%));
+    background: linear-gradient(90deg, var(--text) calc(var(--p) * 100%), rgb(var(--tint) / 0.32) calc(var(--p) * 100% + 6%));
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-box-decoration-break: clone;

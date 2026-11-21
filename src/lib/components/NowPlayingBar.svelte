@@ -285,27 +285,62 @@
     display: grid;
     place-items: center;
     border-radius: var(--r-pill);
-    color: var(--chrome-text-muted);
+    color: var(--chrome-text);
+    opacity: 0.86;
     transition:
       color var(--dur-fast),
+      opacity var(--dur-fast),
       background var(--dur-fast),
+      box-shadow var(--dur-med),
+      scale var(--dur-med) var(--ease-spring),
       transform var(--dur-med) var(--ease-spring);
   }
 
+  /* Hover lights a round, raised button under the icon. */
   .ctl:hover {
-    color: var(--chrome-text);
+    opacity: 1;
     background: var(--chrome-hover);
+    box-shadow: var(--rim);
     text-decoration: none;
   }
 
+  /* On (shuffle, repeat): full white with a small glowing dot beneath, as in cinema. */
   .ctl.on {
-    color: var(--accent);
+    opacity: 1;
   }
 
+  .ctl.on::after {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: var(--r-pill);
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  /* Play: a solid paper disc, lifted, that swells a little under the pointer. */
   .play {
     width: 44px;
     height: 44px;
-    color: var(--chrome-text);
+    background: var(--paper);
+    color: var(--ink);
+    opacity: 1;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.5),
+      0 6px 18px -8px rgb(0 0 0 / 0.8);
+  }
+
+  .play:hover {
+    background: var(--paper);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.5),
+      0 0 0 4px rgb(var(--tint) / 0.1),
+      0 8px 22px -8px rgb(0 0 0 / 0.85);
+    scale: 1.06;
   }
 
   .one {

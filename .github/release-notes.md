@@ -1,4 +1,9 @@
-- Removed Last.fm signing secret from desktop builds
-- Fixed scrobble retries during private sessions
-- Added separate sign-ins for each accounts server
-- Fixed Linux memory handling in GLib
+- Added themes: Dynamic, Dark, OLED black, Light, Midnight, Mocha and Forest
+- Added a first-run setup for language, theme and motion
+- Added Browse and Yours pages, so the sidebar has six entries
+- Added softer, larger icons and lit, Apple-style buttons and fields
+- Added filter and sort to every song list
+- Added Share and About to album and playlist pages
+- Added a tilting cover that opens full size on click
+- Added a cinema background that moves with the song's tempo and volume
+- Added liquid glass to the cinema bar on Windows

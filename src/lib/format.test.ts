@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration, formatTotal, greeting, joinNames } from "./format";
+import { formatDuration, formatTotal, greeting, joinNames, releaseDate } from "./format";
 
 describe("format", () => {
   it("formats track durations", () => {
@@ -24,5 +24,19 @@ describe("format", () => {
     expect(greeting(new Date(2026, 0, 1, 9))).toBe("Good morning");
     expect(greeting(new Date(2026, 0, 1, 14))).toBe("Good afternoon");
     expect(greeting(new Date(2026, 0, 1, 21))).toBe("Good evening");
+  });
+});
+
+describe("releaseDate", () => {
+  it("keeps Spotify's precision", () => {
+    expect(releaseDate("2020", "year")).toBe("2020");
+    expect(releaseDate("2020-04", "month")).toMatch(/2020/);
+    expect(releaseDate("2020-04-30", "day")).toMatch(/30/);
+    expect(releaseDate("2020-04-30", "year")).toBe("2020");
+  });
+
+  it("is empty without a date", () => {
+    expect(releaseDate(undefined)).toBe("");
+    expect(releaseDate("")).toBe("");
   });
 });

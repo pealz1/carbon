@@ -3,7 +3,7 @@
   import { commandKey } from "$lib/platform";
   import { page } from "$app/state";
   import { dialogs } from "$lib/dialogs.svelte";
-  import { isActive, sectionsFor } from "$lib/nav";
+  import { hubOf, isActive, sidebarSections } from "$lib/nav";
   import { serverSession } from "$lib/servers/session.svelte";
   import { services } from "$lib/services.svelte";
   import { session } from "$lib/session.svelte";
@@ -19,11 +19,11 @@
   <button class="search" class:active={path === "/search"} onclick={() => (dialogs.palette = true)} aria-haspopup="dialog" aria-label="Search" title={view.rail ? `Search (${commandKey} K)` : undefined}>
     <span class="label">Search</span>
     <kbd>{commandKey} K</kbd>
-    <Icon name="search" size={16} />
+    <Icon name="search" size={18} />
   </button>
 
   <div class="scroll">
-    {#each sectionsFor({ ...services.active, servers: serverSession.list.map((s) => s.kind) }) as section (section.id)}
+    {#each sidebarSections({ ...services.active, servers: serverSession.list.map((s) => s.kind) }) as section (section.id)}
       {@const open = view.rail || !view.closed.includes(section.id)}
       <section class="section">
         <button class="section-head" aria-expanded={open} onclick={() => view.toggleSection(section.id)}>
@@ -33,9 +33,9 @@
         {#if open}
           <nav aria-label={t(section.label)}>
             {#each section.items as item (item.href)}
-              {@const active = isActive(item.href, path)}
+              {@const active = isActive(item.href, path) || hubOf(path) === item.href}
               <a href={item.href} class="row nav pressable" class:active aria-current={active ? "page" : undefined} title={view.rail ? t(item.label) : undefined}>
-                <span class="icon"><Icon name={item.icon} size={18} filled={item.icon === "heart" && active} /></span>
+                <span class="icon"><Icon name={item.icon} size={21} filled={item.icon === "heart" && active} /></span>
                 <span class="name">{t(item.label)}</span>
               </a>
             {/each}
@@ -55,7 +55,7 @@
         <span class="avatar initials">{session.profile.name.slice(0, 1).toUpperCase()}</span>
       {/if}
       <span class="name">{session.profile.name}</span>
-      <span class="gear"><Icon name="settings" size={17} /></span>
+      <span class="gear"><Icon name="settings" size={19} /></span>
     </a>
   {/if}
 </aside>
@@ -75,21 +75,24 @@
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    height: 36px;
+    height: 38px;
     padding: 0 var(--sp-3) 0 var(--sp-4);
     border-radius: var(--r-pill);
     background: var(--chrome-field);
+    box-shadow: var(--rim);
     color: var(--chrome-text-muted);
     font-size: var(--fs-body);
     transition:
       background var(--dur-fast),
       color var(--dur-fast),
+      box-shadow var(--dur-med),
       transform var(--dur-med) var(--ease-spring);
   }
 
   .search:hover,
   .search.active {
     background: var(--chrome-active);
+    box-shadow: var(--rim-hover);
     color: var(--chrome-text);
   }
 
@@ -162,9 +165,9 @@
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    min-height: 36px;
+    min-height: 40px;
     padding: 0 var(--sp-2) 0 calc(var(--sp-3) + var(--depth, 0) * var(--sp-3));
-    border-radius: var(--r-md);
+    border-radius: var(--r-lg);
     color: var(--chrome-text);
     font-size: var(--fs-body);
     font-weight: 500;
@@ -172,6 +175,7 @@
     text-decoration: none;
     transition:
       background var(--dur-fast),
+      box-shadow var(--dur-med),
       transform var(--dur-med) var(--ease-spring);
     --press: var(--press-wide);
   }
@@ -181,23 +185,43 @@
     text-decoration: none;
   }
 
+  /* The page you're on: a lit, raised row that settles in with a little spring. */
   .sidebar :global(.row.active) {
     background: var(--chrome-active);
+    box-shadow: var(--rim);
+    animation: row-on var(--dur-med) var(--ease-spring);
+  }
+
+  @keyframes row-on {
+    from {
+      scale: 0.96;
+    }
   }
 
   .nav {
     font-weight: 600;
   }
 
+  /* Icons in white at near full strength; they swell a little under the pointer. */
   .icon {
     display: grid;
-    width: 24px;
+    width: 26px;
     place-items: center;
-    color: var(--chrome-text-muted);
+    color: var(--chrome-text);
+    opacity: 0.88;
+    transition:
+      scale var(--dur-med) var(--ease-spring),
+      opacity var(--dur-fast);
+  }
+
+  .row:hover .icon {
+    scale: 1.12;
+    opacity: 1;
   }
 
   .nav.active .icon {
     color: var(--accent);
+    opacity: 1;
   }
 
   .sidebar :global(.name) {

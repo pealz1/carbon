@@ -61,7 +61,8 @@
 
 <div
   bind:this={root}
-  class="cinema"
+  class="cinema keep-dark"
+  class:paused={player.paused}
   class:idle
   role="dialog"
   aria-modal="true"
@@ -73,7 +74,7 @@
   onkeydown={() => timer.wake()}
   transition:fade={{ duration: 260 }}
 >
-  <Ambient image={player.artwork} playing={!player.paused} />
+  <Ambient image={player.artwork} playing={!player.paused} reactive />
   <!-- First in the DOM so Tab reaches the controls before the lyric lines; it still sits at the bottom. -->
   <CinemaBar hidden={idle} {lines} shiftMs={lyricShift(offset, prefs.value?.lyricsDelayMs)} bind:offset bind:height={barHeight} onhold={hold} />
   <div class="notices"><Toasts /></div>
@@ -149,6 +150,23 @@
     border-radius: var(--r-art);
     object-fit: cover;
     box-shadow: var(--shadow-art);
+    animation: hero-in 900ms var(--ease-spring) backwards;
+    transition:
+      scale 700ms var(--ease-spring),
+      box-shadow 700ms var(--ease-out);
+  }
+
+  /* Paused, the cover settles back a little; playing, it springs forward again. */
+  .paused .hero img {
+    scale: 0.9;
+    box-shadow: 0 10px 28px -16px rgb(0 0 0 / 0.8);
+  }
+
+  @keyframes hero-in {
+    from {
+      opacity: 0;
+      transform: scale(1.12);
+    }
   }
 
   .words {

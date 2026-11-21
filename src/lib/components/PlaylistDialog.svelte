@@ -227,14 +227,14 @@
     height: 30px;
     padding: 0 var(--sp-3);
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.08);
+    background: rgb(var(--tint) / 0.08);
     font-size: var(--fs-small);
     font-weight: 600;
     transition: background var(--dur-fast);
   }
 
   .cover:hover .cover-hint {
-    background: rgb(255 255 255 / 0.15);
+    background: rgb(var(--tint) / 0.15);
   }
 
   .cover input {

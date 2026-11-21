@@ -21,3 +21,13 @@ export function greeting(date: Date): string {
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
+
+/** Spotify's release date at the precision it gives: "30 April 2020", "April 2020" or "2020". */
+export function releaseDate(date: string | undefined, precision?: string): string {
+  const [y, m, d] = (date ?? "").split("-").map(Number);
+  if (!y) return "";
+  if (precision === "year" || !m) return String(y);
+  const at = new Date(Date.UTC(y, m - 1, d || 1));
+  const opts: Intl.DateTimeFormatOptions = precision === "month" || !d ? { month: "long", year: "numeric" } : { day: "numeric", month: "long", year: "numeric" };
+  return at.toLocaleDateString(undefined, { ...opts, timeZone: "UTC" });
+}

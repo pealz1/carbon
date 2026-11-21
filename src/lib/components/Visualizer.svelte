@@ -3,13 +3,11 @@
   // spectrum out only while someone asks, so this asks while it is mounted and the window can be
   // seen, and stops the moment either ends. With motion turned down it draws nothing at all.
   import { prefersReducedMotion } from "svelte/motion";
-  import { engine } from "$lib/local/api";
+  import { followSpectrum } from "$lib/local/spectrum";
   import { onScreen } from "$lib/on-screen.svelte";
   import { prefs } from "$lib/preferences.svelte";
 
   const BANDS = 32;
-  /** Well inside the engine's five-second lease, so a visualizer on screen never lapses. */
-  const RENEW_MS = 2000;
   /** A resting bar stays a hairline rather than vanishing. */
   const REST = 0.03;
   const flat = () => Array<number>(BANDS).fill(0);
@@ -20,14 +18,9 @@
 
   $effect(() => {
     if (calm || !onScreen.current) return;
-    const ask = (on: boolean) => engine.spectrum(on).catch((e) => console.warn("[visualizer] couldn't reach the engine", e));
-    void ask(true);
-    const renewing = setInterval(() => void ask(true), RENEW_MS);
-    const listening = engine.onSpectrum((bands) => (levels = bands));
+    const stop = followSpectrum((bands) => (levels = bands));
     return () => {
-      clearInterval(renewing);
-      void ask(false);
-      void listening.then((stop) => stop());
+      stop();
       levels = flat();
     };
   });

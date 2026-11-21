@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { lineAt, sectionStarts } from "$lib/cinema";
+  import { lineAt } from "$lib/cinema";
   import { formatDuration } from "$lib/format";
   import type { LyricLine } from "$lib/lrc";
   import LoopZone from "./LoopZone.svelte";
   import Slider from "./Slider.svelte";
 
-  // The seek bar, aware of the lyrics: hovering or dragging shows the time and the line sung there,
-  // and small ticks mark where sections start. Without synced lyrics it shows the time alone. The
-  // A-B loop shows on it too, and its right-click menu sets the loop, as on the player bar.
+  // The seek bar, aware of the lyrics: hovering or dragging shows the time and the line sung there.
+  // Without synced lyrics it shows the time alone. The A-B loop shows on it too, and its right-click
+  // menu sets the loop, as on the player bar.
   let {
     position,
     durationMs,
@@ -28,7 +28,6 @@
   let hoverMs = $state<number | null>(null);
   let dragMs = $state<number | null>(null);
 
-  const ticks = $derived(durationMs > 0 ? sectionStarts(lines).map((t) => t - shiftMs).filter((t) => t > 0 && t < durationMs) : []);
   const at = $derived(dragMs ?? hoverMs);
   const line = $derived(at === null ? null : lineAt(lines, at, shiftMs));
   const x = $derived.by(() => {
@@ -55,16 +54,12 @@
       value={position}
       max={durationMs}
       step={1000}
-      tone="accent"
       label="Seek"
       valuetext="{formatDuration(position)} of {formatDuration(durationMs)}"
       oncommit={commit}
       onpreview={(ms) => (dragMs = ms)}
     />
   </LoopZone>
-  <div class="ticks" aria-hidden="true">
-    {#each ticks as tick, i (i)}<i style="left: {(tick / durationMs) * 100}%"></i>{/each}
-  </div>
   {#if at !== null}
     <div class="bubble glass" bind:clientWidth={bubbleWidth} style="left: {x}px" aria-hidden="true">
       <span class="time tabular">{formatDuration(at)}</span>
@@ -81,26 +76,16 @@
     min-width: 0;
   }
 
-  /* The thumb rides over the section ticks. */
-  .scrubber :global(.thumb) {
-    z-index: 1;
+  /* A faint halo on the line, a little brighter while it's handled. */
+  .scrubber :global(.track) {
+    filter: drop-shadow(0 0 3px rgb(255 255 255 / 0.18));
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      filter var(--dur-med);
   }
 
-  .ticks {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  .ticks i {
-    position: absolute;
-    top: 50%;
-    width: 2px;
-    height: 8px;
-    border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.55);
-    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25);
-    transform: translate(-50%, -50%);
+  .scrubber:hover :global(.track) {
+    filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.35));
   }
 
   .bubble {
@@ -120,7 +105,7 @@
   .time {
     font-size: var(--fs-caption);
     font-weight: 700;
-    color: var(--accent);
+    color: var(--paper);
   }
 
   .line {

@@ -16,6 +16,16 @@ function zoomMainWindow(scale: number): void {
   }
 }
 
+/** app.html reads this before anything renders, so a light theme doesn't open on a black frame. */
+export const THEME_KEY = "carbon.theme";
+function rememberTheme(theme: string): void {
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    // Storage off: the first frame is black until settings load, nothing worse.
+  }
+}
+
 class Preferences {
   value = $state<Settings | null>(null);
   error = $state<string | null>(null);
@@ -62,6 +72,8 @@ class Preferences {
     if (!this.value) return;
     const root = document.documentElement;
     root.dataset.accent = this.value.accent;
+    root.dataset.theme = this.value.theme;
+    rememberTheme(this.value.theme);
     root.dataset.effects = this.effects;
     root.style.setProperty("--lyrics-scale", String(this.value.lyricsScale));
     root.dataset.lyricsBlur = this.value.lyricsBlur === false ? "off" : "on";

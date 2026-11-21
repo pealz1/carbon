@@ -13,6 +13,9 @@ export type Motion = "none" | "normal" | "playful";
 export type StartupPage = "home" | "library" | "liked" | "search" | "last";
 export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
+/** Dynamic washes the chrome with the artwork's colour; the rest are fixed. Same order as the Rust list. */
+export const THEMES = ["dynamic", "dark", "oled", "light", "midnight", "mocha", "forest"] as const;
+export type Theme = (typeof THEMES)[number];
 
 /** The music services the listener connected. */
 export interface Services {
@@ -32,6 +35,9 @@ export interface Settings {
   listenbrainzScrobbling: boolean;
   effects: Effects;
   accent: Accent;
+  theme: Theme;
+  /** The theme picker has been shown (first run, or once after the update that added themes). */
+  themeChosen: boolean;
   lyricsScale: number;
   /** Soft blur on lyric lines away from the sung one. */
   lyricsBlur: boolean;

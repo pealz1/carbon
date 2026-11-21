@@ -131,8 +131,8 @@
     gap: var(--sp-2);
     padding: 0 var(--sp-4);
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.08);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px rgb(255 255 255 / 0.08);
+    background: rgb(var(--tint) / 0.08);
+    box-shadow: var(--rim);
     color: var(--text);
     font-weight: 600;
     transition:
@@ -141,7 +141,7 @@
   }
 
   .pill:hover {
-    background: rgb(255 255 255 / 0.15);
+    background: rgb(var(--tint) / 0.15);
   }
 
   .pill.circle {

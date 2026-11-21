@@ -81,7 +81,7 @@
   </DetailHeader>
 
   {#if tracks}
-    <TrackList tracks={tracks.items} contextUri={p.uri} showAlbum showArt numbered removeFrom={canEditTracks ? p : undefined} onremove={dropRow} />
+    <TrackList tracks={tracks.items} contextUri={p.uri} showAlbum showArt numbered tools="Playlist order" removeFrom={canEditTracks ? p : undefined} onremove={dropRow} />
     {#if tracks.done && !tracks.items.length}<Status empty={tracks.total === 0 ? "This playlist is empty." : "No playable songs in this playlist."} />{/if}
     <LoadMore pager={tracks} />
   {:else if p.public !== false}
@@ -113,16 +113,20 @@
     display: grid;
     place-items: center;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.08);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px rgb(255 255 255 / 0.08);
+    background: rgb(var(--tint) / 0.08);
+    box-shadow: var(--rim);
     color: var(--text);
     transition:
       background var(--dur-fast),
+      box-shadow var(--dur-med),
+      translate var(--dur-med) var(--ease-spring),
       transform var(--dur-med) var(--ease-spring);
   }
 
   .edit:hover {
-    background: rgb(255 255 255 / 0.15);
+    background: rgb(var(--tint) / 0.15);
+    box-shadow: var(--rim-hover);
+    translate: 0 -1px;
   }
 
   .notice {

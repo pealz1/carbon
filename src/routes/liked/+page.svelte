@@ -40,7 +40,7 @@
   {/snippet}
 </DetailHeader>
 
-<TrackList tracks={liked.items} {contextUri} showAlbum numbered />
+<TrackList tracks={liked.items} {contextUri} showAlbum numbered tools="Date added" />
 {#if liked.done && !liked.items.length}
   <Status empty="Songs you like will show up here." />
 {/if}

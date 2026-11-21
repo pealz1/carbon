@@ -88,6 +88,7 @@
     contextUri={p.uri}
     showAlbum
     numbered
+    tools={liked ? "Date added" : "Playlist order"}
     removeFrom={p.owned && !liked ? { id, name: p.name } : undefined}
     onremove={dropRow}
   />
@@ -103,18 +104,22 @@
     display: grid;
     place-items: center;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.08);
+    background: rgb(var(--tint) / 0.08);
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.1),
-      inset 0 0 0 1px rgb(255 255 255 / 0.08);
+      inset 0 0 0 1px var(--glass-edge);
     color: var(--text);
     transition:
       background var(--dur-fast),
+      box-shadow var(--dur-med),
+      translate var(--dur-med) var(--ease-spring),
       transform var(--dur-med) var(--ease-spring);
   }
 
   .edit:hover {
-    background: rgb(255 255 255 / 0.15);
+    background: rgb(var(--tint) / 0.15);
+    box-shadow: var(--rim-hover);
+    translate: 0 -1px;
   }
 
   .signin {

@@ -93,21 +93,28 @@
     display: grid;
     place-items: center;
     border-radius: var(--r-md);
-    color: inherit;
+    color: var(--chrome-text);
+    opacity: 0.86;
     transition:
       background var(--dur-fast),
       color var(--dur-fast),
+      opacity var(--dur-fast),
+      box-shadow var(--dur-med),
       transform var(--dur-med) var(--ease-spring);
   }
 
   .tb:hover {
+    opacity: 1;
     background: var(--chrome-hover);
+    box-shadow: var(--rim);
     color: var(--chrome-text);
   }
 
   .tb.on {
+    opacity: 1;
     background: var(--chrome-active);
-    color: var(--accent);
+    box-shadow: var(--rim);
+    color: var(--chrome-text);
   }
 
   .window .tb {

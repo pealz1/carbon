@@ -349,7 +349,7 @@
   .band input::-webkit-slider-runnable-track {
     width: 4px;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.12);
+    background: rgb(var(--tint) / 0.12);
   }
 
   .preamp input::-webkit-slider-thumb,

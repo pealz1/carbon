@@ -5,20 +5,31 @@
     label: string;
     icon?: IconName;
   }
+
+  /** A line in the About panel: "Released" → "30 April 2020". */
+  export interface Fact {
+    label: string;
+    value: string;
+  }
 </script>
 
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { artTones } from "$lib/art-tones.svelte";
+  import { t } from "$lib/i18n/locale.svelte";
   import { menu, type MenuEntry } from "$lib/menu.svelte";
+  import { shareItem } from "$lib/menus";
   import { player } from "$lib/player.svelte";
   import { css } from "$lib/wallpaper";
+  import ArtworkViewer from "./ArtworkViewer.svelte";
   import Icon from "./Icon.svelte";
+  import Modal from "./Modal.svelte";
   import SpotifyPlaylistCover from "./SpotifyPlaylistCover.svelte";
   import DevicePicker from "./DevicePicker.svelte";
 
-  // Album, playlist, artist and collection headers. The artwork is shown whole and untouched;
-  // colour read from it washes the space behind the header and tints the Play pill.
+  // Album, playlist, artist and collection headers. The artwork is shown whole and untouched (it
+  // tilts toward the pointer as one piece and opens full size on click); colour read from it washes
+  // the space behind the header and tints the Play pill.
   let {
     title,
     image,
@@ -33,6 +44,8 @@
     shuffleCount,
     menuItems,
     placeholderIcon = "note",
+    share,
+    facts = [],
     children,
   }: {
     title: string;
@@ -55,6 +68,10 @@
     menuItems?: () => MenuEntry[];
     /** Icon shown when there's no artwork. */
     placeholderIcon?: IconName;
+    /** A Share button beside Play: the link, the name, or the page on Spotify. */
+    share?: { uri: string; name: string };
+    /** Release date, label and the like, shown with the description in the About panel. */
+    facts?: Fact[];
     /** Extra actions after Play. */
     children?: Snippet;
   } = $props();
@@ -74,15 +91,38 @@
   }
 
   const canPlay = $derived(!!playUri || !!onplay);
+  const hasAbout = $derived(!!description || facts.length > 0);
+  let viewing = $state(false);
+  let reading = $state(false);
+  // -0.5 to 0.5 across the cover; drives the tilt and the shadow that moves against it.
+  let lean = $state({ x: 0, y: 0 });
+  function follow(event: PointerEvent) {
+    const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    lean = { x: (event.clientX - box.left) / box.width - 0.5, y: (event.clientY - box.top) / box.height - 0.5 };
+  }
   const shuffle = () => (onshuffle ? onshuffle() : playUri && player.shufflePlay(playUri, shuffleCount));
 </script>
 
 <header class="detail" class:washed={!!tones.current} {style}>
   <div class="art" class:round>
-    {#if playlistCover}
+    {#if image}
+      <button
+        class="cover"
+        style="--lx: {lean.x}; --ly: {lean.y}"
+        onpointermove={follow}
+        onpointerleave={() => (lean = { x: 0, y: 0 })}
+        onclick={() => (viewing = true)}
+        aria-label="View artwork for {title}"
+        title="View artwork"
+      >
+        {#if playlistCover}
+          <div class="placeholder"><SpotifyPlaylistCover id={playlistCover.id} {image} allowPublic={playlistCover.public !== false} size={72} /></div>
+        {:else}
+          <img src={image} alt="" width="350" height="350" />
+        {/if}
+      </button>
+    {:else if playlistCover}
       <div class="placeholder"><SpotifyPlaylistCover id={playlistCover.id} {image} allowPublic={playlistCover.public !== false} size={72} /></div>
-    {:else if image}
-      <img src={image} alt="" width="350" height="350" />
     {:else}
       <div class="placeholder" class:liked={placeholderIcon === "heart"}><Icon name={placeholderIcon} size={72} filled={placeholderIcon === "heart"} /></div>
     {/if}
@@ -97,7 +137,9 @@
         {/each}
       </ul>
     {/if}
-    {#if description}<p class="description">{description}</p>{/if}
+    {#if description}
+      <button class="description" onclick={() => (reading = true)} title="Read more">{description}</button>
+    {/if}
     <div class="actions">
       {#if canPlay}
         {#if playUri || onshuffle}
@@ -108,6 +150,16 @@
         <button class="play" onclick={play} aria-label={playing ? "Pause" : "Play"}>
           <Icon name={playing ? "pause" : "play"} size={18} />
           <span>{playing ? "Pause" : "Play"}</span>
+        </button>
+      {/if}
+      {#if share}
+        <button class="circle" onclick={(e) => menu.open(e, shareItem(share.uri, share.name).items ?? [])} aria-label="Share" aria-haspopup="menu" title="Share">
+          <Icon name="export" size={18} />
+        </button>
+      {/if}
+      {#if hasAbout}
+        <button class="circle" onclick={() => (reading = true)} aria-label="About {title}" aria-haspopup="dialog" title="About">
+          <Icon name="info" size={19} />
         </button>
       {/if}
       {@render children?.()}
@@ -122,6 +174,32 @@
     </div>
   </div>
 </header>
+
+{#if viewing && image}
+  <ArtworkViewer src={image} {title} onclose={() => (viewing = false)} />
+{/if}
+
+{#if reading}
+  <Modal title="About" wide onclose={() => (reading = false)}>
+    <div class="about">
+      <div class="notes">
+        {#if description}<p>{description}</p>{:else}<p class="quiet">No notes for this one.</p>{/if}
+      </div>
+      <aside>
+        {#if image}<img src={image} alt="" width="160" height="160" />{/if}
+        <strong>{title}</strong>
+        {#if facts.length}
+          <dl>
+            {#each facts as fact (fact.label)}
+              <dt>{t(fact.label)}</dt>
+              <dd>{t(fact.value)}</dd>
+            {/each}
+          </dl>
+        {/if}
+      </aside>
+    </div>
+  </Modal>
+{/if}
 
 <style>
   .detail {
@@ -158,9 +236,91 @@
     opacity: 1;
   }
 
+  /* Light: the wash is read at a dark level for dark themes, so here it is mixed toward paper. */
+  :global([data-theme="light"]) .detail::before {
+    background:
+      radial-gradient(70% 80% at 18% 24%, color-mix(in oklab, var(--wash), white 72%) 0%, transparent 72%),
+      radial-gradient(60% 80% at 88% 24%, color-mix(in oklab, var(--wash2), white 76%) 0%, transparent 70%);
+  }
+
   .art {
     flex: none;
     width: var(--art-size);
+  }
+
+
+  /* Depth: the cover tilts toward the pointer as a whole and casts its shadow away from it; two
+     stacked edges in the art's own deep tone read as the sides of a slab. Spotify's rules forbid
+     cropping or covering artwork, so nothing is drawn over it. */
+  .art {
+    perspective: 1100px;
+  }
+
+  .cover {
+    --lx: 0;
+    --ly: 0;
+    display: block;
+    padding: 0;
+    border-radius: var(--r-art);
+    transform: rotateX(calc(var(--ly) * -9deg)) rotateY(calc(var(--lx) * 11deg));
+    transition: transform 700ms var(--ease-out);
+    cursor: zoom-in;
+    animation: art-in 720ms var(--ease-spring) backwards;
+  }
+
+  .cover:hover {
+    transition-duration: 160ms;
+  }
+
+  .cover :is(img, .placeholder) {
+    box-shadow:
+      calc(var(--lx) * -3px) 2px 0 color-mix(in oklab, var(--wash2) 70%, black),
+      calc(var(--lx) * -6px) 4px 0 color-mix(in oklab, var(--wash2) 40%, black),
+      calc(var(--lx) * -22px) calc(26px + var(--ly) * -18px) 54px -14px rgb(0 0 0 / 0.85),
+      0 0 0 1px rgb(var(--tint) / 0.06);
+    transition: box-shadow 700ms var(--ease-out);
+  }
+
+  /* The art's colour glowing on the stage beneath it, brighter while it's handled. */
+  .art:not(.round) {
+    position: relative;
+  }
+
+  .art:not(.round)::after {
+    content: "";
+    position: absolute;
+    inset: 18% 6% -10%;
+    z-index: -1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--wash), transparent);
+    opacity: 0.55;
+    filter: blur(28px);
+    transition:
+      opacity var(--dur-med),
+      transform var(--dur-med) var(--ease-out);
+    pointer-events: none;
+  }
+
+  .art:has(.cover:hover)::after {
+    opacity: 0.9;
+    transform: scale(1.06);
+  }
+
+  @keyframes art-in {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.94);
+    }
+  }
+
+  :global([data-motion="none"]) .cover {
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cover {
+      transform: none;
+    }
   }
 
   .art img,
@@ -231,7 +391,7 @@
   }
 
   .byline :global(.person:is(a, button):hover) {
-    background: rgb(255 255 255 / 0.08);
+    background: rgb(var(--tint) / 0.08);
     text-decoration: none;
   }
 
@@ -242,7 +402,7 @@
     display: grid;
     place-items: center;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.1);
+    background: rgb(var(--tint) / 0.1);
     color: var(--text-muted);
     object-fit: cover;
   }
@@ -263,9 +423,9 @@
     height: 24px;
     padding: 0 9px;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.08);
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
-    color: rgb(255 255 255 / 0.78);
+    background: rgb(var(--tint) / 0.08);
+    box-shadow: inset 0 0 0 1px rgb(var(--tint) / 0.1);
+    color: var(--text-muted);
     font-size: var(--fs-micro);
     font-weight: 600;
     letter-spacing: var(--tracking-caps);
@@ -277,13 +437,76 @@
     max-width: 62ch;
     margin: 0;
     overflow: hidden;
-    color: rgb(255 255 255 / 0.68);
+    color: var(--text-muted);
     font-size: var(--fs-body);
     line-height: 1.5;
     -webkit-line-clamp: 3;
     line-clamp: 3;
     -webkit-box-orient: vertical;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+    transition: color var(--dur-fast);
+  }
+
+  .description:hover {
+    color: var(--text);
+  }
+
+  .about {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 200px;
+    gap: var(--sp-5);
+  }
+
+  .notes p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--fs-body);
+    line-height: 1.65;
+    white-space: pre-line;
     user-select: text;
+  }
+
+  .notes .quiet {
+    color: var(--text-faint);
+  }
+
+  .about aside {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-2);
+    text-align: center;
+  }
+
+  .about aside img {
+    width: 160px;
+    height: 160px;
+    border-radius: var(--r-art);
+    object-fit: cover;
+    box-shadow: var(--shadow-art);
+  }
+
+  .about strong {
+    font-size: var(--fs-lead);
+  }
+
+  .about dl {
+    display: grid;
+    gap: 2px;
+    margin: var(--sp-2) 0 0;
+  }
+
+  .about dt {
+    margin-top: var(--sp-2);
+    color: var(--text-faint);
+    font-size: var(--fs-caption);
+  }
+
+  .about dd {
+    margin: 0;
+    font-weight: 650;
   }
 
   .actions {
@@ -300,16 +523,20 @@
     display: grid;
     place-items: center;
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.08);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px rgb(255 255 255 / 0.08);
+    background: rgb(var(--tint) / 0.08);
+    box-shadow: var(--rim);
     color: var(--text);
     transition:
       background var(--dur-fast),
+      box-shadow var(--dur-med),
+      translate var(--dur-med) var(--ease-spring),
       transform var(--dur-med) var(--ease-spring);
   }
 
   .circle:hover {
-    background: rgb(255 255 255 / 0.15);
+    background: rgb(var(--tint) / 0.15);
+    box-shadow: var(--rim-hover);
+    translate: 0 -1px;
   }
 
   .play {
@@ -328,6 +555,11 @@
     font-weight: 700;
     box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.8);
     transition: transform var(--dur-med) var(--ease-spring);
+  }
+
+  /* An artwork pill is mid-tone in every theme, so its text stays ink even when Light flips --ink. */
+  .washed .play {
+    color: var(--accent-ink);
   }
 
   .play::after {

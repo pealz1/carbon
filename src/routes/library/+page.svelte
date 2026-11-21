@@ -127,7 +127,7 @@
     height: 30px;
     padding: 0 var(--sp-3);
     border-radius: var(--r-pill);
-    background: rgb(255 255 255 / 0.06);
+    background: var(--glass);
     box-shadow: inset 0 0 0 1px var(--glass-edge);
     color: var(--text-muted);
     font-size: var(--fs-small);
@@ -180,7 +180,7 @@
     text-decoration: none;
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.12),
-      inset 0 0 0 100vmax rgb(255 255 255 / 0.04);
+      inset 0 0 0 100vmax rgb(var(--tint) / 0.04);
   }
 
   .liked-title {
