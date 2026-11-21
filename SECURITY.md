@@ -14,6 +14,7 @@ Only the latest release gets security fixes. Carbon updates itself, so most peop
 ## How Carbon handles your data
 
 - Spotify sign-in uses Authorization Code with PKCE. Carbon never sees your Spotify password.
-- Your Spotify and Last.fm sign-ins are stored in Windows Credential Manager or macOS Keychain.
+- The OS credential store holds your Spotify token and an encrypted Last.fm connection bound to your Carbon account.
+- Each Carbon accounts server has its own credential entries. Users upgrading from a build with unscoped credentials sign in once and reconnect Last.fm.
 - Updates are signed, and Carbon refuses any update whose signature doesn't match.
-- Carbon has no servers and sends no analytics. See the [privacy policy](https://getcarbon.cc/privacy).
+- Carbon’s account service signs opt-in Last.fm requests. It keeps the application signing secret on the server. See the [privacy policy](https://getcarbon.cc/privacy).

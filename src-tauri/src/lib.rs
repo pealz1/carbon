@@ -91,7 +91,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let handle = app.handle().clone();
     let prefs = settings::load(&handle);
     app.manage(Discord::spawn(prefs.discord_presence && !prefs.private_session,discord::Options::from(&prefs)));
-    app.manage(Lastfm::spawn(prefs.lastfm_scrobbling));
+    app.manage(Lastfm::spawn(prefs.lastfm_scrobbling && !prefs.private_session));
     app.manage(Listenbrainz::spawn(prefs.listenbrainz_scrobbling, listenbrainz::queue_path(&handle)));
     let remote = remote::Remote::new(&handle);
     if prefs.remote_enabled

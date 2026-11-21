@@ -32,7 +32,7 @@
     <button class="pill new" onclick={() => (youtube.dialog = { mode: "create", videoIds: [] })}><Icon name="plus" size={16} />New playlist</button>
     <div class="segmented" role="tablist" aria-label="Library sections">
       {#each TABS as t (t.id)}
-        <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => goto(`?tab=${t.id}`, { replaceState: true, noScroll: true })}>
+        <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => goto(`?tab=${t.id}`, { replace: true, reset: false })}>
           {t.label}
         </button>
       {/each}

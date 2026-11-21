@@ -1,18 +1,16 @@
-//! Last.fm: desktop sign-in, "now playing" and scrobbling. Requests are signed in Rust so the
-//! shared secret never reaches the webview. Scrobble rules follow Last.fm's guidelines.
+//! Optional Last.fm scrobbling through the authenticated Carbon API.
 use crate::playback::PlaybackInfo;
+use crate::token_store::CarbonApi;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::collections::VecDeque;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::AppHandle;
 use tauri_plugin_opener::OpenerExt;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-pub const API_KEY: Option<&str> = option_env!("CARBON_LASTFM_API_KEY");
-pub const SECRET: Option<&str> = option_env!("CARBON_LASTFM_SECRET");
-const API_URL: &str = "https://ws.audioscrobbler.com/2.0/";
 const AUTH_URL: &str = "https://www.last.fm/api/auth/";
 const KEYRING_SERVICE: &str = "com.pealz.carbon";
 const KEYRING_ACCOUNT: &str = "lastfm-session";
@@ -32,23 +30,8 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
 /// A repeat of the same song: the position is back near the start after it was scrobbled.
 const RESTART_WITHIN_MS: u64 = 5_000;
 
-pub fn configured() -> bool {
-    API_KEY.is_some() && SECRET.is_some()
-}
-
-// ---------- signing ----------
-
-/// Last.fm signature input: params sorted by name, concatenated, secret appended.
-pub fn signature_base(params: &[(&str, String)], secret: &str) -> String {
-    let mut sorted: Vec<_> = params.iter().filter(|(k, _)| *k != "format" && *k != "callback").collect();
-    sorted.sort_by(|a, b| a.0.cmp(b.0));
-    let mut base: String = sorted.iter().map(|(k, v)| format!("{k}{v}")).collect();
-    base.push_str(secret);
-    base
-}
-
-pub fn sign(params: &[(&str, String)], secret: &str) -> String {
-    format!("{:x}", md5::compute(signature_base(params, secret)))
+pub fn configured(api_url: &str) -> bool {
+    CarbonApi::parse(api_url).and_then(|api| api.token()).ok().flatten().is_some()
 }
 
 // ---------- scrobble rules (pure) ----------
@@ -130,23 +113,24 @@ impl Scrobbler {
 #[derive(Serialize, Deserialize, Clone)]
 struct Session {
     name: String,
-    key: String,
+    connection: String,
+    carbon_session_hash: String,
 }
 
-fn keyring() -> Result<Entry, String> {
-    Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT).map_err(|e| e.to_string())
+fn session_hash(bearer: &str) -> String { format!("{:x}", Sha256::digest(bearer.as_bytes())) }
+
+fn keyring(api: &CarbonApi) -> Result<Entry, String> {
+    Entry::new(KEYRING_SERVICE, &api.credential_name(KEYRING_ACCOUNT)).map_err(|e| e.to_string())
 }
 
-fn load_session() -> Option<Session> {
-    let text = keyring().ok()?.get_password().ok()?;
+fn load_session(api: &CarbonApi) -> Option<Session> {
+    let text = keyring(api).ok()?.get_password().ok()?;
     serde_json::from_str(&text).ok()
 }
 
-pub fn clear_session() -> Result<(), String> {
-    match keyring()?.delete_credential() {
-        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-        Err(e) => Err(format!("could not remove Last.fm sign-in: {e}")),
-    }
+pub(crate) fn clear_session(api: &CarbonApi) -> Result<(), String> {
+    crate::token_store::clear(&api.credential_name(KEYRING_ACCOUNT))?;
+    crate::token_store::clear(KEYRING_ACCOUNT)
 }
 
 // ---------- API ----------
@@ -174,38 +158,37 @@ impl std::fmt::Display for ApiError {
     }
 }
 
-async fn call(client: &reqwest::Client, method: &str, mut params: Vec<(&'static str, String)>, session: Option<&str>) -> Result<Value, ApiError> {
-    let (Some(key), Some(secret)) = (API_KEY, SECRET) else {
-        return Err(ApiError::Lastfm(0, "Last.fm isn't configured in this build".into()));
-    };
-    params.push(("method", method.to_string()));
-    params.push(("api_key", key.to_string()));
-    if let Some(sk) = session {
-        params.push(("sk", sk.to_string()));
-    }
-    params.push(("api_sig", sign(&params, secret)));
-    params.push(("format", "json".into()));
-    let response = client.post(API_URL).form(&params).send().await.map_err(|e| ApiError::Network(e.to_string()))?;
+fn client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder().timeout(REQUEST_TIMEOUT).redirect(reqwest::redirect::Policy::none())
+        .build().map_err(|e| e.to_string())
+}
+
+async fn call(client: &reqwest::Client, api: &CarbonApi, bearer: &str, route: &str, request: &Value) -> Result<Value, ApiError> {
+    let response = client.post(format!("{}/v1/lastfm/{route}", api.url())).bearer_auth(bearer).json(request)
+        .send().await.map_err(|e| ApiError::Network(e.to_string()))?;
+    let status = response.status();
     let body: Value = response.json().await.map_err(|e| ApiError::Network(e.to_string()))?;
-    if let Some(code) = body.get("error").and_then(Value::as_i64) {
-        let message = body.get("message").and_then(Value::as_str).unwrap_or("Last.fm error").to_string();
-        return Err(ApiError::Lastfm(code, message));
+    if !status.is_success() {
+        let error = &body["error"];
+        let code = error["code"].as_str().unwrap_or_default();
+        let message = error["message"].as_str().unwrap_or("Carbon could not complete the Last.fm request").to_owned();
+        if code == "lastfm_reconnect" { return Err(ApiError::Lastfm(ERR_INVALID_SESSION, message)); }
+        if let Some(n) = code.strip_prefix("lastfm_").and_then(|s| s.parse().ok()) { return Err(ApiError::Lastfm(n, message)); }
+        if code == "invalid_request" { return Err(ApiError::Lastfm(6, message)); }
+        return Err(ApiError::Network(message));
     }
     Ok(body)
 }
 
-fn track_params(info: &PlaybackInfo) -> Vec<(&'static str, String)> {
-    vec![
-        ("artist", info.artists.first().cloned().unwrap_or_default()),
-        ("track", info.title.clone()),
-        ("album", info.album.clone()),
-        ("duration", (info.duration_ms / 1000).to_string()),
-    ]
+fn track_body(info: &PlaybackInfo, connection: &str) -> Value {
+    json!({ "connection": connection, "artist": info.artists.first().map(String::as_str).unwrap_or(""),
+        "track": info.title, "album": info.album, "duration": info.duration_ms / 1000 })
 }
 
 // ---------- worker ----------
 
-pub enum Msg {
+pub(crate) enum Msg {
+    AccountApi(CarbonApi),
     Playback(Option<PlaybackInfo>),
     Enabled(bool),
     SessionChanged,
@@ -216,14 +199,12 @@ pub struct Lastfm(UnboundedSender<Msg>);
 impl Lastfm {
     pub fn spawn(enabled: bool) -> Self {
         let (tx, rx) = unbounded_channel();
-        if configured() {
-            tauri::async_runtime::spawn(run(rx, enabled));
-        }
+        tauri::async_runtime::spawn(run(rx, enabled));
         Self(tx)
     }
 
-    pub fn send(&self, msg: Msg) {
-        let _ = self.0.send(msg); // no worker when unconfigured
+    pub(crate) fn send(&self, msg: Msg) {
+        let _ = self.0.send(msg);
     }
 }
 
@@ -232,10 +213,11 @@ fn unix_now() -> i64 {
 }
 
 async fn run(mut rx: UnboundedReceiver<Msg>, mut enabled: bool) {
-    let client = reqwest::Client::builder().timeout(REQUEST_TIMEOUT).build().unwrap_or_default();
+    let Ok(client) = client() else { return };
     let clock = Instant::now();
     let now_ms = || clock.elapsed().as_millis() as u64;
-    let mut session = load_session();
+    let mut active_api = None;
+    let mut session = None;
     let mut scrobbler = Scrobbler::default();
     let mut pending: VecDeque<(PlaybackInfo, i64)> = VecDeque::new();
     let mut ticker = tokio::time::interval(TICK);
@@ -243,17 +225,39 @@ async fn run(mut rx: UnboundedReceiver<Msg>, mut enabled: bool) {
         let actions = tokio::select! {
             msg = rx.recv() => match msg {
                 None => break,
-                Some(Msg::Playback(info)) => scrobbler.update(info, now_ms(), unix_now()),
-                Some(Msg::Enabled(on)) => { enabled = on; vec![] }
-                Some(Msg::SessionChanged) => { session = load_session(); vec![] }
+                Some(Msg::Playback(info)) if enabled && session.is_some() => scrobbler.update(info, now_ms(), unix_now()),
+                Some(Msg::Playback(_)) => vec![],
+                Some(Msg::AccountApi(api)) => {
+                    if active_api.as_ref() != Some(&api) {
+                        session = load_session(&api);
+                        active_api = Some(api);
+                        pending.clear();
+                        scrobbler = Scrobbler::default();
+                    }
+                    vec![]
+                }
+                Some(Msg::Enabled(on)) => {
+                    if enabled != on { enabled = on; pending.clear(); scrobbler = Scrobbler::default(); }
+                    vec![]
+                }
+                Some(Msg::SessionChanged) => { session = active_api.as_ref().and_then(load_session); pending.clear(); scrobbler = Scrobbler::default(); vec![] }
             },
             _ = ticker.tick() => scrobbler.tick(now_ms()),
         };
-        let Some(sk) = session.as_ref().map(|s| s.key.clone()).filter(|_| enabled) else { continue };
+        if !enabled || (actions.is_empty() && pending.is_empty()) { continue; }
+        let (Some(link), Some(api)) = (session.as_ref(), active_api.as_ref()) else { continue };
+        let Ok(bearer) = api.token() else { continue };
+        let Some(bearer) = bearer.filter(|value| session_hash(value) == link.carbon_session_hash) else {
+            pending.clear();
+            scrobbler = Scrobbler::default();
+            session = None;
+            continue;
+        };
+        let connection = link.connection.clone();
         for action in actions {
             match action {
                 Action::NowPlaying(info) => {
-                    if let Err(e) = call(&client, "track.updateNowPlaying", track_params(&info), Some(&sk)).await {
+                    if let Err(e) = call(&client, api, &bearer, "now-playing", &track_body(&info, &connection)).await {
                         eprintln!("[lastfm] now playing failed: {e}");
                     }
                 }
@@ -265,17 +269,20 @@ async fn run(mut rx: UnboundedReceiver<Msg>, mut enabled: bool) {
                 }
             }
         }
-        while let Some((info, at)) = pending.front().cloned() {
-            let mut params = track_params(&info);
-            params.push(("timestamp", at.to_string()));
-            match call(&client, "track.scrobble", params, Some(&sk)).await {
+        // Let queued privacy and account changes take effect before another submission.
+        while rx.is_empty() {
+            let Some((info, at)) = pending.front().cloned() else { break };
+            let mut body = track_body(&info, &connection);
+            body["timestamp"] = json!(at);
+            match call(&client, api, &bearer, "scrobble", &body).await {
                 Ok(_) => {
                     pending.pop_front();
                 }
                 Err(ApiError::Lastfm(ERR_INVALID_SESSION, _)) => {
                     eprintln!("[lastfm] session revoked; sign in again in Settings");
-                    let _ = clear_session();
+                    if load_session(api).is_some_and(|current| current.connection == connection) { let _ = clear_session(api); }
                     session = None;
+                    pending.clear();
                     break;
                 }
                 Err(e) if retryable(&e) => {
@@ -302,29 +309,39 @@ pub struct LastfmStatus {
 }
 
 #[tauri::command]
-pub fn lastfm_status() -> LastfmStatus {
-    LastfmStatus { configured: configured(), username: load_session().map(|s| s.name) }
+pub fn lastfm_status(api_url: String) -> LastfmStatus {
+    let Ok(api) = CarbonApi::parse(&api_url) else { return LastfmStatus { configured: false, username: None } };
+    let bearer = api.token().ok().flatten();
+    let username = bearer.as_deref().and_then(|b| load_session(&api).filter(|s| s.carbon_session_hash == session_hash(b))).map(|s| s.name);
+    LastfmStatus { configured: bearer.is_some(), username }
 }
 
 #[tauri::command]
-pub async fn lastfm_connect(app: AppHandle, state: tauri::State<'_, Lastfm>) -> Result<String, String> {
-    let client = reqwest::Client::new();
-    let token_body = call(&client, "auth.getToken", vec![], None).await.map_err(|e| e.to_string())?;
-    let token = token_body.get("token").and_then(Value::as_str).ok_or("Last.fm sent no token")?.to_string();
-    let url = format!("{AUTH_URL}?api_key={}&token={token}", API_KEY.unwrap_or_default());
-    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())?;
+pub async fn lastfm_connect(api_url: String, app: AppHandle, state: tauri::State<'_, Lastfm>) -> Result<String, String> {
+    let api = CarbonApi::parse(&api_url)?;
+    let client = client()?;
+    let bearer = api.token()?.ok_or("Sign in to Carbon to use Last.fm.")?;
+    let start = call(&client, &api, &bearer, "connect", &json!({})).await.map_err(|e| e.to_string())?;
+    let token = start["token"].as_str().ok_or("Last.fm sent no token")?;
+    let key = start["apiKey"].as_str().ok_or("Last.fm configuration unavailable")?;
+    let challenge = start["challenge"].as_str().ok_or("Last.fm approval unavailable")?;
+    let url = reqwest::Url::parse_with_params(AUTH_URL, &[("api_key", key), ("token", token)]).map_err(|e| e.to_string())?;
+    app.opener().open_url(url.as_str(), None::<&str>).map_err(|e| e.to_string())?;
     let deadline = Instant::now() + AUTH_TIMEOUT;
     while Instant::now() < deadline {
         tokio::time::sleep(AUTH_POLL).await;
-        match call(&client, "auth.getSession", vec![("token", token.clone())], None).await {
+        match call(&client, &api, &bearer, "session", &json!({ "challenge": challenge })).await {
             Ok(body) => {
-                let s = body.get("session").ok_or("Last.fm sent no session")?;
                 let session = Session {
-                    name: s.get("name").and_then(Value::as_str).unwrap_or_default().to_string(),
-                    key: s.get("key").and_then(Value::as_str).ok_or("Last.fm sent no session key")?.to_string(),
+                    name: body["username"].as_str().ok_or("Last.fm sent no username")?.to_owned(),
+                    connection: body["connection"].as_str().ok_or("Last.fm sent no connection")?.to_owned(),
+                    carbon_session_hash: session_hash(&bearer),
                 };
+                if api.token()?.as_deref() != Some(&bearer) {
+                    return Err("Your Carbon account changed. Connect Last.fm again.".into());
+                }
                 let json = serde_json::to_string(&session).map_err(|e| e.to_string())?;
-                keyring()?.set_password(&json).map_err(|e| format!("could not save Last.fm sign-in: {e}"))?;
+                keyring(&api)?.set_password(&json).map_err(|e| format!("could not save Last.fm sign-in: {e}"))?;
                 state.send(Msg::SessionChanged);
                 return Ok(session.name);
             }
@@ -336,8 +353,8 @@ pub async fn lastfm_connect(app: AppHandle, state: tauri::State<'_, Lastfm>) -> 
 }
 
 #[tauri::command]
-pub fn lastfm_disconnect(state: tauri::State<'_, Lastfm>) -> Result<(), String> {
-    clear_session()?;
+pub fn lastfm_disconnect(api_url: String, state: tauri::State<'_, Lastfm>) -> Result<(), String> {
+    clear_session(&CarbonApi::parse(&api_url)?)?;
     state.send(Msg::SessionChanged);
     Ok(())
 }
@@ -347,12 +364,36 @@ mod tests {
     use super::*;
     use crate::playback::sample;
 
+    #[tokio::test]
+    async fn signing_uses_the_selected_accounts_server() {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+        let server = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let api = CarbonApi::parse(&format!("http://{}/accounts", server.local_addr().unwrap())).unwrap();
+        let reply = async {
+            let (mut stream, _) = server.accept().await.unwrap();
+            let mut lines = BufReader::new(&mut stream).lines();
+            assert_eq!(lines.next_line().await.unwrap().unwrap(), "POST /accounts/v1/lastfm/connect HTTP/1.1");
+            let mut authenticated = false;
+            while let Some(line) = lines.next_line().await.unwrap() {
+                if line.is_empty() { break; }
+                authenticated |= line.eq_ignore_ascii_case("Authorization: Bearer fixture-session");
+            }
+            assert!(authenticated);
+            stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}").await.unwrap();
+        };
+        let client = client().unwrap();
+        let request = json!({});
+        let (result, ()) = tokio::time::timeout(Duration::from_secs(5), async {
+            tokio::join!(call(&client, &api, "fixture-session", "connect", &request), reply)
+        }).await.unwrap();
+        assert_eq!(result.unwrap(), json!({}));
+    }
+
     #[test]
-    fn signature_sorts_params_and_skips_format() {
-        let params = vec![("track", "b".to_string()), ("api_key", "k".to_string()), ("format", "json".to_string())];
-        assert_eq!(signature_base(&params, "S"), "api_keyktrackbS");
-        assert_eq!(format!("{:x}", md5::compute("abc")), "900150983cd24fb0d6963f7d28e17f72");
-        assert_eq!(sign(&params, "S"), format!("{:x}", md5::compute("api_keyktrackbS")));
+    fn existing_direct_sessions_require_consent_to_connect_through_carbon() {
+        assert!(serde_json::from_value::<Session>(json!({"name":"listener","key":"old-device-key"})).is_err());
+        let link: Session = serde_json::from_value(json!({"name":"listener","connection":"sealed","carbon_session_hash":session_hash("first")})).unwrap();
+        assert_ne!(link.carbon_session_hash, session_hash("second"));
     }
 
     #[test]

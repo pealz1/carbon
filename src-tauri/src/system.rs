@@ -43,12 +43,12 @@ pub fn start_with_windows_once(app: &AppHandle) {
 }
 
 #[tauri::command]
-pub fn app_info(app: AppHandle) -> AppInfo {
+pub fn app_info(app: AppHandle, api_url: String) -> AppInfo {
     AppInfo {
         version: app.package_info().version.to_string(),
         installed: uninstaller().is_some(),
         discord_configured: discord::APP_ID.is_some(),
-        lastfm_configured: lastfm::configured(),
+        lastfm_configured: lastfm::configured(&api_url),
     }
 }
 
@@ -64,10 +64,11 @@ pub fn uninstall(app: AppHandle) -> Result<(), String> {
 /// index, Carbon playlists, smart-playlist rules and cached metadata. Credential Manager entries survive an uninstall, so this is the
 /// "leave nothing behind" option. Music files themselves are never touched.
 #[tauri::command]
-pub async fn remove_saved_data(app: AppHandle) -> Result<(), String> {
+pub async fn remove_saved_data(app: AppHandle, api_url: String) -> Result<(), String> {
+    let api = token_store::CarbonApi::parse(&api_url)?;
     token_store::token_clear()?;
-    token_store::carbon_token_clear()?;
-    lastfm::clear_session()?;
+    api.clear_token()?;
+    lastfm::clear_session(&api)?;
     listenbrainz::forget(&app)?;
     library::delete(&app)?;
     blocklist::delete(&app)?;

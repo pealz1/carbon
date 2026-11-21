@@ -11,11 +11,15 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: write
+permissions: {}
+concurrency:
+  group: carbon-release-${{ inputs.build_run || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   draft:
+    permissions:
+      contents: write # Create the draft release.
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
@@ -24,7 +28,9 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - id: draft
         run: |
           if ! gh release view "$TAG" >/dev/null 2>&1; then
@@ -34,6 +40,8 @@ jobs:
           echo "id=$(gh release view "$TAG" --json databaseId --jq .databaseId)" >> "$GITHUB_OUTPUT"
 
   release:
+    permissions:
+      contents: write # Upload the native packages to the draft.
     needs: draft
     strategy:
       fail-fast: false
@@ -49,22 +57,21 @@ jobs:
             args: ""
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/linux-desktop
         if: runner.os == 'Linux'
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
-          cache: npm
+          package-manager-cache: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
+          toolchain: stable
           targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
 
       - run: npm ci
 
@@ -98,18 +105,6 @@ jobs:
           if ($exe -ne "6D45D4E8CCF18FE1FDAC9164058F356102A2ECF2") { throw "NSIS.exe hash mismatch: $exe" }
           if ($dll -ne "75197FEE3C6A814FE035788D1C34EAD39349B860") { throw "nsis_tauri_utils.dll hash mismatch: $dll" }
 
-      # Integration keys are baked in at build time from repository secrets (never committed).
-      - name: Write build keys
-        shell: bash
-        run: |
-          {
-            echo "CARBON_DISCORD_APP_ID=${{ secrets.CARBON_DISCORD_APP_ID }}"
-            echo "CARBON_LASTFM_API_KEY=${{ secrets.CARBON_LASTFM_API_KEY }}"
-            echo "CARBON_LASTFM_SECRET=${{ secrets.CARBON_LASTFM_SECRET }}"
-            # Accounts are live at api.getcarbon.cc, so release builds require a Carbon sign-in.
-            echo "VITE_REQUIRE_CARBON_ACCOUNT=true"
-          } > .env.local
-
       - name: Configure Apple signing
         if: runner.os == 'macOS'
         env:
@@ -129,8 +124,10 @@ jobs:
             done
           fi
 
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
+          CARBON_DISCORD_APP_ID: ${{ secrets.CARBON_DISCORD_APP_ID }}
+          VITE_REQUIRE_CARBON_ACCOUNT: "true"
           APPIMAGE_EXTRACT_AND_RUN: "1"
           NO_STRIP: "true"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -151,12 +148,13 @@ jobs:
         if: runner.os == 'macOS'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.ref_name }}" src-tauri/target/{aarch64,x86_64}-apple-darwin/release/bundle/dmg/*.dmg --clobber
+          TAG: ${{ github.ref_name }}
+        run: gh release upload "$TAG" src-tauri/target/{aarch64,x86_64}-apple-darwin/release/bundle/dmg/*.dmg --clobber
 
   publish:
     permissions:
-      actions: read
-      contents: write
+      actions: read # Verify the completed native build.
+      contents: write # Publish the signed update manifest.
     needs: release
     if: ${{ !cancelled() && (needs.release.result == 'success' || (github.event_name == 'workflow_dispatch' && needs.release.result == 'skipped')) }}
     runs-on: ubuntu-latest
@@ -165,7 +163,9 @@ jobs:
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Select the completed native build
         if: github.event_name == 'workflow_dispatch'
         env:

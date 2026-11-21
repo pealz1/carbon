@@ -404,7 +404,7 @@ pub fn settings_set(app: AppHandle, state: State<SettingsState>, settings: Setti
         crate::popouts::configure_mini(&app, &settings)?;
     }
     if let Some(lastfm) = app.try_state::<crate::lastfm::Lastfm>() {
-        lastfm.send(crate::lastfm::Msg::Enabled(settings.lastfm_scrobbling));
+        lastfm.send(crate::lastfm::Msg::Enabled(settings.lastfm_scrobbling && !settings.private_session));
     }
     if let Some(listenbrainz) = app.try_state::<crate::listenbrainz::Listenbrainz>() {
         listenbrainz.send(crate::listenbrainz::Msg::Enabled(settings.listenbrainz_scrobbling));

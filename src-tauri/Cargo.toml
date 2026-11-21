@@ -1,6 +1,6 @@
 [package]
 name = "carbon"
-version = "0.8.1"
+version = "0.8.2"
 description = "Carbon, a glass Spotify client"
 authors = ["pealz"]
 edition = "2024"
@@ -31,6 +31,7 @@ keyring = { version = "3", features = ["windows-native"] }
 souvlaki = "0.9"
 discord-rich-presence = "1"
 md5 = "0.8"
+sha2 = "0.10"
 # Signs YouTube Music requests (SAPISIDHASH); already in the tree via tungstenite.
 sha1 = "0.11"
 # Same major as tauri-plugin-updater uses, so only one reqwest ends up in the binary.
@@ -90,3 +91,9 @@ strip = true
 [dev-dependencies]
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 tokio-tungstenite = { version = "0.30", default-features = false, features = ["connect"] }
+
+# GTK 3 requires glib 0.18. The vendored 0.18.5 includes gtk-rs/gtk-rs-core#1343
+# for RUSTSEC-2024-0429 and upstream test correction 107ad15c. Drop this patch
+# when the Linux stack supports glib >=0.20.
+[patch.crates-io]
+glib = { path = "vendor/glib-0.18.5" }

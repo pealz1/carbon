@@ -1,6 +1,7 @@
 // Bridge to Carbon's Rust core. Every call here is a Tauri command or event.
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { CARBON } from "$lib/config";
 import type { LibraryData } from "$lib/organizer";
 
 export type Effects = "full" | "balanced" | "minimal";
@@ -242,16 +243,16 @@ export const librarySet = (library: LibraryData) => invoke<LibraryData>("library
 export const blocklistGet = () => invoke<BlocklistData>("blocklist_get");
 export const blocklistSet = (blocklist: BlocklistData) => invoke<BlocklistData>("blocklist_set", { blocklist });
 
-export const appInfo = () => invoke<AppInfo>("app_info");
+export const appInfo = () => invoke<AppInfo>("app_info", { apiUrl: CARBON.apiUrl });
 /** Bytes "Clear cache" would free: notification artwork and library metadata. */
 export const cacheSize = () => invoke<number>("cache_size");
 export const cacheClear = () => invoke<void>("cache_clear");
 export const uninstall = () => invoke("uninstall");
-export const removeSavedData = () => invoke("remove_saved_data");
+export const removeSavedData = () => invoke("remove_saved_data", { apiUrl: CARBON.apiUrl });
 
-export const lastfmStatus = () => invoke<LastfmStatus>("lastfm_status");
-export const lastfmConnect = () => invoke<string>("lastfm_connect");
-export const lastfmDisconnect = () => invoke("lastfm_disconnect");
+export const lastfmStatus = () => invoke<LastfmStatus>("lastfm_status", { apiUrl: CARBON.apiUrl });
+export const lastfmConnect = () => invoke<string>("lastfm_connect", { apiUrl: CARBON.apiUrl });
+export const lastfmDisconnect = () => invoke("lastfm_disconnect", { apiUrl: CARBON.apiUrl });
 
 export const listenbrainzStatus = () => invoke<ListenbrainzStatus>("listenbrainz_status");
 /** Checks the token with ListenBrainz and saves it; resolves to the account name. */

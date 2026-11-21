@@ -22,7 +22,7 @@
     const timer = setTimeout(() => {
       if (next === term) return;
       term = next;
-      void goto(next ? `?q=${encodeURIComponent(next)}` : "?", { replaceState: true, keepFocus: true, noScroll: true });
+      void goto(next ? `?q=${encodeURIComponent(next)}` : "?", { replace: true, reset: false });
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
   });

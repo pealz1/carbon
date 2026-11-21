@@ -40,7 +40,7 @@
   // Spotify groups albums before singles, so the newest is picked by year (album cards lead with it).
   const yearOf = (card: Card) => Number(card.subtitle.slice(0, 4)) || 0;
   const latest = $derived(everything.items.reduce<Card | null>((best, card) => (!best || yearOf(card) > yearOf(best) ? card : best), null));
-  const showKind = (id: string) => goto(id ? `?show=${id}` : "?", { replaceState: true, noScroll: true, keepFocus: true });
+  const showKind = (id: string) => goto(id ? `?show=${id}` : "?", { replace: true, reset: false });
 </script>
 
 {#if artist.loading && !artist.data}
