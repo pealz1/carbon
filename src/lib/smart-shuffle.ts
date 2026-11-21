@@ -1,10 +1,26 @@
 // Carbon's own shuffle. Every shuffle Carbon does (its queues, YouTube Music, and Spotify lists it can
-// read when Smart shuffle is on) is an unweighted Fisher–Yates shuffle; Smart shuffle then spaces the
-// order so songs sharing an artist don't play back to back, wherever the mix of artists allows it.
+// read when Smart shuffle is on) is a Fisher–Yates shuffle. Songs the listener has rated tilt it:
+// higher stars tend to come up earlier, lower stars later, and it is still a shuffle. Smart shuffle
+// then spaces the order so songs sharing an artist don't play back to back, wherever the mix allows.
 import type { Track } from "$lib/spotify/types";
 
 /** Settings → Playback → Smart shuffle. Set from settings by preferences.svelte.ts. */
 export const smartShuffle = { enabled: false };
+
+/** The listener's star ratings (0 = not rated). Set by ratings.svelte.ts, so this module stays pure. */
+export const starSource = { starsOf: (_uri: string): number => 0 };
+
+/** Stars to odds: five stars come up early about 3.5 times as often as an unrated song; one star, a quarter as often. */
+const STAR_WEIGHTS = [1, 0.25, 0.5, 1, 2, 3.5];
+const weightOf = (track: Track): number => STAR_WEIGHTS[starSource.starsOf(track.uri)] ?? 1;
+
+/** A shuffle where heavier items tend to come earlier (Efraimidis–Spirakis sampling). */
+export function weightedShuffle<T>(items: T[], weight: (item: T) => number, random: () => number = Math.random): T[] {
+  return items
+    .map((item) => ({ item, key: Math.pow(random(), 1 / Math.max(weight(item), 1e-6)) }))
+    .sort((a, b) => b.key - a.key)
+    .map((entry) => entry.item);
+}
 
 export function fisherYates<T>(items: T[], random: () => number = Math.random): T[] {
   const out = items.slice();
@@ -70,9 +86,7 @@ export function spreadArtists<T>(items: T[], keysOf: (item: T) => string[], prev
 export function shuffledFrom(items: Track[], index: number, random: () => number = Math.random, spaced = smartShuffle.enabled): Track[] {
   const first = items[index];
   if (!first) return [];
-  const rest = fisherYates(
-    items.filter((_, i) => i !== index),
-    random,
-  );
+  const others = items.filter((_, i) => i !== index);
+  const rest = others.some((t) => weightOf(t) !== 1) ? weightedShuffle(others, weightOf, random) : fisherYates(others, random);
   return [first, ...(spaced ? spreadArtists(rest, artistKeys, artistKeys(first)) : rest)];
 }
