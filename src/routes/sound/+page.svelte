@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import Icon from "$lib/components/Icon.svelte";
   import Toggle from "$lib/components/Toggle.svelte";
+  import { t } from "$lib/i18n/locale.svelte";
   import Visualizer from "$lib/components/Visualizer.svelte";
   import type { TagGain } from "$lib/local/api";
   import { sound } from "$lib/local/sound.svelte";
@@ -21,15 +23,15 @@
   ];
 
   const EQ_STATUS: Record<SpotifyEqStatus, string> = {
-    off: "Off. Spotify plays exactly as Spotify sends it.",
-    restart: "Restart Carbon to switch this on.",
-    waiting: "On. Waiting for Spotify's player to start.",
-    ready: "On. Waiting for Spotify's player to start.",
-    active: "Active on Spotify's audio.",
-    protected: "Spotify's audio is copy-protected here, so it was left untouched.",
-    silent: "The EQ silenced Spotify's audio, so it was switched off.",
-    failed: "Couldn't attach to Spotify's player, so it was switched off.",
+    off: "Off",
+    waiting: "Starts with the next song",
+    ready: "Starts with the next song",
+    active: "Active",
+    protected: "Protected here",
+    silent: "Switched off",
+    failed: "Couldn't attach",
   };
+  const TONE_MAX = 12;
 
   const s = $derived(sound.value);
   const xOf = (hz: number) => Math.log(hz / 20) / SPAN;
@@ -47,13 +49,42 @@
   <h1>Sound</h1>
   <!-- The slot is always there, so the page doesn't jump when a local file starts or stops. -->
   <div class="scope">{#if sound.playing}<Visualizer />{/if}</div>
-  <p class="lede">Shapes local files played by Carbon's own engine. Spotify's audio is left as Spotify sends it.</p>
 </header>
 
 {#if sound.error}<p class="warn" role="alert">{sound.error}</p>{/if}
 
 {#if s}
   <section class="eq plate" aria-label="Equalizer">
+    <!-- What the equalizer reaches, and the two controls most people want: up front, not buried. -->
+    <div class="reach">
+      <div class="streaming" title={t("Experimental. May stop working, or conflict with those services' terms.")}>
+        <Toggle checked={s.spotifyEq} label="Also shape Spotify and YouTube Music" onchange={(v) => sound.update({ spotifyEq: v })} />
+        <span class="state" class:live={sound.spotifyEq === "active"} role="status">{t(EQ_STATUS[sound.spotifyEq])}</span>
+      </div>
+      <button class="pill boost" class:accent={s.boost} aria-pressed={s.boost} onclick={() => sound.update({ boost: !s.boost })} title={t("Louder than 100%, through a limiter")}>
+        <Icon name="spark" size={15} /> Boost
+      </button>
+    </div>
+    {#if sound.bypassNote}<p class="warn">{sound.bypassNote}</p>{/if}
+
+    <div class="tone">
+      {#each [{ id: "bass", name: "Bass", value: sound.bass }, { id: "treble", name: "Treble", value: sound.treble }] as const as tone (tone.id)}
+        <label class="range">
+          <span class="row"><span class="label">{t(tone.name)}</span><span class="tabular muted">{signed(tone.value)} dB</span></span>
+          <input
+            type="range"
+            min={-TONE_MAX}
+            max={TONE_MAX}
+            step="0.5"
+            value={tone.value}
+            aria-valuetext="{signed(tone.value)} dB"
+            oninput={(e) => sound.setTone(tone.id, Number(e.currentTarget.value))}
+            ondblclick={() => sound.setTone(tone.id, 0)}
+          />
+        </label>
+      {/each}
+    </div>
+
     <div class="presets segmented" role="radiogroup" aria-label="EQ preset">
       {#each sound.presets as p (p.id)}
         <button role="radio" aria-checked={s.preset === p.id} class:active={s.preset === p.id} onclick={() => sound.applyPreset(p.id)}>{p.name}</button>
@@ -111,18 +142,13 @@
         {/each}
       </div>
     </div>
-    <p class="fine">Double-click a band to reset it. A limiter keeps boosts from clipping.</p>
+    <p class="fine">Double-click a band to reset it.</p>
   </section>
 
   <div class="grid">
     <section class="panel plate">
-      <h2>Playback</h2>
-      <Toggle
-        checked={s.skipSilence}
-        label="Skip silence"
-        description="Skips silence longer than a second at the start and end of a file. Shorter pauses stay, so albums remain gapless."
-        onchange={(v) => sound.update({ skipSilence: v })}
-      />
+      <h2>Local files</h2>
+      <Toggle checked={s.skipSilence} label="Skip silence" description="Over a second, at the start and end of a file" onchange={(v) => sound.update({ skipSilence: v })} />
       <label class="range">
         <span class="row"><span class="label">Speed</span><span class="tabular muted">{times(sound.rate)}</span></span>
         <input
@@ -134,13 +160,12 @@
           aria-valuetext={times(sound.rate)}
           onchange={(e) => sound.setSpeed(Number(e.currentTarget.value))}
           ondblclick={() => sound.setSpeed(1)}
+          title={t("Pitch follows speed. Double-click for 1×.")}
         />
-        <span class="muted">Pitch follows speed. Double-click to return to 1×; Carbon also starts there each time it opens.</span>
       </label>
       <label class="range">
         <span class="row"><span class="label">Crossfade</span><span class="tabular muted">{s.crossfadeSecs ? `${s.crossfadeSecs} s` : "Off"}</span></span>
         <input type="range" min="0" max={CROSSFADE_MAX} step="1" value={s.crossfadeSecs} oninput={(e) => sound.update({ crossfadeSecs: Number(e.currentTarget.value) })} />
-        <span class="muted">Crossfade applies to local files. Spotify songs always stop before the next song starts. Albums stay gapless.</span>
       </label>
       <label class="range">
         <span class="row"><span class="label">Stereo width</span><span class="tabular muted">{Math.round(s.width * 100)}%</span></span>
@@ -150,12 +175,7 @@
 
     <section class="panel plate">
       <h2>Loudness</h2>
-      <Toggle
-        checked={s.normalize}
-        label="Even out loudness"
-        description="Uses a file's loudness tags when it has them, otherwise measures the file once and remembers it. Local files only."
-        onchange={(v) => sound.update({ normalize: v })}
-      />
+      <Toggle checked={s.normalize} label="Even out loudness" description="Local files" onchange={(v) => sound.update({ normalize: v })} />
       <div class="range">
         <span class="label" id="tag-gain">Loudness tags</span>
         <div class="segmented" role="radiogroup" aria-labelledby="tag-gain">
@@ -163,14 +183,9 @@
             <button role="radio" aria-checked={s.tagGain === mode.id} disabled={!s.normalize} onclick={() => sound.update({ tagGain: mode.id })}>{mode.name}</button>
           {/each}
         </div>
-        <span class="muted">{TAG_MODES.find((mode) => mode.id === s.tagGain)?.note} Reads ReplayGain and R128 tags.</span>
+        <span class="muted">{TAG_MODES.find((mode) => mode.id === s.tagGain)?.note}</span>
       </div>
-      <Toggle
-        checked={s.compressor}
-        label="Compressor"
-        description="Brings loud passages down and quiet ones up, for listening at low volume or over background noise."
-        onchange={(v) => sound.update({ compressor: v })}
-      />
+      <Toggle checked={s.compressor} label="Compressor" description="For low volume or a noisy room" onchange={(v) => sound.update({ compressor: v })} />
       <label class="range">
         <span class="row"><span class="label">Amount</span><span class="tabular muted">{Math.round(s.compressorAmount * 100)}%</span></span>
         <input
@@ -197,20 +212,6 @@
           {#if s.device && !sound.devices.includes(s.device)}<option value={s.device}>{s.device} (not connected)</option>{/if}
         </select>
       </label>
-      <p class="muted">If this device disconnects, Carbon switches to the Windows default and keeps playing.</p>
-    </section>
-
-    <section class="panel plate experimental">
-      <h2>EQ on Spotify audio</h2>
-      <p class="flag" role="note">Experimental — may stop working or conflict with Spotify's terms</p>
-      <Toggle
-        checked={s.spotifyEq}
-        label="Apply this EQ to Spotify"
-        description="Off by default. Takes effect after restarting Carbon. If Spotify's audio is copy-protected, Carbon leaves it untouched and switches this off."
-        onchange={(v) => sound.update({ spotifyEq: v })}
-      />
-      <p class="status" role="status">{EQ_STATUS[sound.spotifyEq]}</p>
-      {#if sound.bypassNote}<p class="warn">{sound.bypassNote}</p>{/if}
     </section>
   </div>
 {/if}
@@ -219,13 +220,6 @@
   .page-head {
     justify-content: space-between;
     gap: var(--sp-4) var(--sp-6);
-  }
-
-  .lede {
-    max-width: 44ch;
-    margin: 0;
-    color: var(--text-muted);
-    line-height: 1.5;
   }
 
   /* Sits on the title's baseline, between the title and the lede. */
@@ -438,24 +432,52 @@
     cursor: not-allowed;
   }
 
-  .experimental {
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--warning) 45%, transparent);
+  /* The top of the equalizer: what it reaches, and Boost. */
+  .reach {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-3) var(--sp-5);
   }
 
-  .flag {
-    align-self: flex-start;
-    margin: 0;
-    padding: var(--sp-1) var(--sp-3);
+  .streaming {
+    flex: 1 1 320px;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+
+  .streaming > :global(:first-child) {
+    flex: 1;
+  }
+
+  .state {
+    flex: none;
+    padding: 3px var(--sp-3);
     border-radius: var(--r-pill);
-    background: color-mix(in oklch, var(--warning) 12%, transparent);
-    color: var(--warning);
-    font-size: var(--fs-small);
+    background: var(--glass);
+    color: var(--text-muted);
+    font-size: var(--fs-caption);
     font-weight: 650;
+    transition:
+      background var(--dur-med),
+      color var(--dur-med);
   }
 
-  .status {
-    margin: 0;
-    font-size: var(--fs-small);
-    color: var(--text-muted);
+  .state.live {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .boost {
+    align-self: center;
+  }
+
+  .tone {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-4) var(--sp-6);
+    padding-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--glass-edge);
   }
 </style>

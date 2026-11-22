@@ -42,6 +42,7 @@
   import TagEditorDialog from "$lib/local/TagEditorDialog.svelte";
   import { onScreen } from "$lib/on-screen.svelte";
   import { organizer } from "$lib/organizer.svelte";
+  import { output } from "$lib/output.svelte";
   import { player } from "$lib/player.svelte";
   import { compact, keepYoutubeOnScreen } from "$lib/popout/compact.svelte";
   import { popouts } from "$lib/popout/host.svelte";
@@ -91,10 +92,11 @@
       });
     const stopUpdates = updates.start(); // looks for new versions in the background
     const stopSync=musicSync.start();
+    const stopOutput = output.start(); // Windows' output devices, and Carbon's name in the volume mixer
     const stopPopouts = popouts.start();
     const stopSounds = installSoundFeedback(document);
     const onScreen = keepYoutubeOnScreen(async () => void (player.paused || (await player.togglePlay())));
-    return () => (stopUpdates(), stopSync(), stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
+    return () => (stopUpdates(), stopSync(), stopOutput(), stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
   });
 
   // Music services start once the Carbon account gate (if this build has one) is passed.

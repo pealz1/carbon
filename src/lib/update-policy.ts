@@ -3,8 +3,8 @@
 
 /** A minute after launch, so the check never competes with sign-in and the first page. */
 export const FIRST_CHECK_MS = 60_000;
-/** Then every six hours, for Carbon left running for days. */
-export const CHECK_EVERY_MS = 6 * 60 * 60_000;
+/** Then every hour, for Carbon left running for days: one request for a file of a few kilobytes. */
+export const CHECK_EVERY_MS = 60 * 60_000;
 /** While an update waits, how often to see whether now is a quiet moment. */
 export const QUIET_POLL_MS = 60_000;
 

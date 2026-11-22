@@ -17,6 +17,8 @@ class Updates {
   error = $state<string | null>(null);
   #update: Update | null = null;
   #started = false;
+  /** Ticks only while a downloaded update waits for a quiet moment. */
+  #quiet: ReturnType<typeof setInterval> | undefined;
   /** The version already announced, so a found update is mentioned once. */
   #told: string | null = null;
 
@@ -30,11 +32,11 @@ class Updates {
     this.#started = true;
     const first = setTimeout(() => void this.#background(), FIRST_CHECK_MS);
     const every = setInterval(() => void this.#background(), CHECK_EVERY_MS);
-    const quiet = setInterval(() => void this.#installIfQuiet(), QUIET_POLL_MS);
     return () => {
       clearTimeout(first);
       clearInterval(every);
-      clearInterval(quiet);
+      clearInterval(this.#quiet);
+      this.#quiet = undefined;
       this.#started = false;
     };
   }
@@ -72,7 +74,8 @@ class Updates {
         this.progress = total ? received / total : 0;
       });
       this.state = "ready";
-      if (quiet) this.#announce(`Carbon ${this.version} is ready. It installs the next time Carbon is in the tray with nothing playing.`, "Restart now");
+      // No notice: the title bar shows "Restart to update", and it installs by itself from the tray.
+      if (quiet) this.#quiet ??= setInterval(() => void this.#installIfQuiet(), QUIET_POLL_MS);
       return true;
     } catch (e) {
       console.error("[updates] download failed", e);
@@ -96,7 +99,7 @@ class Updates {
   }
 
   async #background(): Promise<void> {
-    if (!shouldCheck(this.state) || !(await this.check(true))) return;
+    if (!navigator.onLine || !shouldCheck(this.state) || !(await this.check(true))) return;
     if (this.auto) await this.download(true);
     else this.#announce(`Carbon ${this.version} is out.`, "Update now");
   }

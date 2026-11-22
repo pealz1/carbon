@@ -14,6 +14,7 @@
   import LikeButton from "./LikeButton.svelte";
   import Logo from "./Logo.svelte";
   import LoopZone from "./LoopZone.svelte";
+  import OutputMenu from "./OutputMenu.svelte";
   import PlaybackTools from "./PlaybackTools.svelte";
   import PlayingElsewhere from "./PlayingElsewhere.svelte";
   import Slider from "./Slider.svelte";
@@ -116,11 +117,7 @@
     <button class="ctl" onclick={view.enterCinema} aria-label="Cinema mode" title="Cinema mode (Ctrl+Shift+C)">
       <Icon name="screen" size={18} />
     </button>
-    {#if prefs.value?.soundButton}
-      <a class="ctl" class:on={page.url.pathname === "/sound"} href="/sound" aria-label="Sound settings" title="Sound settings">
-        <Icon name="equalizer" size={18} />
-      </a>
-    {/if}
+    <OutputMenu />
     <button class="ctl" onwheel={wheelVolume} onclick={() => player.setVolume(player.volume > 0 ? 0 : DEFAULT_VOLUME)} aria-label={player.volume > 0 ? "Mute" : "Unmute"} title={player.volume > 0 ? "Mute" : "Unmute"}>
       <Icon name={player.volume > 0 ? "volume" : "mute"} size={18} />
     </button>

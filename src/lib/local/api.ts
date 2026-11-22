@@ -87,7 +87,10 @@ export interface SoundSettings {
   crossfadeSecs: number;
   width: number;
   device: string;
+  /** The EQ also shapes the embedded players (Spotify, YouTube Music). */
   spotifyEq: boolean;
+  /** Louder than 100%, through a limiter. */
+  boost: boolean;
 }
 
 export interface Preset {
@@ -147,7 +150,6 @@ export const sound = {
   presets: () => invoke<Preset[]>("sound_presets"),
   curve: (bands: Bands, preampDb: number, points: number) => invoke<number[]>("sound_curve", { bands, preampDb, points }),
   devices: () => invoke<string[]>("sound_devices"),
-  spotifyEqInjected: () => invoke<boolean>("sound_spotify_eq_injected"),
   /** "Remove saved data" put everything back on defaults. */
   onReset: (handler: (settings: SoundSettings) => void) => listen<SoundSettings>("sound-reset", (e) => handler(e.payload)),
 };
