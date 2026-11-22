@@ -73,6 +73,7 @@
     description={p.description || null}
     playUri={p.uri}
     shuffleCount={p.trackCount ?? undefined}
+    share={liked ? undefined : { uri: p.uri, name: p.name }}
     menuItems={card ? () => ytCardMenu(card!) : undefined}
   >
     {#snippet byline()}

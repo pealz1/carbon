@@ -10,6 +10,7 @@ import { collectItem } from "$lib/collections/collections.svelte";
 import { dialogs } from "$lib/dialogs.svelte";
 import { editTagsItems } from "$lib/local/tag-menu";
 import { isLocalUri } from "$lib/local/tracks";
+import { ytmLink } from "$lib/youtube/uri";
 import type { MenuEntry, MenuItem } from "$lib/menu.svelte";
 import { flattenFolders, folderOf, movePlaylist, removeFolder, togglePin } from "$lib/organizer";
 import { organizer } from "$lib/organizer.svelte";
@@ -43,8 +44,22 @@ export async function copyLink(uri: string): Promise<void> {
   await copyText(link, "Link copied.");
 }
 
-/** Share submenu: the link, the name as text, or the page on Spotify. `name` is what "Copy name" copies. */
+/** Share for something on YouTube Music: its music.youtube.com link, or its name as text. */
+function youtubeShare(uri: string, name: string): MenuItem {
+  const link = ytmLink(uri);
+  return {
+    label: "Share",
+    icon: "export",
+    items: [
+      { label: "Copy YouTube Music link", icon: "link", disabled: !link, action: () => link && copyText(link, "Link copied.") },
+      { label: "Copy name", icon: "duplicate", action: () => copyText(name) },
+    ],
+  };
+}
+
+/** Share submenu: the link, the name as text, or the page on its service. `name` is what "Copy name" copies. */
 export function shareItem(uri: string, name: string): MenuItem {
+  if (isYoutubeUri(uri)) return youtubeShare(uri, name);
   const link = spotifyLink(uri);
   return {
     label: "Share",

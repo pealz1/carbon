@@ -26,6 +26,7 @@
     title={a.name}
     image={a.largeImage}
     playUri={a.uri}
+    share={{ uri: a.uri, name: a.name }}
     round
     placeholderIcon="artist"
     chips={[{ label: "Artist", icon: "artist" }]}

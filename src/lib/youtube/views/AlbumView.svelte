@@ -40,6 +40,7 @@
     description={a.description || null}
     playUri={a.uri}
     shuffleCount={a.tracks.length}
+    share={{ uri: a.uri, name: a.artists.length ? `${a.name} – ${a.artists.map((x) => x.name).join(", ")}` : a.name }}
     menuItems={() => ytCardMenu({ kind: "album", id: a.id, uri: a.uri, title: a.name, subtitle: "", image: a.image, playUri: a.uri })}
   >
     {#snippet byline()}
