@@ -50,7 +50,7 @@
     padding: var(--sp-2);
     border-radius: var(--r-md);
     text-align: left;
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   button:hover {

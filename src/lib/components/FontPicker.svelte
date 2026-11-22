@@ -140,7 +140,7 @@
     transition:
       background var(--dur-fast),
       box-shadow var(--dur-med),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .current:hover,

@@ -98,7 +98,7 @@
     transition:
       background var(--dur-fast),
       opacity var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .pager button:hover:not(:disabled) {

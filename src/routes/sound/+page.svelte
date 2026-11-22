@@ -355,7 +355,7 @@
     border-radius: var(--r-pill);
     background: var(--text);
     box-shadow: 0 2px 10px rgb(0 0 0 / 0.6);
-    transition: transform var(--dur-fast) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   .preamp input:hover::-webkit-slider-thumb,

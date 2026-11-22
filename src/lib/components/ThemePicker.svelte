@@ -70,7 +70,7 @@
     text-align: left;
     transition:
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .card:hover {

@@ -86,7 +86,7 @@
     place-items: center;
     border-radius: var(--r-pill);
     color: var(--text-muted);
-    transition: color var(--dur-fast), background var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+    transition: color var(--dur-fast), background var(--dur-fast), transform var(--dur-spring) var(--ease-spring);
   }
 
   .trigger:hover {

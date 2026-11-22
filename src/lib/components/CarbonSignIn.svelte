@@ -73,7 +73,7 @@
     font-size: 1rem;
     box-shadow: 0 18px 40px -14px var(--accent-glow);
     transition:
-      transform var(--dur-fast) var(--ease-spring),
+      transform var(--dur-spring) var(--ease-spring),
       opacity var(--dur-fast);
   }
 

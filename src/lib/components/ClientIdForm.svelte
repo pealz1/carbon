@@ -104,7 +104,7 @@
     background: var(--accent);
     color: var(--accent-ink);
     font-weight: 700;
-    transition: transform var(--dur-fast) var(--ease-spring), opacity var(--dur-fast);
+    transition: transform var(--dur-spring) var(--ease-spring), opacity var(--dur-fast);
   }
 
   .save:hover:not(:disabled) {

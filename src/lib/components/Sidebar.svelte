@@ -96,7 +96,7 @@
       background var(--dur-fast),
       color var(--dur-fast),
       box-shadow var(--dur-med),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .search:hover,
@@ -143,7 +143,7 @@
     font-weight: 600;
     transition:
       color var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
     --press: var(--press-wide);
   }
 
@@ -177,7 +177,7 @@
     transition:
       background var(--dur-fast),
       box-shadow var(--dur-med),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
     --press: var(--press-wide);
   }
 
@@ -190,7 +190,7 @@
   .sidebar :global(.row.active) {
     background: var(--chrome-active);
     box-shadow: var(--rim);
-    animation: row-on var(--dur-med) var(--ease-spring);
+    animation: row-on var(--dur-spring) var(--ease-spring);
   }
 
   @keyframes row-on {
@@ -211,7 +211,7 @@
     color: var(--chrome-text);
     opacity: 0.88;
     transition:
-      scale var(--dur-med) var(--ease-spring),
+      scale var(--dur-spring) var(--ease-spring),
       opacity var(--dur-fast);
   }
 

@@ -199,7 +199,7 @@
     place-items: center;
     border-radius: 50%;
     color: var(--text-muted);
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   .clear:hover {
@@ -231,7 +231,7 @@
     font-size: var(--fs-small);
     font-weight: 600;
     white-space: nowrap;
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   .sources button:hover {
@@ -312,7 +312,7 @@
     background: var(--plate);
     box-shadow: inset 0 0 0 1px var(--glass-edge);
     color: var(--text-muted);
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   .recent li span {

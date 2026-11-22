@@ -696,8 +696,8 @@
     transition:
       background var(--dur-fast),
       box-shadow var(--dur-med),
-      translate var(--dur-med) var(--ease-spring),
-      transform var(--dur-med) var(--ease-spring);
+      translate var(--dur-spring) var(--ease-spring),
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .circle:hover {
@@ -721,7 +721,7 @@
     font-size: var(--fs-lead);
     font-weight: 700;
     box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.8);
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   /* An artwork pill is mid-tone in every theme, so its text stays ink even when Light flips --ink. */

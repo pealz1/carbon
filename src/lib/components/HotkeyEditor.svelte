@@ -91,7 +91,7 @@
       background var(--dur-fast),
       color var(--dur-fast),
       box-shadow var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .keys:hover {

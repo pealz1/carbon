@@ -66,7 +66,7 @@
       inset 0 1px 0 rgb(var(--tint) / 0.08),
       inset 0 0 0 1px var(--glass-edge);
     text-decoration: none;
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   /* The tile's colour, pooled in a corner and brighter on hover. */

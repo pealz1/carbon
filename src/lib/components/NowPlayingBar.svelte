@@ -289,8 +289,8 @@
       opacity var(--dur-fast),
       background var(--dur-fast),
       box-shadow var(--dur-med),
-      scale var(--dur-med) var(--ease-spring),
-      transform var(--dur-med) var(--ease-spring);
+      scale var(--dur-spring) var(--ease-spring),
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   /* Hover lights a round, raised button under the icon. */

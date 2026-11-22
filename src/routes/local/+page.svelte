@@ -247,7 +247,7 @@
     transition:
       background var(--dur-fast),
       color var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .back:hover {
@@ -299,7 +299,7 @@
     text-align: left;
     transition:
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
     /* Holds still when pressed: the cover never scales. */
     --press: 1;
   }
@@ -363,7 +363,7 @@
     text-align: left;
     transition:
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
     /* Holds still when pressed: the cover never scales. */
     --press: 1;
   }
@@ -436,7 +436,7 @@
     transition:
       background var(--dur-fast),
       color var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .folder button:hover {

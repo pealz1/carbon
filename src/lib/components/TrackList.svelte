@@ -210,7 +210,7 @@
     contain-intrinsic-size: auto 54px;
     transition:
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .tracks:focus {
@@ -422,7 +422,7 @@
     transition:
       opacity var(--dur-fast),
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .more:hover {

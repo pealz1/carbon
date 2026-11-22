@@ -47,7 +47,7 @@
     border-radius: var(--r-pill);
     background: var(--text);
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   input:checked + .track {

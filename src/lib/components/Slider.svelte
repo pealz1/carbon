@@ -96,7 +96,7 @@
     transform: scale(0.5);
     transition:
       opacity var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
     pointer-events: none;
   }
 

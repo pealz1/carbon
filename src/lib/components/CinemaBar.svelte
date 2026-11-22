@@ -348,7 +348,7 @@
     box-shadow:
       0 0 0 1px rgb(255 255 255 / 0.08),
       0 8px 22px -8px rgb(0 0 0 / 0.85);
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   .now:hover .thumb {
@@ -413,7 +413,7 @@
   }
 
   .extras.open > :global(*) {
-    animation: unfold var(--dur-med) var(--ease-spring) backwards;
+    animation: unfold var(--dur-spring) var(--ease-spring) backwards;
   }
 
   .extras.open > :global(*:nth-last-child(2)) {
@@ -437,8 +437,8 @@
 
   .more :global(svg) {
     transition:
-      transform var(--dur-med) var(--ease-spring),
-      scale var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring),
+      scale var(--dur-spring) var(--ease-spring);
   }
 
   .more.open :global(svg) {
@@ -470,7 +470,7 @@
     transition:
       color var(--dur-fast),
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .bar :global(.ctl:hover),
@@ -510,7 +510,7 @@
     transition:
       color var(--dur-fast),
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .bar :global(.chip .chip-text) {
@@ -535,7 +535,7 @@
     box-shadow: 0 8px 22px -10px rgb(0 0 0 / 0.9);
     transition:
       box-shadow var(--dur-med),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   /* A soft light around the button while music plays. */

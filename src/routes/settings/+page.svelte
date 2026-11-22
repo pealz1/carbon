@@ -240,7 +240,7 @@
       background var(--dur-fast),
       color var(--dur-fast),
       box-shadow var(--dur-med),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
     --press: var(--press-wide);
   }
 

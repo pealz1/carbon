@@ -119,7 +119,7 @@
     border-radius: var(--r-pill);
     background: var(--swatch);
     transition:
-      transform var(--dur-med) var(--ease-spring),
+      transform var(--dur-spring) var(--ease-spring),
       box-shadow var(--dur-fast);
   }
 

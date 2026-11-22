@@ -217,7 +217,7 @@
     color: var(--text);
     font-size: var(--fs-body);
     text-align: left;
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
     --press: var(--press-wide);
   }
 
@@ -234,7 +234,7 @@
     scale: 0.94 0.8;
     transition:
       opacity var(--dur-fast) var(--ease-out),
-      scale var(--dur-med) var(--ease-spring);
+      scale var(--dur-spring) var(--ease-spring);
   }
 
   button:hover::before,
@@ -276,7 +276,7 @@
     opacity: 0.8;
     transition:
       opacity var(--dur-fast),
-      scale var(--dur-med) var(--ease-spring);
+      scale var(--dur-spring) var(--ease-spring);
   }
 
   button:hover .icon,

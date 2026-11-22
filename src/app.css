@@ -392,7 +392,7 @@ button {
 /* Icons swell a little under the pointer and spring back. `scale` composes with any transform a
    component sets, so it never fights the press. */
 :where(button, a, [role="button"]) > svg {
-  transition: scale var(--dur-med) var(--ease-spring);
+  transition: scale var(--dur-spring) var(--ease-spring);
 }
 
 :where(button, a, [role="button"]):where(:hover:not(:disabled)) > svg {
@@ -480,8 +480,8 @@ img {
     background var(--dur-fast),
     color var(--dur-fast),
     box-shadow var(--dur-med),
-    translate var(--dur-med) var(--ease-spring),
-    transform var(--dur-med) var(--ease-spring);
+    translate var(--dur-spring) var(--ease-spring),
+    transform var(--dur-spring) var(--ease-spring);
 }
 
 /* Hover lifts a control a pixel and brightens its rim. */
@@ -545,7 +545,7 @@ img {
   transition:
     background var(--dur-fast),
     color var(--dur-fast),
-    transform var(--dur-med) var(--ease-spring);
+    transform var(--dur-spring) var(--ease-spring);
 }
 
 .segmented > button:hover {

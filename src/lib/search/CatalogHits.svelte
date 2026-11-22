@@ -105,7 +105,7 @@
     text-align: left;
     transition:
       opacity var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   li:nth-child(odd) .hit {
