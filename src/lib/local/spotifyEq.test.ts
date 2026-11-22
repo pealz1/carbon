@@ -22,6 +22,13 @@ describe("Spotify EQ bridge", () => {
     expect(eqMessage({ ...settings, spotifyEq: true })).toEqual({ carbonEq: { enabled: true, preampDb: -2, bands: Array(10).fill(1) } });
   });
 
+  it("sends bands that can cross to another frame, even from reactive settings", () => {
+    const reactive = new Proxy(Array(10).fill(2), {});
+    const message = eqMessage({ spotifyEq: true, boost: false, preampDb: 0, bands: reactive } as SoundSettings);
+    expect(message.carbonEq.bands).not.toBe(reactive);
+    expect(structuredClone(message)).toEqual({ carbonEq: { enabled: true, preampDb: 0, bands: Array(10).fill(2) } });
+  });
+
   it("routes for Boost alone with a flat curve, and adds it to the preamp with the EQ", () => {
     const settings = { spotifyEq: false, boost: true, preampDb: -2, bands: Array(10).fill(1) } as SoundSettings;
     expect(eqMessage(settings)).toEqual({ carbonEq: { enabled: true, preampDb: BOOST_DB, bands: Array(10).fill(0) } });

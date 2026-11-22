@@ -16,7 +16,6 @@
   import YoutubePanel from "$lib/components/YoutubePanel.svelte";
   import { dialogs } from "$lib/dialogs.svelte";
   import { t } from "$lib/i18n/locale.svelte";
-  import { isMac } from "$lib/platform";
   import { prefs } from "$lib/preferences.svelte";
   import { services } from "$lib/services.svelte";
   import AccountSettings from "$lib/settings/AccountSettings.svelte";
@@ -31,7 +30,6 @@
   import SearchResults from "$lib/settings/SearchResults.svelte";
   import SoundSettings from "$lib/settings/SoundSettings.svelte";
 
-  const FIND_KEYS = isMac ? "⌘F" : "Ctrl F";
   const FOUND_MS = 1600;
 
   const index = provideIndex();
@@ -107,7 +105,6 @@
     <label class="search">
       <Icon name="search" size={16} />
       <input bind:this={field} bind:value={query} onkeydown={onsearchkey} type="search" class="input" placeholder="Search settings" aria-label="Search settings" spellcheck="false" autocomplete="off" />
-      {#if !query}<kbd aria-hidden="true">{FIND_KEYS}</kbd>{/if}
     </label>
     <nav bind:this={list} aria-label="Settings categories" onwheel={sideways}>
       {#each CATEGORIES as category (category.id)}
@@ -214,18 +211,6 @@
   .search .input {
     width: 100%;
     padding-left: calc(var(--sp-5) + var(--sp-2));
-  }
-
-  kbd {
-    position: absolute;
-    top: 50%;
-    right: var(--sp-3);
-    translate: 0 -50%;
-    color: var(--text-faint);
-    font-family: inherit;
-    font-size: var(--fs-micro);
-    font-weight: 600;
-    pointer-events: none;
   }
 
   nav {

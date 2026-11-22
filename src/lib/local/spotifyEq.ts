@@ -24,9 +24,9 @@ export function frameState(origin: string, data: unknown): FrameState | null {
 /** Whether the embedded players' sound is routed at all: for the EQ, for Boost, or both. */
 export const routed = (s: SoundSettings): boolean => s.spotifyEq || s.boost;
 
-/** Boost alone routes with a flat curve; the EQ alone, without the extra gain. */
+/** Boost alone routes with a flat curve; the EQ alone, without the extra gain. The bands are copied: the settings are reactive state, which postMessage cannot clone. */
 export const eqMessage = (s: SoundSettings) => ({
-  carbonEq: { enabled: routed(s), preampDb: (s.spotifyEq ? s.preampDb : 0) + (s.boost ? BOOST_DB : 0), bands: s.spotifyEq ? s.bands : FLAT },
+  carbonEq: { enabled: routed(s), preampDb: (s.spotifyEq ? s.preampDb : 0) + (s.boost ? BOOST_DB : 0), bands: s.spotifyEq ? [...s.bands] : FLAT },
 });
 
 export function pushToFrame(s: SoundSettings): void {

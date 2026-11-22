@@ -54,6 +54,12 @@ export function parseMessage(origin: string, data: unknown): EmbedEvent | null {
   }
 }
 
+/** The player commands for a Carbon volume (0..1). Zero is a mute: unmuting YouTube's player at volume 0 makes it pick a quiet volume of its own. */
+export function volumeCommands(volume: number): [string, unknown[]][] {
+  const percent = Math.round(Math.min(1, Math.max(0, volume)) * 100);
+  return percent === 0 ? [["mute", []]] : [["setVolume", [percent]], ["unMute", []]];
+}
+
 export function embedUrl(videoId: string, origin: string, startS = 0): string {
   const params = new URLSearchParams({ enablejsapi: "1", origin, widgetid: "1", autoplay: "1", playsinline: "1", rel: "0", iv_load_policy: "3" });
   if (startS >= 1) params.set("start", String(Math.floor(startS)));
@@ -110,8 +116,7 @@ export class YoutubeEmbed {
 
   /** 0..1, like the rest of Carbon. */
   setVolume(volume: number): void {
-    this.#send("setVolume", [Math.round(Math.min(1, Math.max(0, volume)) * 100)]);
-    this.#send("unMute");
+    for (const [func, args] of volumeCommands(volume)) this.#send(func, args);
   }
 
   /** Stops the video and resolves once the player says it stopped (or after a short wait). */
