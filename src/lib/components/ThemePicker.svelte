@@ -21,11 +21,12 @@
 
   // Each card is a small window drawn in its own theme: its data-theme and .theme-scope give it that
   // theme's tokens, whatever the app around it uses. Picking one applies it at once.
-  let { onpick }: { onpick?: (theme: Theme) => void } = $props();
+  // `mark` records that the listener has chosen; first-run setup does that itself when it finishes.
+  let { onpick, mark = true }: { onpick?: (theme: Theme) => void; mark?: boolean } = $props();
   const current = $derived(prefs.value?.theme ?? "dynamic");
 
   async function pick(theme: Theme) {
-    if (await prefs.update({ theme, themeChosen: true })) onpick?.(theme);
+    if (await prefs.update(mark ? { theme, themeChosen: true } : { theme })) onpick?.(theme);
   }
 </script>
 

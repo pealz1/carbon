@@ -28,7 +28,7 @@
     <ul class:wrap>
       {#each artists as artist, i (artist.id)}
         <li style="--i: {i}">
-          <button class="station" onclick={() => start(i)} disabled={starting !== null} aria-busy={starting === artist.id} aria-label="{artist.title} radio">
+          <button class="station" onclick={() => start(i)} disabled={starting !== null} aria-busy={starting === artist.id} aria-label="Radio: {artist.title}">
             <span class="disc">
               {#if artist.image}<img src={artist.image} alt="" width="112" height="112" loading="lazy" decoding="async" draggable="false" />{:else}<Icon name="artist" size={30} />{/if}
               <span class="badge"><Icon name={starting === artist.id ? "spark" : "radio"} size={14} /></span>

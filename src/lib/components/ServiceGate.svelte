@@ -1,18 +1,15 @@
 <script lang="ts">
-  import { prefs } from "$lib/preferences.svelte";
   import { services } from "$lib/services.svelte";
   import Onboarding from "./Onboarding.svelte";
-  import ServiceChooser from "./ServiceChooser.svelte";
   import SignIn from "./SignIn.svelte";
 
-  // Between the Carbon account and the app: the look (Onboarding), the service choice, then Spotify's setup (skippable
-  // when YouTube Music is also on; Settings finishes it later). app.html covers loading.
+  // Between the Carbon account and the app: first-run setup (the look, the motion, the services),
+  // then Spotify's own setup (skippable when YouTube Music is also on; Settings finishes it later).
+  // app.html covers loading.
 </script>
 
-{#if services.screen === "choose" && prefs.value && !prefs.value.themeChosen}
+{#if services.screen === "choose"}
   <Onboarding />
-{:else if services.screen === "choose"}
-  <ServiceChooser />
 {:else if services.screen === "spotify-setup"}
   <SignIn />
   {#if services.value?.youtube}
