@@ -2,6 +2,7 @@
 // for local files (via MixedPlayback, which owns Carbon-managed queues and the hand-off between
 // the two), and YouTube Music through YouTube's embedded player (YoutubePlayback), which never
 // shares a queue with them. UI state comes from SDK/engine/embed events; position is interpolated.
+import { artworkFor } from "$lib/artwork-lookup";
 import { getAccessToken, refreshAccessToken, withTimeout } from "$lib/auth";
 import { DEFAULT_VOLUME, PLAYER_NAME, SPOTIFY, TIMING } from "$lib/config";
 import { EngineError, explain, isDeviceGone, SdkError, sentence, type Problem } from "$lib/errors";
@@ -398,6 +399,16 @@ class Player {
     this.artwork = track.album?.image ?? null;
     this.durationMs = track.durationMs;
     this.problem = null;
+    if (!this.artwork) this.#findArtwork(track);
+  }
+
+  /** A song with no picture of its own (a file without embedded art) borrows its cover from Deezer's public catalogue. */
+  #findArtwork(track: Track): void {
+    // The lookup sends the title and artist, so a private session keeps the blank cover.
+    if (prefs.value?.privateSession || track.uri.startsWith("radio:")) return;
+    void artworkFor(track.name, track.artists.map((a) => a.name).join(", ")).then((cover) => {
+      if (cover && this.track === track && !this.artwork) this.artwork = cover;
+    });
   }
 
   /** `stalled`: playing, but the audio isn't advancing yet (YouTube loading or buffering). */

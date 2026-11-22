@@ -1,176 +1,129 @@
 <script lang="ts">
-  // Settings → Playback: how Carbon shuffles, and the songs and artists it skips.
+  // Settings → Playback: how Carbon shuffles and queues, the sleep timer, and what it skips.
   import { onMount } from "svelte";
   import { parseVersions } from "$lib/blocklist";
   import { blocklist } from "$lib/blocklist.svelte";
   import Icon from "$lib/components/Icon.svelte";
   import Toggle from "$lib/components/Toggle.svelte";
+  import { formatDuration } from "$lib/format";
+  import { t } from "$lib/i18n/locale.svelte";
   import type { LikeRule } from "$lib/native";
+  import { player } from "$lib/player.svelte";
   import { prefs } from "$lib/preferences.svelte";
   import { services } from "$lib/services.svelte";
+  import Group from "$lib/settings/Group.svelte";
+  import Row from "$lib/settings/Row.svelte";
+  import { SLEEP_PRESETS, sleepTimer } from "$lib/sleep-timer.svelte";
+
+  const LIKE_RULES: { id: LikeRule; label: string }[] = [
+    { id: "off", label: "Off" },
+    { id: "liked", label: "Liked songs" },
+    { id: "unliked", label: "Unliked songs" },
+  ];
+  const SKIP_AFTER = [0, 2, 3, 5, 10];
 
   const s = $derived(prefs.value);
   const items = $derived(blocklist.data.items);
-
   const versions = $derived((blocklist.data.skipVersions ?? []).join(", "));
   const genres = $derived((blocklist.data.skipGenres ?? []).join(", "));
-  const LIKE_RULES: { id: LikeRule; label: string }[] = [
-    { id: "off", label: "Play everything" },
-    { id: "liked", label: "Skip what I've liked" },
-    { id: "unliked", label: "Skip what I haven't liked" },
-  ];
-  const SKIP_AFTER = [0, 2, 3, 5, 10];
   const likeRule = $derived(blocklist.data.skipByLike ?? "off");
   const skipAfter = $derived(blocklist.data.skipAfter ?? 0);
+  const remaining = $derived(sleepTimer.remainingMs);
+  const pausingIn = $derived(remaining === null ? null : `${t("Pausing in")} ${formatDuration(remaining)}`);
 
   onMount(() => void blocklist.load());
 </script>
 
-<section class="panel plate">
-  <h2>Playback</h2>
+{#snippet blocked()}
+  <ul class="items blocked">
+    {#each items as item (item.kind + item.uri + item.name)}
+      <li>
+        <span class="kind" aria-hidden="true"><Icon name={item.kind === "artist" ? "artist" : "note"} size={15} /></span>
+        <span class="who">
+          <span class="name">{item.name}</span>
+          <span class="sub">{item.kind === "artist" ? "Artist" : item.by ? `Song · ${item.by}` : "Song"}</span>
+        </span>
+        <button class="pill" onclick={() => blocklist.unblock(item)} aria-label="Unblock {item.name}">Unblock</button>
+      </li>
+    {/each}
+  </ul>
+{/snippet}
+
+<Group heading="Queue and sleep timer">
   {#if s}
-    <Toggle
-      checked={s.smartShuffle}
-      label="Smart shuffle"
-      description="Carbon shuffles albums, your own playlists, Liked Songs, Carbon playlists and YouTube Music itself, and keeps the same artist from playing twice in a row. Spotify shuffles other playlists and artists."
-      onchange={(v) => prefs.update({ smartShuffle: v })}
-    />
-    <Toggle
-      checked={s.warnQueue}
-      label="Warn before replacing your queue"
-      description="Asks first when playing something else would drop songs you queued yourself. Spotify keeps its own queue, so this covers YouTube Music, your server and local files."
-      onchange={(v) => prefs.update({ warnQueue: v })}
-    />
+    <Toggle checked={s.smartShuffle} label="Smart shuffle" description="No artist twice in a row." keywords="random order" onchange={(v) => prefs.update({ smartShuffle: v })} />
+    <Toggle checked={s.warnQueue} label="Warn before replacing your queue" keywords="confirm ask" onchange={(v) => prefs.update({ warnQueue: v })} />
     {#if services.active.youtube}
       <Toggle
         checked={s.autoplay}
         label="Autoplay on YouTube Music"
-        description="When an album or playlist ends, keep going with radio from its last song. Spotify's autoplay is a setting of your Spotify account."
+        description="Continues with radio when a list ends."
+        keywords="radio continue endless"
         onchange={(v) => prefs.update({ autoplay: v })}
       />
     {/if}
   {/if}
-  <Toggle
-    checked={blocklist.data.skipExplicit}
-    label="Skip explicit songs"
-    description="Moves on when a song marked explicit comes on, on Spotify and YouTube Music."
-    onchange={(v) => blocklist.setSkipExplicit(v)}
-  />
-
-  <label class="versions">
-    <span class="eyebrow">Skip versions</span>
-    <input
-      class="input"
-      value={versions}
-      placeholder="live, remix, acoustic"
-      aria-describedby="versions-help"
-      spellcheck="false"
-      onchange={(e) => blocklist.setSkipVersions(parseVersions(e.currentTarget.value))}
-    />
-    <span id="versions-help" class="muted">Words separated by commas. A song is skipped when one of them is in its title's brackets or after its dash, like “Song (Live at Wembley)” or “Song - Remix”. “Live and Let Die” still plays.</span>
-  </label>
-
-  <p class="eyebrow">Liked songs</p>
-  <div class="segmented" role="radiogroup" aria-label="Skipping by likes">
-    {#each LIKE_RULES as rule (rule.id)}
-      <button role="radio" aria-checked={likeRule === rule.id} class:active={likeRule === rule.id} onclick={() => blocklist.setSkipByLike(rule.id)}>{rule.label}</button>
+  <Row
+    label="Sleep timer"
+    description="Pauses the music. Nothing fades."
+    message={sleepTimer.current?.kind === "song" ? "Pausing at the end of this song" : pausingIn}
+    keywords="stop pause later bedtime"
+  >
+    {#each SLEEP_PRESETS as minutes (minutes)}
+      <button class="pill" onclick={() => sleepTimer.start(minutes)}>{minutes === 60 ? "1h" : `${minutes}m`}</button>
     {/each}
-  </div>
-  <p class="muted">Skipping what you've liked is for hearing something new; skipping what you haven't keeps it to favourites. Spotify songs, and YouTube Music songs Carbon has seen your like on.</p>
+    <button class="pill" disabled={!player.track} onclick={() => sleepTimer.endOfSong()}>End of song</button>
+    {#if sleepTimer.current}<button class="pill ghost" onclick={() => sleepTimer.cancel()}>Turn off</button>{/if}
+  </Row>
+</Group>
 
-  <p class="eyebrow">Songs you keep skipping</p>
-  <div class="segmented" role="radiogroup" aria-label="Skip a song after you've skipped it this many times">
-    {#each SKIP_AFTER as count (count)}
-      <button role="radio" aria-checked={skipAfter === count} class:active={skipAfter === count} onclick={() => blocklist.setSkipAfter(count)}>{count ? `After ${count} skips` : "Off"}</button>
-    {/each}
-  </div>
-  <p class="muted">Counts each time you press Next before a song is most of the way through. Undo on a skipped song starts its count again.</p>
-
-  <label class="versions">
-    <span class="eyebrow">Skip genres</span>
-    <input
-      class="input"
-      value={genres}
-      placeholder="country, metal"
-      aria-describedby="genres-help"
-      spellcheck="false"
-      onchange={(e) => blocklist.setSkipGenres(parseVersions(e.currentTarget.value))}
+<Group heading="Skipping">
+  <Toggle checked={blocklist.data.skipExplicit} label="Skip explicit songs" keywords="clean profanity" onchange={(v) => blocklist.setSkipExplicit(v)} />
+  {#if s && services.active.youtube}
+    <Toggle
+      checked={s.sponsorBlock}
+      label="Skip non-music parts of videos"
+      description="Uses SponsorBlock's community markers."
+      keywords="sponsorblock intro outro skit credits youtube"
+      onchange={(on) => prefs.update({ sponsorBlock: on })}
     />
-    <span id="genres-help" class="muted">Words separated by commas, matched against the genres Spotify files the song's first artist under. Spotify songs only.</span>
-  </label>
-
-  <p class="eyebrow">Blocked · {items.length}</p>
-  {#if items.length}
-    <ul class="blocked">
-      {#each items as item (item.kind + item.uri + item.name)}
-        <li>
-          <span class="kind" aria-hidden="true"><Icon name={item.kind === "artist" ? "artist" : "note"} size={15} /></span>
-          <span class="who">
-            <span class="name">{item.name}</span>
-            <span class="muted">{item.kind === "artist" ? "Artist" : item.by ? `Song · ${item.by}` : "Song"}</span>
-          </span>
-          <button class="pill" onclick={() => blocklist.unblock(item)} aria-label="Unblock {item.name}">Unblock</button>
-        </li>
-      {/each}
-    </ul>
-  {:else}
-    <p class="muted">Nothing blocked. Block a song or an artist from its menu and Carbon skips it whenever it comes on.</p>
   {/if}
-</section>
+  <Row as="label" label="Skip versions" description="Matched in brackets or after a dash." keywords="live remix acoustic remaster">
+    <input class="input" value={versions} placeholder="live, remix, acoustic" spellcheck="false" onchange={(e) => blocklist.setSkipVersions(parseVersions(e.currentTarget.value))} />
+  </Row>
+  <Row as="label" label="Skip genres" description="Spotify songs only." keywords="genre style">
+    <input class="input" value={genres} placeholder="country, metal" spellcheck="false" onchange={(e) => blocklist.setSkipGenres(parseVersions(e.currentTarget.value))} />
+  </Row>
+  <Row label="Skip by likes" keywords="liked favourites favorites heart">
+    <div class="segmented" role="radiogroup" aria-label="Skipping by likes">
+      {#each LIKE_RULES as rule (rule.id)}
+        <button role="radio" aria-checked={likeRule === rule.id} class:active={likeRule === rule.id} onclick={() => blocklist.setSkipByLike(rule.id)}>{t(rule.label)}</button>
+      {/each}
+    </div>
+  </Row>
+  <Row label="Auto-skip a song after this many skips" description="Counts presses of Next early in a song." keywords="skip count tired">
+    <div class="segmented" role="radiogroup" aria-label="Auto-skip a song after this many skips">
+      {#each SKIP_AFTER as count (count)}
+        <button role="radio" aria-checked={skipAfter === count} class:active={skipAfter === count} onclick={() => blocklist.setSkipAfter(count)}>{count || t("Off")}</button>
+      {/each}
+    </div>
+  </Row>
+</Group>
+
+<Group heading="Blocked">
+  <Row
+    label="Blocked songs and artists"
+    value={String(items.length)}
+    message={items.length ? undefined : "Block a song or artist from its menu"}
+    keywords="blocklist ban hide never play"
+    below={items.length ? blocked : undefined}
+  />
+</Group>
 
 <style>
-  .versions {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-
-  .panel {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-    padding: var(--sp-5);
-    border-radius: var(--r-lg);
-  }
-
-  h2 {
-    font-size: var(--fs-section);
-  }
-
-  .eyebrow,
-  .muted {
-    margin: 0;
-  }
-
-  .eyebrow {
-    margin-top: var(--sp-2);
-  }
-
-  .muted {
-    color: var(--text-muted);
-    font-size: var(--fs-small);
-    line-height: 1.5;
-  }
-
   .blocked {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
     max-height: 320px;
-    margin: 0;
-    padding: 0;
     overflow-y: auto;
-    list-style: none;
-  }
-
-  .blocked li {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-3);
-    padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
-    border-radius: var(--r-md);
-    background: var(--glass);
-    border: 1px solid var(--glass-edge);
   }
 
   .kind {
@@ -188,7 +141,7 @@
   }
 
   .name,
-  .who .muted {
+  .sub {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -196,5 +149,10 @@
 
   .name {
     font-weight: 600;
+  }
+
+  .sub {
+    color: var(--text-muted);
+    font-size: var(--fs-small);
   }
 </style>

@@ -2,6 +2,8 @@
   import { prefs } from "$lib/preferences.svelte";
   import { services } from "$lib/services.svelte";
   import { session } from "$lib/session.svelte";
+  import Group from "$lib/settings/Group.svelte";
+  import Row from "$lib/settings/Row.svelte";
   import ClientIdForm from "./ClientIdForm.svelte";
   import Toggle from "./Toggle.svelte";
 
@@ -18,74 +20,25 @@
   }
 </script>
 
-<section class="panel plate">
-  <h2>Services</h2>
-  <Toggle
-    checked={on.spotify}
-    disabled={busy}
-    label="Spotify"
-    description="Your Spotify library and playback. Needs Premium."
-    onchange={(v) => set("spotify", v)}
-  />
-  <Toggle
-    checked={on.youtube}
-    disabled={busy}
-    label="YouTube Music"
-    description="YouTube Music’s catalogue and embedded player."
-    onchange={(v) => set("youtube", v)}
-  />
+<Group heading="Music services">
+  <Toggle checked={on.spotify} disabled={busy} label="Spotify" message="Needs Premium" keywords="streaming connect turn on" onchange={(v) => set("spotify", v)} />
+  <Toggle checked={on.youtube} disabled={busy} label="YouTube Music" keywords="streaming connect turn on google" onchange={(v) => set("youtube", v)} />
   {#if spotifyPending}
-    <div class="connect">
-      {#if session.status === "needs-client-id"}
-        <p class="muted">Spotify needs your own free Spotify app. Paste its Client ID to continue.</p>
-        <ClientIdForm initial={prefs.value?.spotifyClientId ?? ""} compact />
-      {:else}
-        <p class="muted">Spotify is on but not signed in yet.</p>
+    {#if session.status === "needs-client-id"}
+      <Row
+        label="Finish Spotify setup"
+        message={session.error ? session.error : "Paste your own Spotify app's Client ID"}
+        warn={!!session.error}
+        keywords="client id developer sign in"
+      >
+        {#snippet below()}<ClientIdForm initial={prefs.value?.spotifyClientId ?? ""} compact />{/snippet}
+      </Row>
+    {:else}
+      <Row label="Finish Spotify setup" message={session.error ? session.error : "Not signed in yet"} warn={!!session.error} keywords="sign in log in">
         <button class="pill accent" onclick={() => session.signIn()} disabled={session.status === "signing-in" || session.status === "booting"}>
           {session.status === "signing-in" ? "Waiting for your browser…" : "Sign in with Spotify"}
         </button>
-      {/if}
-      {#if session.error}<p class="warn" role="alert">{session.error}</p>{/if}
-    </div>
+      </Row>
+    {/if}
   {/if}
-</section>
-
-<style>
-  /* Matches the other Settings groups (stage plates). */
-  .panel {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-    padding: var(--sp-5);
-  }
-
-  h2 {
-    margin-bottom: var(--sp-1);
-    font-size: var(--fs-section);
-    font-weight: 700;
-  }
-
-  .connect {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--sp-2);
-    padding-top: var(--sp-3);
-    border-top: 1px solid var(--glass-edge);
-  }
-
-  .muted,
-  .warn {
-    margin: 0;
-    font-size: var(--fs-small);
-    line-height: 1.5;
-  }
-
-  .muted {
-    color: var(--text-muted);
-  }
-
-  .warn {
-    color: var(--warning);
-  }
-</style>
+</Group>

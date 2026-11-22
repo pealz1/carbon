@@ -41,8 +41,8 @@
     {#if player.track}
       {@const album = player.track.album}
       <a href="/now-playing" class="art" aria-label="Open now playing">
-        {#if album?.image}
-          <img src={album.image} alt="" width="60" height="60" />
+        {#if album?.image ?? player.artwork}
+          <img src={album?.image ?? player.artwork} alt="" width="60" height="60" />
         {:else}
           <span class="blank"><Icon name="note" size={22} /></span>
         {/if}

@@ -1,12 +1,15 @@
 <script lang="ts">
-  // Settings → Back up your library: everything in one JSON file, and adding back from such a
+  // Settings → Updates and data: the whole library in one JSON file, and adding back from such a
   // file whatever is missing. A restore shows what it would add and waits for a yes; it never
   // removes or replaces anything.
   import { onDestroy } from "svelte";
   import Icon from "$lib/components/Icon.svelte";
   import { describeError } from "$lib/errors";
+  import { t } from "$lib/i18n/locale.svelte";
   import { organizer } from "$lib/organizer.svelte";
   import { services } from "$lib/services.svelte";
+  import Group from "$lib/settings/Group.svelte";
+  import Row from "$lib/settings/Row.svelte";
   import { collectBackup, readCurrent, runRestore, type Report } from "./backup";
   import { mergeOrganizer, parseBackup, planCounts, planRestore, planSize, type Backup, type Category, type RestorePlan } from "./backup-format";
   import { datedName } from "./combine";
@@ -52,33 +55,30 @@
     controller = new AbortController();
     error = notice = null;
     outcome = null;
-    progress = { label: "Starting…" };
+    progress = { label: t("Starting…") };
     try {
       await job(controller.signal);
     } catch (e) {
-      if (e instanceof Stopped) return void (notice = "Stopped. Nothing was changed.");
+      if (e instanceof Stopped) return void (notice = t("Stopped. Nothing was changed."));
       console.error("[backup]", e);
-      error = `${failure} ${describeError(e)}`;
+      error = `${t(failure)} ${describeError(e)}`;
     } finally {
       progress = null;
     }
   }
 
-  const describe = (b: Backup) =>
-    `${count(b.liked.length)} liked songs, ${count(b.albums.length)} albums, ${count(b.artists.length)} artists, ${count(b.playlists.length)} playlists and ${count(b.carbonPlaylists.length)} Carbon playlists`;
-
   const backUp = () =>
     work(async (signal) => {
       const backup = await collectBackup(spotify, step, signal);
-      step("Saving the file…");
+      step(t("Saving the file…"));
       const saved = await backupSave(datedName("Carbon library"), JSON.stringify(backup, null, 1));
-      if (saved) notice = `Saved ${saved}: ${describe(backup)}, with your smart playlists, folders, tags and pins.`;
+      if (saved) notice = `${t("Saved")} ${saved}`;
     }, "Couldn't make the backup.");
 
   const choose = () =>
     work(async (signal) => {
       pending = null;
-      step("Waiting for you to pick a backup…");
+      step(t("Waiting for you to pick a backup…"));
       const text = await backupOpen();
       if (!text) return;
       const read = parseBackup(text);
@@ -98,22 +98,17 @@
   }
 </script>
 
-<section class="panel plate" id="backup">
-  <h2>Back up your library</h2>
-  <p class="muted">
-    Saves one file with your Liked Songs, saved albums, followed artists, every playlist you own or follow, your Carbon playlists, smart playlists and
-    your folders, tags and pins. It holds names and links, never audio.
-  </p>
-  {#if !spotify}<p class="fine">Spotify isn't connected, so only your Carbon playlists, smart playlists, folders, tags and pins are backed up or restored.</p>{/if}
-
+<Group heading="Library backup" id="backup" message={spotify ? undefined : "Spotify is off: Carbon playlists and folders only"}>
   {#if progress}
-    <ProgressBar {...progress} />
-    <div class="actions"><button class="pill" onclick={() => controller?.abort()}>Stop</button></div>
+    <div class="block">
+      <ProgressBar {...progress} />
+      <button class="pill" onclick={() => controller?.abort()}>Stop</button>
+    </div>
   {:else if pending && adds}
-    <div class="review" role="group" aria-label="What the restore will add">
+    <div class="block" role="group" aria-label="What the restore will add">
       <p>
         Backup from {new Date(pending.backup.createdAt).toLocaleDateString(undefined, { dateStyle: "long" })}.
-        {toAdd ? "Restoring adds what's missing and leaves everything else as it is. Nothing is removed." : "Everything in it is already in your library."}
+        {toAdd ? "Restoring adds what's missing. Nothing is removed." : "Everything in it is already in your library."}
       </p>
       <table>
         <thead>
@@ -121,15 +116,12 @@
         </thead>
         <tbody>
           {#each CATEGORIES as c (c)}
-            <tr><th scope="row">{LABELS[c]}</th><td class="tabular">{count(adds[c])}</td><td class="tabular">{count(pending.plan.present[c])}</td></tr>
+            <tr><th scope="row">{t(LABELS[c])}</th><td class="tabular">{count(adds[c])}</td><td class="tabular">{count(pending.plan.present[c])}</td></tr>
           {/each}
           <tr><th scope="row">Folders, tags and pins</th><td class="tabular">{count(pending.organizing)}</td><td></td></tr>
         </tbody>
       </table>
-      <p class="fine">
-        Your own playlists come back as new playlists with their songs in order; playlists you followed are followed again. Local files inside Spotify
-        playlists can't be put back by apps like Carbon.
-      </p>
+      <p class="fine">Local files in Spotify playlists can't be restored.</p>
       <div class="actions">
         <button class="pill accent" onclick={restore} disabled={!toAdd}>
           <Icon name="restore" size={16} />Restore {count(toAdd)} {toAdd === 1 ? "item" : "items"}
@@ -138,14 +130,16 @@
       </div>
     </div>
   {:else}
-    <div class="actions">
+    <Row label="Back up your library" description="Names and links, never audio." keywords="export save file json playlists liked">
       <button class="pill accent" onclick={backUp}><Icon name="export" size={16} />Back up…</button>
-      <button class="pill" onclick={choose}><Icon name="import" size={16} />Restore from a backup…</button>
-    </div>
+    </Row>
+    <Row label="Restore from a backup" description="Adds what's missing. Removes nothing." keywords="import file json">
+      <button class="pill" onclick={choose}><Icon name="import" size={16} />Choose a backup…</button>
+    </Row>
   {/if}
 
   {#if outcome}
-    <div class="review" role="status">
+    <div class="block" role="status">
       <p>{outcome.stopped ? "Stopped. What was added before that stays." : "Restore finished."}</p>
       <table>
         <thead>
@@ -154,7 +148,7 @@
         <tbody>
           {#each CATEGORIES as c (c)}
             <tr>
-              <th scope="row">{LABELS[c]}</th>
+              <th scope="row">{t(LABELS[c])}</th>
               <td class="tabular">{count(outcome.done[c].added)}</td>
               <td class="tabular">{count(outcome.present[c])}</td>
               <td class="tabular" class:failed={outcome.done[c].failed > 0}>{count(outcome.done[c].failed)}</td>
@@ -169,26 +163,25 @@
         </tbody>
       </table>
       {#if CATEGORIES.some((c) => outcome!.done[c].failed > 0)}
-        <p class="warn">Some things couldn't be added. Restore from the same backup again to retry just those; the details are in the log.</p>
+        <p class="warn">Some items failed. Restore again to retry them.</p>
       {/if}
     </div>
   {/if}
-  {#if notice}<p class="fine" role="status">{notice}</p>{/if}
-  {#if error}<p class="warn" role="alert">{error}</p>{/if}
-</section>
+  {#if notice}<p class="note" role="status">{notice}</p>{/if}
+  {#if error}<p class="note warn" role="alert">{error}</p>{/if}
+</Group>
 
 <style>
-  .panel {
+  .block {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: var(--sp-3);
-    padding: var(--sp-5);
+    padding: var(--sp-3) 0;
   }
 
-  h2 {
-    margin-bottom: var(--sp-1);
-    font-size: var(--fs-section);
-    font-weight: 700;
+  .block > :global(.progress) {
+    align-self: stretch;
   }
 
   p {
@@ -197,14 +190,9 @@
     line-height: 1.5;
   }
 
-  .muted,
-  .fine {
-    color: var(--text-muted);
-    font-size: var(--fs-small);
-  }
-
   .fine {
     color: var(--text-faint);
+    font-size: var(--fs-small);
   }
 
   .warn {
@@ -216,12 +204,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
-  }
-
-  .review {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
   }
 
   table {

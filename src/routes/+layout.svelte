@@ -151,7 +151,7 @@
 <svelte:head><title>Carbon</title></svelte:head>
 <svelte:window onkeydown={(e) => services.screen === "app" && handleKey(e)} onresize={() => view.syncFullscreen()} />
 
-{#if !popout}<Ambient image={player.track?.album?.image ?? null} playing={!player.paused} reactive />{/if}
+{#if !popout}<Ambient image={player.track?.album?.image ?? player.artwork} playing={!player.paused} reactive />{/if}
 
 {#if popout}
   {@render children()}

@@ -24,12 +24,9 @@
 <form class="client-id" class:compact onsubmit={save}>
   {#if !compact}
     <ol class="steps">
-      <li>
-        Open the <button type="button" class="link" onclick={() => openUrl(DASHBOARD)}>Spotify developer dashboard</button> and create an
-        app (any name).
-      </li>
+      <li>Create an app in the <button type="button" class="link" onclick={() => openUrl(DASHBOARD)}>Spotify developer dashboard</button>.</li>
       <li>Set the Redirect URI to <code>{SPOTIFY.redirectUri}</code> and tick <b>Web API</b> and <b>Web Playback SDK</b>.</li>
-      <li>Copy the app's <b>Client ID</b> (not the secret) and paste it below.</li>
+      <li>Paste the app's <b>Client ID</b> below, not the secret.</li>
     </ol>
   {/if}
   <label>
