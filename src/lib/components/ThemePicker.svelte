@@ -3,6 +3,7 @@
 
   export const THEME_INFO: Record<Theme, { label: string; hint: string }> = {
     dynamic: { label: "Dynamic", hint: "Takes its colour from what's playing" },
+    "dynamic-oled": { label: "Dynamic black", hint: "True black until music plays" },
     dark: { label: "Dark", hint: "Graphite, the same every song" },
     oled: { label: "OLED black", hint: "True black, easy on OLED screens" },
     light: { label: "Light", hint: "Ink on warm paper" },
@@ -20,11 +21,12 @@
 
   // Each card is a small window drawn in its own theme: its data-theme and .theme-scope give it that
   // theme's tokens, whatever the app around it uses. Picking one applies it at once.
-  let { onpick }: { onpick?: (theme: Theme) => void } = $props();
+  // `mark` records that the listener has chosen; first-run setup does that itself when it finishes.
+  let { onpick, mark = true }: { onpick?: (theme: Theme) => void; mark?: boolean } = $props();
   const current = $derived(prefs.value?.theme ?? "dynamic");
 
   async function pick(theme: Theme) {
-    if (await prefs.update({ theme, themeChosen: true })) onpick?.(theme);
+    if (await prefs.update(mark ? { theme, themeChosen: true } : { theme })) onpick?.(theme);
   }
 </script>
 
@@ -68,7 +70,7 @@
     text-align: left;
     transition:
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .card:hover {
@@ -101,6 +103,34 @@
       radial-gradient(70% 90% at 10% 0%, #6b2f9c, transparent 70%),
       radial-gradient(70% 90% at 100% 100%, #1f6b46, transparent 70%),
       #1a1220;
+  }
+
+  /* Dynamic black: the same light, waking from true black and resting again. */
+  .preview[data-theme="dynamic-oled"] {
+    isolation: isolate;
+  }
+
+  .preview[data-theme="dynamic-oled"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(70% 90% at 10% 0%, #6b2f9c, transparent 70%),
+      radial-gradient(70% 90% at 100% 100%, #1f6b46, transparent 70%);
+    animation: wake 3.6s ease-in-out infinite alternate;
+  }
+
+  @keyframes wake {
+    0%,
+    25% {
+      opacity: 0;
+    }
+
+    75%,
+    100% {
+      opacity: 1;
+    }
   }
 
   .on .preview {

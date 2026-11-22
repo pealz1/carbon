@@ -157,7 +157,7 @@
     </div>
     <p class="hint">
       Newest additions come first. {output === "spotify" ? "Carbon makes a new Spotify playlist for it; local files stay out." : "Carbon makes a new Carbon playlist for it."}
-      It refreshes when you ask, and on start when it's more than a day old.
+      Refreshes daily, or when you ask.
     </p>
 
     {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -263,7 +263,7 @@
     color: var(--text-muted);
     transition:
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .remove:hover {

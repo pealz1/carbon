@@ -56,3 +56,49 @@ export function featuresFor(trackId: string): Promise<AudioFeatures | null> {
   if (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value!);
   return found;
 }
+
+/** How a whole list feels: the average of the songs the catalogue knows. */
+export interface Feel {
+  tempo: number;
+  /** 0–1. */
+  energy: number;
+  /** 0–1: low is sad or tense, high is bright. */
+  valence: number;
+}
+
+/** A list is judged by its first songs: enough to know its mood, and one request. */
+const FEEL_SAMPLE = 20;
+const MAX_FEELS = 60;
+const feels = new Map<string, Promise<Feel | null>>();
+
+/** The average tempo, energy and valence in the API's answer, or null when it knows none of the songs. */
+export function feelIn(answer: unknown): Feel | null {
+  const content: unknown[] = Array.isArray((answer as { content?: unknown })?.content) ? (answer as { content: unknown[] }).content : [];
+  const known = content.filter((c): c is Record<string, unknown> => !!c && typeof c === "object" && typeof (c as { tempo?: unknown }).tempo === "number" && (c as { tempo: number }).tempo > 0);
+  if (!known.length) return null;
+  const mean = (pick: (c: Record<string, unknown>) => number) => known.reduce((sum, c) => sum + pick(c), 0) / known.length;
+  return { tempo: mean((c) => c.tempo as number), energy: mean((c) => unit(c.energy)), valence: mean((c) => unit(c.valence)) };
+}
+
+/** Looked up once per list. Never rejects: no answer means a neutral feel. */
+export function feelFor(trackIds: readonly string[]): Promise<Feel | null> {
+  const ids = trackIds.filter((id) => SPOTIFY_ID.test(id)).slice(0, FEEL_SAMPLE);
+  if (!ids.length) return Promise.resolve(null);
+  const key = ids.join(",");
+  const hit = feels.get(key);
+  if (hit) return hit;
+  const found = fetch(`${API}?ids=${key}`, { headers: { Accept: "application/json" } })
+    .then((res) => {
+      if (!res.ok) throw new Error(`ReccoBeats answered ${res.status}`);
+      return res.json();
+    })
+    .then(feelIn)
+    .catch((e) => {
+      console.warn("[features] list lookup failed", e);
+      feels.delete(key);
+      return null;
+    });
+  feels.set(key, found);
+  if (feels.size > MAX_FEELS) feels.delete(feels.keys().next().value!);
+  return found;
+}

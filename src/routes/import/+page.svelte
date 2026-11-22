@@ -131,6 +131,7 @@
     Import from Spotify, Apple Music, Deezer, SoundCloud, YouTube, Mixcloud, or Internet Archive. Review the YouTube
     Music recordings before saving.
   </p>
+  <p>Tidal links work for single songs.</p>
   <form
     onsubmit={(e) => {
       e.preventDefault();

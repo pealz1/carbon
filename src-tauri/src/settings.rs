@@ -10,7 +10,7 @@ const MAX_LYRICS_DELAY_MS: i32 = 1000;
 const MAX_DISPLAY_NAME: usize = 40;
 pub const ACCENTS: [&str; 7] = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"];
 /// Dynamic takes its colour from the artwork; the rest are fixed. Settings → Appearance and first run.
-pub const THEMES: [&str; 7] = ["dynamic", "dark", "oled", "light", "midnight", "mocha", "forest"];
+pub const THEMES: [&str; 8] = ["dynamic", "dynamic-oled", "dark", "oled", "light", "midnight", "mocha", "forest"];
 const LYRICS_SOURCES: [&str; 4] = ["lrclib", "youtube", "netease", "musixmatch"];
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -462,6 +462,8 @@ mod tests {
         assert!(bad_theme.validate().is_err());
         let oled = Settings { theme: "oled".into(), ..Settings::default() };
         assert!(oled.validate().is_ok());
+        let dynamic_black = Settings { theme: "dynamic-oled".into(), ..Settings::default() };
+        assert!(dynamic_black.validate().is_ok());
         let bad_scale = Settings { lyrics_scale: 3.0, ..Settings::default() };
         assert!(bad_scale.validate().is_err());
         let bad_delay = Settings { lyrics_delay_ms: -1500, ..Settings::default() };

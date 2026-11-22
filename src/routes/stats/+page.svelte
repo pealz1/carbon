@@ -41,7 +41,7 @@
 {:else if error}
   <Status {error} onretry={reload} />
 {:else if empty}
-  <Status empty="Nothing here yet. Spotify fills this in after you've listened for a while." />
+  <Status empty="Nothing here yet." />
 {:else}
   {#if artists.data?.length}<Shelf title="Top artists" cards={artists.data} />{/if}
   {#if albums.length}<Shelf title="Albums you keep coming back to" cards={albums} />{/if}

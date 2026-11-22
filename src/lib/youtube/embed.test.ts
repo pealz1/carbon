@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EMBED_ORIGIN, embedUrl, explainEmbedError, NO_PLAYER, parseMessage } from "./embed";
+import { EMBED_ORIGIN, embedUrl, explainEmbedError, NO_PLAYER, parseMessage, volumeCommands } from "./embed";
 
 const msg = (event: string, info: unknown) => JSON.stringify({ event, info, id: 1, channel: "widget" });
 
@@ -46,5 +46,14 @@ describe("why a song won't play", () => {
     expect(explainEmbedError(153)).toMatch(/refused Carbon's player/);
     expect(explainEmbedError(NO_PLAYER)).toMatch(/connection/);
     expect(explainEmbedError(999)).toMatch(/error 999/);
+  });
+});
+
+describe("embed volume", () => {
+  it("mutes at zero instead of unmuting a silent player", () => {
+    expect(volumeCommands(0)).toEqual([["mute", []]]);
+    expect(volumeCommands(0.004)).toEqual([["mute", []]]);
+    expect(volumeCommands(0.5)).toEqual([["setVolume", [50]], ["unMute", []]]);
+    expect(volumeCommands(7)).toEqual([["setVolume", [100]], ["unMute", []]]);
   });
 });

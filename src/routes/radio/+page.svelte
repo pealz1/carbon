@@ -53,7 +53,7 @@
 <header class="page-head">
   <div class="title">
     <h1>Radio</h1>
-    <p class="status">Live stations from around the world, from the open Radio Browser directory.</p>
+    <p class="status">Stations from the open Radio Browser directory.</p>
   </div>
 </header>
 
@@ -316,7 +316,7 @@
     transition:
       opacity var(--dur-fast),
       color var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   li:hover .keep,

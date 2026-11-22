@@ -54,7 +54,7 @@
     color: var(--text-muted);
     transition:
       color var(--dur-fast),
-      transform var(--dur-fast) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .like:hover {

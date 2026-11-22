@@ -3,11 +3,14 @@
   import { onMount } from "svelte";
   import Toggle from "$lib/components/Toggle.svelte";
   import { describeError } from "$lib/errors";
+  import { t } from "$lib/i18n/locale.svelte";
   import { listenbrainzConnect, listenbrainzDisconnect, listenbrainzStatus } from "$lib/native";
   import { prefs } from "$lib/preferences.svelte";
+  import Group from "$lib/settings/Group.svelte";
+  import Row from "$lib/settings/Row.svelte";
 
-  // Settings → ListenBrainz: the listener's user token, checked with ListenBrainz and kept in Windows
-  // Credential Manager by Rust. Runs apart from Last.fm.
+  // Settings → Integrations: the listener's ListenBrainz user token, checked with ListenBrainz and
+  // kept in Windows Credential Manager by Rust. Runs apart from Last.fm.
   const TOKEN_PAGE = "https://listenbrainz.org/settings/";
 
   let username = $state<string | null>(null);
@@ -46,84 +49,44 @@
   }
 </script>
 
-<section class="panel plate">
-  <h2>ListenBrainz</h2>
+<Group heading="ListenBrainz">
+  <Row
+    label="ListenBrainz account"
+    message={error ? error : username ? `${t("Connected as")} ${username}` : undefined}
+    warn={!!error}
+    keywords="scrobble token connect sign in"
+  >
+    {#if username}
+      <button class="pill" onclick={disconnect}>Disconnect ListenBrainz</button>
+    {:else}
+      <button class="link" onclick={() => openUrl(TOKEN_PAGE)}>Find your token</button>
+      <form onsubmit={connect}>
+        <input class="input" type="password" bind:value={token} placeholder="User token" aria-label="ListenBrainz user token" spellcheck="false" autocomplete="off" />
+        <button class="pill accent" disabled={busy || !token.trim()}>{busy ? "Checking…" : "Connect"}</button>
+      </form>
+    {/if}
+  </Row>
   {#if username}
     <Toggle
       checked={prefs.value?.listenbrainzScrobbling ?? true}
-      label="Submit listens"
-      description="Connected as {username}. Songs from Spotify, YouTube Music and your own files all count."
+      label="Submit listens to ListenBrainz"
+      description="Spotify, YouTube Music and local files."
+      keywords="scrobble scrobbling history"
       onchange={(v) => prefs.update({ listenbrainzScrobbling: v })}
     />
-    <div class="actions">
-      <button class="pill" onclick={disconnect}>Disconnect ListenBrainz</button>
-    </div>
-  {:else}
-    <p class="muted">Keep your listening history on ListenBrainz, the open music archive. Paste the user token from your ListenBrainz settings.</p>
-    <form class="token" onsubmit={connect}>
-      <input class="input" type="password" bind:value={token} placeholder="User token" aria-label="ListenBrainz user token" spellcheck="false" autocomplete="off" />
-      <button class="pill accent" disabled={busy || !token.trim()}>{busy ? "Checking…" : "Connect"}</button>
-    </form>
-    <button class="link" onclick={() => openUrl(TOKEN_PAGE)}>Find your token</button>
   {/if}
-  {#if error}<p class="warn" role="alert">{error}</p>{/if}
-  <p class="muted">Your system keychain stores the token. Carbon sends offline listens when you reconnect.</p>
-</section>
+</Group>
 
 <style>
-  /* Matches the other Settings groups (stage plates). */
-  .panel {
+  form {
     display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-    padding: var(--sp-5);
-  }
-
-  h2 {
-    margin-bottom: var(--sp-1);
-    font-size: var(--fs-section);
-    font-weight: 700;
-  }
-
-  .muted,
-  .warn {
-    margin: 0;
-    font-size: var(--fs-small);
-    line-height: 1.5;
-  }
-
-  .muted {
-    color: var(--text-muted);
-  }
-
-  .warn {
-    color: var(--warning);
-  }
-
-  .token {
-    display: flex;
+    align-items: center;
     gap: var(--sp-2);
-  }
-
-  .token .input {
-    flex: 1;
     min-width: 0;
   }
 
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-  }
-
-  .link {
-    align-self: flex-start;
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .link:hover {
-    text-decoration: underline;
-    text-underline-offset: 3px;
+  form .input {
+    width: 200px;
+    min-width: 0;
   }
 </style>

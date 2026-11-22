@@ -63,7 +63,8 @@ describe("what runs in the app", () => {
   it("sends pages of a service that isn't running home", () => {
     const youtubeOnly = activeFor(YOUTUBE, false);
     expect(redirectFor("/", youtubeOnly)).toBe("/youtube");
-    expect(redirectFor("/search", youtubeOnly)).toBe("/youtube/search");
+    expect(redirectFor("/search", youtubeOnly)).toBeNull();
+    expect(redirectFor("/search", activeFor({ spotify: false, youtube: false }, false))).toBeNull();
     expect(redirectFor("/library", youtubeOnly)).toBe("/youtube/library");
     expect(redirectFor("/album/4aawyAB9vmqN3uQ7FjRGTy", youtubeOnly)).toBe("/youtube");
     expect(redirectFor("/liked", youtubeOnly)).toBe("/youtube");

@@ -14,6 +14,7 @@
   import LikeButton from "./LikeButton.svelte";
   import Logo from "./Logo.svelte";
   import LoopZone from "./LoopZone.svelte";
+  import OutputMenu from "./OutputMenu.svelte";
   import PlaybackTools from "./PlaybackTools.svelte";
   import PlayingElsewhere from "./PlayingElsewhere.svelte";
   import Slider from "./Slider.svelte";
@@ -40,8 +41,8 @@
     {#if player.track}
       {@const album = player.track.album}
       <a href="/now-playing" class="art" aria-label="Open now playing">
-        {#if album?.image}
-          <img src={album.image} alt="" width="60" height="60" />
+        {#if album?.image ?? player.artwork}
+          <img src={album?.image ?? player.artwork} alt="" width="60" height="60" />
         {:else}
           <span class="blank"><Icon name="note" size={22} /></span>
         {/if}
@@ -116,11 +117,7 @@
     <button class="ctl" onclick={view.enterCinema} aria-label="Cinema mode" title="Cinema mode (Ctrl+Shift+C)">
       <Icon name="screen" size={18} />
     </button>
-    {#if prefs.value?.soundButton}
-      <a class="ctl" class:on={page.url.pathname === "/sound"} href="/sound" aria-label="Sound settings" title="Sound settings">
-        <Icon name="equalizer" size={18} />
-      </a>
-    {/if}
+    <OutputMenu />
     <button class="ctl" onwheel={wheelVolume} onclick={() => player.setVolume(player.volume > 0 ? 0 : DEFAULT_VOLUME)} aria-label={player.volume > 0 ? "Mute" : "Unmute"} title={player.volume > 0 ? "Mute" : "Unmute"}>
       <Icon name={player.volume > 0 ? "volume" : "mute"} size={18} />
     </button>
@@ -292,8 +289,8 @@
       opacity var(--dur-fast),
       background var(--dur-fast),
       box-shadow var(--dur-med),
-      scale var(--dur-med) var(--ease-spring),
-      transform var(--dur-med) var(--ease-spring);
+      scale var(--dur-spring) var(--ease-spring),
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   /* Hover lights a round, raised button under the icon. */

@@ -2,6 +2,7 @@
   // "Add to Carbon playlist": a small menu in the top layer (native popover), so rows that clip
   // their contents can still open it. Arrow keys move between items; Escape closes.
   import { tick } from "svelte";
+  import { keepInView } from "$lib/keep-in-view";
   import { carbonPlaylists } from "$lib/local/playlists.svelte";
   import type { Track } from "$lib/spotify/types";
   import Icon from "./Icon.svelte";
@@ -60,6 +61,7 @@
   bind:this={menu}
   popover="auto"
   class="menu"
+  use:keepInView
   role="menu"
   aria-label="Carbon playlists"
   tabindex="-1"
@@ -84,7 +86,7 @@
     place-items: center;
     border-radius: var(--r-pill);
     color: var(--text-muted);
-    transition: color var(--dur-fast), background var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+    transition: color var(--dur-fast), background var(--dur-fast), transform var(--dur-spring) var(--ease-spring);
   }
 
   .trigger:hover {

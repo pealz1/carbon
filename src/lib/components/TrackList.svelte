@@ -52,6 +52,22 @@
   const tracks = $derived(shown?.tracks ?? source);
   const context = $derived(arranged ? undefined : contextUri);
 
+  // Long lists render a window at a time: a 30,000-song library is otherwise hundreds of thousands
+  // of nodes, all rechecked on every track change. The window grows as its end nears the screen;
+  // selecting, playing, filtering and sorting still cover every song.
+  const WINDOW = 200;
+  let limit = $state(WINDOW);
+  $effect(() => {
+    void query, void sort, void descending;
+    limit = WINDOW;
+  });
+  const rows = $derived(tracks.length > limit ? tracks.slice(0, limit) : tracks);
+  function grow(node: HTMLElement) {
+    const seen = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && (limit += WINDOW), { rootMargin: "1200px 0px" });
+    seen.observe(node);
+    return { destroy: () => seen.disconnect() };
+  }
+
   // Several rows can be selected (click, Ctrl-click, Shift-click, Ctrl+A) and then queued, added to a
   // playlist, copied or removed together. A list that changes under the selection drops it.
   let selection = $state<Selection>(NONE);
@@ -121,7 +137,7 @@
 {/if}
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
 <ol class="tracks" class:compact class:with-album={showAlbum} tabindex="-1" {onkeydown} aria-label={selection.rows.size > 1 ? `${selection.rows.size} songs selected` : undefined}>
-  {#each tracks as track, i (track.uri + i)}
+  {#each rows as track, i (track.uri + i)}
     {@const current = player.isCurrent(track.uri)}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <li class="row" class:current class:selected={selection.rows.has(i)} onclick={(e) => select(e, i)} ondblclick={() => play(i)} oncontextmenu={(e) => openMenu(e, track, i)} use:hold={holdFor(track, i)}>
@@ -171,6 +187,8 @@
     </li>
   {/each}
 </ol>
+<!-- Recreated per window, so a list scrolled far past its end keeps growing. -->
+{#if tracks.length > limit}{#key limit}<div class="more-rows" use:grow></div>{/key}{/if}
 {#if arranged && source.length && !tracks.length}<Status empty="No songs match “{query.trim()}”." />{/if}
 
 <style>
@@ -192,11 +210,15 @@
     contain-intrinsic-size: auto 54px;
     transition:
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .tracks:focus {
     outline: none;
+  }
+
+  .more-rows {
+    height: 1px;
   }
 
   /* After the stripes in the cascade, so a selected row reads as selected on either stripe. */
@@ -400,7 +422,7 @@
     transition:
       opacity var(--dur-fast),
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .more:hover {

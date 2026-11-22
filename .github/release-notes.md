@@ -1,4 +1,17 @@
-- Added Carbon to Win+R and other Windows launchers
-- Added getcarbon.cc links to Carbon's entry in Windows Apps & features
-- Fixed Open at startup turning off after installing a new version by hand
-- Updated dependencies
+- Added one short sidebar: Home, Library, Liked Songs, Radio, Local files
+- Added a new Home with recents, recommendations, radio and mood mixes
+- Added search across every source, with no account needed
+- Added the equalizer for Spotify and YouTube Music, with no restart
+- Added Boost, Bass and Treble in a new player-bar sound menu
+- Added output device switching, with Carbon's volume kept per device
+- Added Carbon's name and icon in the Windows volume mixer
+- Added the Dynamic black theme: true black until music plays
+- Added lyrics beside the page and a background that moves with the song
+- Added Wrapped, a year in review of your listening
+- Added Settings categories and a search that finds single settings
+- Added a new first-run setup
+- Added shuffle that favours higher-rated songs
+- Added Share on YouTube Music pages and restored it on Spotify pages
+- Fixed menus hanging off the window edge
+- Fixed YouTube Music ignoring Carbon's volume on the first song
+- Fixed slowdowns in long sessions and very large libraries

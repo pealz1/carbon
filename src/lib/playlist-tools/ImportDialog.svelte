@@ -105,7 +105,7 @@
 
 <Modal title="Import a playlist" onclose={tools.close} wide>
   {#if step === "pick"}
-    <p class="lead">Pick a CSV, JSON or M3U file. Carbon reads the songs, shows you what it found, and only then creates the playlist.</p>
+    <p class="lead">Pick a CSV, JSON or M3U file. You review the songs before anything is created.</p>
     <div class="actions"><button class="pill accent" onclick={choose}><Icon name="import" size={16} />Choose a file…</button></div>
   {:else if step === "ready"}
     <p class="lead"><strong>{file?.name}</strong> lists {rows.length.toLocaleString()} {rows.length === 1 ? "song" : "songs"}.</p>

@@ -2,18 +2,19 @@
 // Slider drags apply instantly here and reach the engine at most every SAVE_MS.
 import { describeError } from "$lib/errors";
 import { engine, sound as api, type Preset, type SoundSettings } from "./api";
-import { listenToFrame, pushToFrame, type SpotifyEqStatus } from "./spotifyEq";
+import { listenToFrame, pushToFrame, routed, type SpotifyEqStatus } from "./spotifyEq";
 
 const SAVE_MS = 60;
 const CURVE_POINTS = 96;
 const CUSTOM = "custom";
+const TOP_BAND = 9;
 /** Survives the reload that follows an automatic bypass, so the Sound page can explain it. */
 const BYPASS_NOTE = "carbon.spotifyEqBypassed";
 
 const BYPASS_MESSAGES: Partial<Record<SpotifyEqStatus, string>> = {
-  protected: "Spotify's audio is copy-protected here, so the EQ can't reach it. It's been turned off.",
-  silent: "The EQ silenced Spotify's audio, so Carbon turned it off and reloaded the player.",
-  failed: "The EQ couldn't attach to Spotify's player, so it's been turned off.",
+  protected: "This player's sound is copy-protected here, so the equalizer can't reach it.",
+  silent: "The equalizer silenced the player, so Carbon turned it off.",
+  failed: "The equalizer couldn't attach to the player.",
 };
 
 class Sound {
@@ -28,12 +29,11 @@ class Sound {
   rate = $state(1);
   /** A local file is playing right now. */
   playing = $state(false);
-  #injected = false;
   #saveTimer: ReturnType<typeof setTimeout> | null = null;
   #curveRequest = 0;
   #booted: Promise<void> | null = null;
 
-  /** Loads settings at app start and, if the experiment was injected, starts its bridge. */
+  /** Loads settings at app start and starts the bridge to the embedded players. */
   boot(): Promise<void> {
     this.#booted ??= this.#boot();
     return this.#booted;
@@ -41,7 +41,7 @@ class Sound {
 
   async #boot(): Promise<void> {
     try {
-      [this.value, this.presets, this.#injected] = await Promise.all([api.get(), api.presets(), api.spotifyEqInjected()]);
+      [this.value, this.presets] = await Promise.all([api.get(), api.presets()]);
       this.bypassNote = takeNote();
       await api.onReset((defaults) => (this.value = defaults));
       await engine.onState((state) => {
@@ -49,10 +49,8 @@ class Sound {
         this.playing = state.status === "playing";
       });
       this.#refreshEqStatus();
-      if (this.#injected) {
-        listenToFrame((state) => void this.#onFrame(state));
-        pushToFrame(this.value); // in case Spotify's frame said "ready" before this listener existed
-      }
+      listenToFrame((state) => void this.#onFrame(state));
+      pushToFrame(this.value); // in case a player's frame said "ready" before this listener existed
       await this.#refreshCurve();
     } catch (e) {
       this.#fail(e);
@@ -87,6 +85,23 @@ class Sound {
     this.update({ bands, customBands: bands, preset: CUSTOM });
   }
 
+  /** Bass and Treble are the EQ's outer bands moved together: 31–125 Hz and 4–16 kHz. */
+  get bass(): number {
+    return this.value?.bands[0] ?? 0;
+  }
+
+  get treble(): number {
+    return this.value?.bands[TOP_BAND] ?? 0;
+  }
+
+  /** The outermost two bands take the full amount and the next one half, so the curve stays smooth. */
+  setTone(tone: "bass" | "treble", gain: number): void {
+    if (!this.value) return;
+    const reach = tone === "bass" ? [0, 1, 2] : [TOP_BAND, TOP_BAND - 1, TOP_BAND - 2];
+    const bands = this.value.bands.map((g, i) => (i === reach[0] || i === reach[1] ? gain : i === reach[2] ? gain / 2 : g));
+    this.update({ bands, customBands: bands, preset: CUSTOM });
+  }
+
   applyPreset(id: string): void {
     if (!this.value) return;
     const bands = id === CUSTOM ? this.value.customBands : this.presets.find((p) => p.id === id)?.bands;
@@ -106,7 +121,7 @@ class Sound {
     try {
       await api.set(this.value);
       this.error = null;
-      if (this.#injected) pushToFrame(this.value);
+      pushToFrame(this.value);
     } catch (e) {
       this.#fail(e);
     }
@@ -125,25 +140,24 @@ class Sound {
   }
 
   #refreshEqStatus(): void {
-    if (!this.value?.spotifyEq) this.spotifyEq = "off";
-    else if (!this.#injected) this.spotifyEq = "restart";
-    else if (this.spotifyEq === "off" || this.spotifyEq === "restart") this.spotifyEq = "waiting";
+    if (!this.value || !routed(this.value)) this.spotifyEq = "off";
+    else if (this.spotifyEq === "off") this.spotifyEq = "waiting";
   }
 
   async #onFrame(state: SpotifyEqStatus): Promise<void> {
     if (!this.value) return;
     if (state === "ready") return pushToFrame(this.value);
-    if (!this.value.spotifyEq) return;
+    if (!routed(this.value)) return;
     this.spotifyEq = state;
     const note = BYPASS_MESSAGES[state];
     if (!note) return;
-    // Automatic bypass: switch the experiment off and tell the listener why.
-    this.value = { ...this.value, spotifyEq: false };
+    // Automatic bypass: stop routing the players and tell the listener why.
+    this.value = { ...this.value, spotifyEq: false, boost: false };
     await this.#save();
     this.bypassNote = note;
     if (state === "silent") {
       leaveNote(note);
-      location.reload(); // a fresh SDK frame never gets "enable", so Spotify's audio comes back
+      location.reload(); // a fresh player frame never gets "enable", so its sound comes back
     }
   }
 

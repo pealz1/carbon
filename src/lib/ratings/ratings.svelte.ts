@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { SvelteMap } from "svelte/reactivity";
 import { describeError } from "$lib/errors";
 import { isSong, songOf } from "$lib/history/song";
+import { starSource } from "$lib/smart-shuffle";
 import type { Track } from "$lib/spotify/types";
 import { toasts } from "$lib/toast.svelte";
 import { clampStars, type Rating } from "./ratings";
@@ -61,3 +62,5 @@ class Ratings {
 }
 
 export const ratings = new Ratings();
+// Carbon's shuffle leans toward higher-rated songs (smart-shuffle.ts).
+starSource.starsOf = (uri) => ratings.of(uri);

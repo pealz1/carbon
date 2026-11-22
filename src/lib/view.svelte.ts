@@ -8,18 +8,19 @@ const LAYOUT_KEY = "carbon.layout";
 
 interface Layout {
   rail: boolean;
+  /** Stored as `lyricsDock`: the old `lyrics` field defaulted to off, and docked lyrics are now on until turned off. */
   lyrics: boolean;
   closed: string[];
 }
 
 /** Layout is a per-PC convenience: unreadable storage just means the default layout. */
 function readLayout(): Layout {
-  const fallback: Layout = { rail: false, lyrics: false, closed: [] };
+  const fallback: Layout = { rail: false, lyrics: true, closed: [] };
   try {
-    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? "null") as Partial<Layout> | null;
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? "null") as (Partial<Layout> & { lyricsDock?: unknown }) | null;
     return {
       rail: saved?.rail === true,
-      lyrics: saved?.lyrics === true,
+      lyrics: saved?.lyricsDock !== false,
       closed: Array.isArray(saved?.closed) ? saved.closed.filter((id): id is string => typeof id === "string") : [],
     };
   } catch {
@@ -34,7 +35,7 @@ class View {
   cinema = $state(false);
   /** Sidebar shrunk to an icon rail. */
   rail = $state(saved.rail);
-  /** Lyrics docked beside the stage. */
+  /** Lyrics docked beside the stage while a song is loaded. On until the listener turns it off. */
   lyrics = $state(saved.lyrics);
   queue = $state(false);
   /** Sidebar sections the listener folded away. */
@@ -105,7 +106,7 @@ class View {
 
   #save(): void {
     try {
-      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ rail: this.rail, lyrics: this.lyrics, closed: this.closed }));
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ rail: this.rail, lyricsDock: this.lyrics, closed: this.closed }));
     } catch (e) {
       console.warn("[view] couldn't remember the layout", e);
     }

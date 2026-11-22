@@ -20,8 +20,10 @@ const BATCH = 100;
 const kept = new Map<string, { at: number; rows: Promise<Row[]> }>();
 
 function remembered(key: string, read: () => Promise<Row[]>): Promise<Row[]> {
+  // Stale reads are dropped, not just replaced when asked for again: thousands of rows each.
+  for (const [k, v] of kept) if (Date.now() - v.at >= KEEP_MS) kept.delete(k);
   const hit = kept.get(key);
-  if (hit && Date.now() - hit.at < KEEP_MS) return hit.rows;
+  if (hit) return hit.rows;
   const rows = read();
   kept.set(key, { at: Date.now(), rows });
   rows.catch(() => kept.delete(key));

@@ -214,6 +214,12 @@ export async function isExplicit(id: string): Promise<boolean> {
   return raw.explicit === true;
 }
 
+/** One song from the catalogue (the same cached read as above), or null when it can't be played. */
+export async function track(id: string): Promise<Track | null> {
+  const raw = await get<RawTrack>(`/tracks/${encodeURIComponent(id)}`, 24 * 60 * 60_000);
+  return compactTracks([toTrack(raw)])[0] ?? null;
+}
+
 export interface ArtistDetail {
   id: string;
   uri: string;

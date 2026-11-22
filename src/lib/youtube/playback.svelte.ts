@@ -201,8 +201,10 @@ export class YoutubePlayback {
     this.#positionMs = positionMs;
     this.#host.show(track);
     this.#host.sync(false, positionMs, track.durationMs || undefined, true);
-    embed.setVolume(this.#host.volume());
     embed.load(track.id, positionMs / 1000);
+    // After load: the first song of a session creates the player, and a command sent before it exists is lost,
+    // which played that song at YouTube's own volume whatever Carbon's was.
+    embed.setVolume(this.#host.volume());
     if (this.#rate !== 1) embed.setRate(this.#rate);
     this.#segments = [];
     if (this.#host.skipsOffTopic?.()) void segmentsFor(track.id).then((found) => this.queue?.[this.index] === track && (this.#segments = found));

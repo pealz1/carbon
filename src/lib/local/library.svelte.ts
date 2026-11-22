@@ -7,7 +7,8 @@ import { fromLocal } from "./tracks";
 
 class LocalLibrary {
   folders = $state<string[]>([]);
-  raw = $state<LocalTrack[]>([]);
+  // Raw: thousands of tracks that are only ever replaced whole, so no per-field tracking.
+  raw = $state.raw<LocalTrack[]>([]);
   scanning = $state(false);
   progress = $state<{ done: number; total: number } | null>(null);
   error = $state<string | null>(null);

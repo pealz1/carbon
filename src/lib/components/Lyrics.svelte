@@ -36,6 +36,7 @@
   const RESYNC_MS = 1_000;
   /** Paused, the position only moves on a seek: a slow tick is enough to follow it. */
   const PAUSED_TICK_MS = 250;
+  const FILL_FRAME_MS = 32;
   /** How long the copy button shows its tick. */
   const COPIED_MS = 1_600;
   let found = $state.raw<Found | null>(null);
@@ -86,8 +87,13 @@
       return () => clearInterval(timer);
     }
     let frame = 0;
-    const loop = () => {
-      clock = source.position();
+    let last = 0;
+    // The fill reads as smooth at 30 updates a second; a 144 Hz screen would otherwise redo it 144 times.
+    const loop = (now: number) => {
+      if (now - last >= FILL_FRAME_MS) {
+        last = now;
+        clock = source.position();
+      }
       frame = requestAnimationFrame(loop);
     };
     frame = requestAnimationFrame(loop);

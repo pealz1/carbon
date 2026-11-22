@@ -153,8 +153,8 @@
     transition:
       background var(--dur-fast),
       box-shadow var(--dur-med),
-      translate var(--dur-med) var(--ease-spring),
-      transform var(--dur-med) var(--ease-spring);
+      translate var(--dur-spring) var(--ease-spring),
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .pick:hover {
@@ -169,7 +169,7 @@
 
   .turn {
     display: grid;
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   .turn.down {

@@ -38,7 +38,7 @@
 {:else if !bookmarks.loaded}
   <Status loading />
 {:else if !bookmarks.list.length}
-  <Status empty="Nothing bookmarked yet. Open the “…” menu of an album, artist, playlist or song and choose Bookmark." />
+  <Status empty="Nothing bookmarked yet. Choose Bookmark in any “…” menu." />
 {:else}
   {#if moments.length}
     <section>
@@ -228,7 +228,7 @@
       opacity var(--dur-fast),
       color var(--dur-fast),
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   li:hover .remove,

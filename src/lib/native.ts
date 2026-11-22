@@ -14,7 +14,7 @@ export type StartupPage = "home" | "library" | "liked" | "search" | "last";
 export const ACCENTS = ["yellow", "periwinkle", "ember", "mint", "rose", "gold", "ice"] as const;
 export type Accent = (typeof ACCENTS)[number];
 /** Dynamic washes the chrome with the artwork's colour; the rest are fixed. Same order as the Rust list. */
-export const THEMES = ["dynamic", "dark", "oled", "light", "midnight", "mocha", "forest"] as const;
+export const THEMES = ["dynamic", "dynamic-oled", "dark", "oled", "light", "midnight", "mocha", "forest"] as const;
 export type Theme = (typeof THEMES)[number];
 
 /** The music services the listener connected. */

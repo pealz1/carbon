@@ -135,7 +135,7 @@
     transition:
       background var(--dur-fast),
       color var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .filters button:hover {
@@ -172,7 +172,7 @@
     text-decoration: none;
     transition:
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-spring) var(--ease-spring);
     --press: var(--press-wide);
   }
 

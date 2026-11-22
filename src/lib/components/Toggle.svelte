@@ -1,54 +1,28 @@
 <script lang="ts">
-  let {
-    checked,
-    label,
-    description,
-    disabled = false,
-    onchange,
-  }: { checked: boolean; label: string; description?: string; disabled?: boolean; onchange: (value: boolean) => void } = $props();
+  import Row from "$lib/settings/Row.svelte";
+
+  // A switch as a settings row. `description` is its tooltip; `message` stays visible, for the few
+  // switches that need a word of warning.
+  interface Props {
+    checked: boolean;
+    label: string;
+    description?: string | null;
+    message?: string | null;
+    warn?: boolean;
+    keywords?: string;
+    disabled?: boolean;
+    onchange: (value: boolean) => void;
+  }
+
+  let { checked, label, description, message, warn = false, keywords, disabled = false, onchange }: Props = $props();
 </script>
 
-<label class="toggle" class:disabled>
-  <span class="text">
-    <span class="label">{label}</span>
-    {#if description}<span class="description">{description}</span>{/if}
-  </span>
+<Row as="label" class="toggle" {label} {description} {message} {warn} {keywords} {disabled}>
   <input type="checkbox" role="switch" {checked} {disabled} onchange={(e) => onchange(e.currentTarget.checked)} />
   <span class="track" aria-hidden="true"><span class="knob"></span></span>
-</label>
+</Row>
 
 <style>
-  .toggle {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-4);
-    padding: var(--sp-3) 0;
-    cursor: pointer;
-  }
-
-  .disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .label {
-    font-weight: 600;
-  }
-
-  .description {
-    font-size: var(--fs-small);
-    color: var(--text-muted);
-    max-width: 52ch;
-  }
-
   input {
     position: absolute;
     opacity: 0;
@@ -73,7 +47,7 @@
     border-radius: var(--r-pill);
     background: var(--text);
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
   }
 
   input:checked + .track {

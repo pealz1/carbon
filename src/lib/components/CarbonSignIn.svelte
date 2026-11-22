@@ -10,11 +10,11 @@
   <TitleBar controls={false} />
   <section class="hero">
     <h1><Wordmark height={120} /><span class="sr-only">carbon</span></h1>
-    <p class="lede">Step one: sign in to your Carbon account, or create one, in your browser. Then connect Spotify and start listening.</p>
+    <p class="lede">Sign in to your Carbon account in your browser.</p>
     <div class="cta">
       <button onclick={() => account.signIn()} disabled={waiting}>{waiting ? "Waiting for your browser…" : "Sign in to Carbon"}</button>
       {#if waiting}
-        <p class="hint">Finish signing in on the getcarbon.cc page that just opened, then come back here.</p>
+        <p class="hint">Finish signing in on getcarbon.cc, then come back.</p>
       {/if}
     </div>
     {#if account.error}
@@ -73,7 +73,7 @@
     font-size: 1rem;
     box-shadow: 0 18px 40px -14px var(--accent-glow);
     transition:
-      transform var(--dur-fast) var(--ease-spring),
+      transform var(--dur-spring) var(--ease-spring),
       opacity var(--dur-fast);
   }
 

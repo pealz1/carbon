@@ -7,6 +7,9 @@ import { get } from "$lib/spotify/api";
 import { toTrack } from "$lib/spotify/mappers";
 import type { RawTrack } from "$lib/spotify/types";
 import { albumRows } from "$lib/playlist-tools/rows";
+import { matchSong, normal, type Match } from "$lib/search/match";
+
+export { rank, type Match } from "$lib/search/match";
 
 export const MAX_SONGS = 10_000;
 export async function readCollection(link: Link, signal: AbortSignal): Promise<Collection> {
@@ -69,71 +72,25 @@ export async function readCollection(link: Link, signal: AbortSignal): Promise<C
   return { title: playlist.name, songs };
 }
 
-const normal = (s: string) =>
-  s
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
-function similarity(a: string, b: string) {
-  const left = new Set(normal(a).split(" ").filter(Boolean)),
-    right = new Set(normal(b).split(" ").filter(Boolean));
-  if (!left.size || !right.size) return 0;
-  let common = 0;
-  for (const word of left) if (right.has(word)) common++;
-  return (2 * common) / (left.size + right.size);
-}
-export interface Match {
-  source: Song;
-  candidates: Track[];
-  selected: Track | null;
-  reason: string;
-}
-export function rank(source: Song, candidates: Track[]): Match {
-  const scored = candidates
-    .map((t) => {
-      const title = similarity(source.title, t.name);
-      const artist = Math.max(
-        0,
-        ...t.artists.map((a) => similarity(source.artist, a.name)),
-        similarity(source.artist, t.artists.map((a) => a.name).join(" ")),
-      );
-      const difference = source.durationMs && t.durationMs ? Math.abs(source.durationMs - t.durationMs) / 1000 : null;
-      const score = title * 0.64 + artist * 0.36 - (difference !== null && difference > 10 ? 0.25 : 0);
-      return { t, title, artist, difference, score };
-    })
-    .sort((a, b) => b.score - a.score);
-  const best = scored[0],
-    next = scored[1];
-  const certain =
-    best &&
-    best.title >= 0.98 &&
-    best.artist >= 0.8 &&
-    (best.difference === null || best.difference <= 10) &&
-    (!next || best.score - next.score > 0.06);
-  return {
-    source,
-    candidates: scored.slice(0, 5).map((s) => s.t),
-    selected: certain ? best.t : null,
-    reason: certain
-      ? "Matched"
-      : !best
-        ? "No match"
-        : best.difference !== null && best.difference > 10
-          ? "Different duration"
-          : "Review match",
-  };
-}
+const youtubeSongs = (term: string) => yt.search(term, "songs").then((r) => r.songs as Track[]);
+
 export async function matchSongs(
   songs: Song[],
   signal: AbortSignal,
   progress: (n: number) => void,
-  search = (s: string) => yt.search(s, "songs").then((r) => r.songs as Track[]),
+  search = youtubeSongs,
 ): Promise<Match[]> {
   if (!songs.length || songs.length > MAX_SONGS) throw new Error("Choose a list with 1 to 10,000 songs.");
   const results: Match[] = new Array(songs.length),
     cache = new Map<string, Promise<Track[]>>();
+  const once = (term: string) => {
+    let pending = cache.get(term);
+    if (!pending) {
+      pending = search(term);
+      cache.set(term, pending);
+    }
+    return pending;
+  };
   let next = 0,
     done = 0;
   async function worker() {
@@ -150,19 +107,10 @@ export async function matchSongs(
           selected: source.track,
           reason: "Original YouTube song",
         };
-      else {
-        const term = [source.title, source.artist].filter(Boolean).join(" ");
-        let pending = cache.get(term);
-        if (!pending) {
-          pending = search(term);
-          cache.set(term, pending);
-        }
-        try {
-          results[index] = rank(source, await pending);
-        } catch {
-          results[index] = { source, candidates: [], selected: null, reason: "Search unavailable" };
-        }
-      }
+      else
+        results[index] = await matchSong(source, once).catch(
+          (): Match => ({ source, candidates: [], selected: null, reason: "Search unavailable" }),
+        );
       signal.throwIfAborted();
       progress(++done);
     }

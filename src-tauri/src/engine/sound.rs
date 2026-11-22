@@ -12,6 +12,8 @@ const FILE: &str = "sound.json";
 const MAX_DEVICE_NAME: usize = 256;
 pub const MAX_PREAMP_DB: f32 = 12.0;
 pub const MAX_WIDTH: f32 = 2.0;
+/// How much louder Boost makes things; the limiter at the end of the chain keeps it from clipping.
+pub const BOOST_DB: f32 = 6.0;
 
 /// Which loudness tags to trust before measuring a file ourselves.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -44,8 +46,10 @@ pub struct SoundSettings {
     pub width: f32,
     /// Output device name; empty follows the Windows default.
     pub device: String,
-    /// Experimental EQ on Spotify's audio. Read once at startup (see spotify_eq.rs).
+    /// The EQ also shapes the embedded players (Spotify, YouTube Music); see spotify_eq.rs.
     pub spotify_eq: bool,
+    /// Louder than 100%: adds BOOST_DB before the limiter.
+    pub boost: bool,
 }
 
 impl Default for SoundSettings {
@@ -64,6 +68,7 @@ impl Default for SoundSettings {
             width: 1.0,
             device: String::new(),
             spotify_eq: false,
+            boost: false,
         }
     }
 }
@@ -96,7 +101,8 @@ impl SoundSettings {
 
     pub fn dsp(&self, volume: f32) -> Snapshot {
         let compress = if self.compressor { self.compressor_amount } else { 0.0 };
-        Snapshot { preamp_db: self.preamp_db, bands: self.bands, width: self.width, compress, volume }
+        let boost = if self.boost { BOOST_DB } else { 0.0 };
+        Snapshot { preamp_db: self.preamp_db + boost, bands: self.bands, width: self.width, compress, volume }
     }
 }
 
@@ -138,6 +144,15 @@ mod tests {
         let s = SoundSettings::default();
         assert!(s.validate().is_ok());
         assert!(!s.spotify_eq);
+        assert!(!s.boost);
+    }
+
+    #[test]
+    fn boost_adds_to_the_preamp() {
+        let quiet = SoundSettings { preamp_db: -2.0, ..Default::default() };
+        assert_eq!(quiet.dsp(1.0).preamp_db, -2.0);
+        let boosted = SoundSettings { boost: true, ..quiet };
+        assert_eq!(boosted.dsp(1.0).preamp_db, -2.0 + BOOST_DB);
     }
 
     #[test]

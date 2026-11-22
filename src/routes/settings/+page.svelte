@@ -1,17 +1,12 @@
 <script lang="ts">
-  import { disable as autostartOff, enable as autostartOn, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
-  import { openUrl } from "@tauri-apps/plugin-opener";
-  import { invoke } from "@tauri-apps/api/core";
-  import { languages,activeLocale,selectLocale,type Locale } from "$lib/i18n/locale.svelte";
-  import { onMount } from "svelte";
-  import { account } from "$lib/account.svelte";
+  // Settings: categories on the left, one shown at a time and chosen in the URL
+  // (/settings?section=appearance), and a search that lists matching rows from all of them.
+  import { tick } from "svelte";
+  import { afterNavigate, goto } from "$app/navigation";
+  import { page } from "$app/state";
   import AccessibilityPanel from "$lib/components/AccessibilityPanel.svelte";
-  import GeneralPanel from "$lib/components/GeneralPanel.svelte";
-  import CinemaSettings from "$lib/components/CinemaSettings.svelte";
-  import ClientIdForm from "$lib/components/ClientIdForm.svelte";
   import DesktopPanel from "$lib/components/DesktopPanel.svelte";
-  import FontPicker from "$lib/components/FontPicker.svelte";
-  import ThemePicker from "$lib/components/ThemePicker.svelte";
+  import Icon from "$lib/components/Icon.svelte";
   import ListenbrainzPanel from "$lib/components/ListenbrainzPanel.svelte";
   import LyricsSettings from "$lib/components/LyricsSettings.svelte";
   import PlaybackPanel from "$lib/components/PlaybackPanel.svelte";
@@ -19,552 +14,321 @@
   import ServersPanel from "$lib/components/ServersPanel.svelte";
   import ServicesPanel from "$lib/components/ServicesPanel.svelte";
   import YoutubePanel from "$lib/components/YoutubePanel.svelte";
-  import { services } from "$lib/services.svelte";
-  import { youtube } from "$lib/youtube/session.svelte";
-  import Toggle from "$lib/components/Toggle.svelte";
-  import { BUILT_IN_CLIENT_ID, CARBON } from "$lib/config";
-  import { describeError } from "$lib/errors";
-  import { FONT_ROLES } from "$lib/fonts";
-  import {
-    ACCENTS,
-    appInfo,
-    cacheClear,
-    cacheSize,
-    installedFonts,
-    lastfmConnect,
-    lastfmDisconnect,
-    lastfmStatus,
-    removeSavedData,
-    uninstall,
-    type AppInfo,
-    type Effects,
-    type LastfmStatus,
-    type Settings,
-  } from "$lib/native";
-  import { organizer } from "$lib/organizer.svelte";
-  import BackupPanel from "$lib/playlist-tools/BackupPanel.svelte";
+  import { dialogs } from "$lib/dialogs.svelte";
+  import { t } from "$lib/i18n/locale.svelte";
   import { prefs } from "$lib/preferences.svelte";
-  import { session } from "$lib/session.svelte";
-  import { playSound } from "$lib/sfx";
-  import { updates } from "$lib/updates.svelte";
+  import { services } from "$lib/services.svelte";
+  import AccountSettings from "$lib/settings/AccountSettings.svelte";
+  import AppearanceSettings from "$lib/settings/AppearanceSettings.svelte";
+  import { CATEGORIES, categoryHref, categoryOf } from "$lib/settings/categories";
+  import Category from "$lib/settings/Category.svelte";
+  import ConnectionTest from "$lib/settings/ConnectionTest.svelte";
+  import DataSettings from "$lib/settings/DataSettings.svelte";
+  import { provideIndex, type SettingEntry } from "$lib/settings/index.svelte";
+  import IntegrationsSettings from "$lib/settings/IntegrationsSettings.svelte";
+  import { matchSettings } from "$lib/settings/search";
+  import SearchResults from "$lib/settings/SearchResults.svelte";
+  import SoundSettings from "$lib/settings/SoundSettings.svelte";
 
-  const EFFECTS: { id: Effects; label: string; hint: string }[] = [
-    { id: "full", label: "Full", hint: "Moving colour, film grain and glass" },
-    { id: "balanced", label: "Balanced", hint: "Still colour, grain and glass" },
-    { id: "minimal", label: "Minimal", hint: "Flat colour, no blur or motion; easiest on older PCs" },
-  ];
+  const FOUND_MS = 1600;
 
-  let query=$state(""),grid=$state<HTMLDivElement>(),matchCount=$state(0);
-  let testing=$state(false),diagnostics=$state<{name:string;status:number|null;elapsed:number}[]>([]);
-  $effect(()=>{
-    const term=query.trim().toLocaleLowerCase(),panels=grid?.querySelectorAll<HTMLElement>(":scope > section");
-    let count=0;
-    for(const panel of panels??[]){const match=!term || panel.textContent?.toLocaleLowerCase().includes(term);panel.hidden=!match;if(match)count++;}
-    matchCount=count;
-  });
-  async function testConnections(){testing=true;try{diagnostics=await invoke("provider_diagnostics");}catch(e){notice=describeError(e);}finally{testing=false;}}
-  let info = $state<AppInfo | null>(null);
-  let lastfm = $state<LastfmStatus | null>(null);
-  let lastfmBusy = $state(false);
-  let startup = $state(false);
-  let notice = $state<string | null>(null);
-  let confirmRemove = $state(false);
-  let fonts = $state<string[] | null>(null);
-  let cache = $state<number | null>(null);
-  let clearing = $state(false);
+  const index = provideIndex();
+  let query = $state("");
+  let field = $state<HTMLInputElement>();
+  let list = $state<HTMLElement>();
 
-  const formatBytes = (bytes: number) =>
-    bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  const section = $derived(categoryOf(page.url));
+  const searching = $derived(query.trim() !== "");
+  // The categories sit in the page in their own order, so the first row found is the first one shown.
+  const found = $derived(searching ? matchSettings(index.rows, query) : []);
 
-  const measureCache = () =>
-    cacheSize().then(
-      (bytes) => (cache = bytes),
-      (e) => ((cache = 0), (notice = `Couldn't measure the cache: ${describeError(e)}`)),
-    );
-
-  async function clearCache() {
-    clearing = true;
-    try {
-      await cacheClear();
-      notice = "Cache cleared.";
-    } catch (e) {
-      notice = `Couldn't clear the cache: ${describeError(e)}`;
-    } finally {
-      clearing = false;
-      void measureCache();
-    }
+  /** Scrolls to a row and washes it with the accent for a moment (Row draws the wash). */
+  function reveal(row: HTMLElement) {
+    const { motion, effects } = document.documentElement.dataset;
+    row.scrollIntoView({ block: "center" });
+    row.querySelector<HTMLElement>("input, select, button, a[href]")?.focus({ preventScroll: true });
+    if (motion === "none" || effects === "minimal") return;
+    row.animate({ opacity: [1, 1, 0], offset: [0, 0.3, 1] }, { duration: FOUND_MS, easing: "ease-out", pseudoElement: "::after" });
   }
-  const s = $derived(prefs.value);
-  const customId = $derived(s?.spotifyClientId ?? "");
 
-  onMount(async () => {
-    void measureCache();
-    installedFonts().then(
-      (list) => (fonts = list),
-      (e) => {
-        fonts = [];
-        notice = `Couldn't list your fonts: ${describeError(e)}`;
-      },
-    );
-    try {
-      [info, lastfm, startup] = await Promise.all([appInfo(), lastfmStatus(), autostartEnabled()]);
-    } catch (e) {
-      notice = describeError(e);
-    }
+  /** Opens a search result. The search is cleared after the page has moved on, so the results (not the old category) are what fades out. */
+  async function open(row: SettingEntry) {
+    if (row.category !== section) await goto(categoryHref(row.category), { replace: true, reset: false });
+    query = "";
+    await tick();
+    requestAnimationFrame(() => reveal(row.el));
+  }
+
+  // Choosing a category ends a search. Links from elsewhere (/settings#servers) land on their
+  // group, a frame later because the layout scrolls every page to the top after a navigation.
+  afterNavigate(() => {
+    query = "";
+    const anchor = page.url.hash.slice(1);
+    if (anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ block: "start" }));
   });
 
-  async function toggleStartup(on: boolean) {
-    try {
-      await (on ? autostartOn() : autostartOff());
-      startup = on;
-    } catch (e) {
-      notice = `Couldn't change startup: ${describeError(e)}`;
+  // On a narrow stage the categories are one scrolling line: keep the current one in it.
+  $effect(() => {
+    list?.querySelector(`[href="${categoryHref(section)}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  });
+
+  function onkeydown(event: KeyboardEvent) {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.key.toLowerCase() !== "f" || dialogs.anyOpen) return;
+    event.preventDefault();
+    field?.focus();
+    field?.select();
+  }
+
+  function onsearchkey(event: KeyboardEvent) {
+    if (event.key === "Escape" && query) {
+      event.preventDefault();
+      query = "";
+    } else if (event.key === "Enter" && found.length) {
+      void open(found[0]);
     }
   }
 
-  async function connectLastfm() {
-    lastfmBusy = true;
-    notice = "Approve Carbon on the Last.fm page that just opened.";
-    try {
-      const username = await lastfmConnect();
-      lastfm = { configured: true, username };
-      notice = `Connected to Last.fm as ${username}.`;
-    } catch (e) {
-      notice = describeError(e);
-    } finally {
-      lastfmBusy = false;
-    }
-  }
-
-  async function disconnectLastfm() {
-    await lastfmDisconnect();
-    lastfm = { configured: lastfm?.configured ?? false, username: null };
-  }
-
-  async function removeEverything() {
-    await session.signOut();
-    await account.signOut();
-    await youtube.signOut();
-    try {
-      await removeSavedData();
-      try {
-        localStorage.clear(); // per-song lyric choices, compact-player size and other interface memory
-      } catch (e) {
-        console.warn("[settings] couldn't clear local storage", e);
-      }
-      notice = "Signed out and removed everything Carbon saved on this PC.";
-    } catch (e) {
-      notice = `Couldn't remove everything: ${describeError(e)}`;
-    }
-    // Reload so in-memory folders and settings can't write the old data back.
-    await Promise.all([prefs.load(), organizer.load()]);
-    confirmRemove = false;
+  /** A mouse wheel moves the line of categories sideways; the column it is on a wide stage scrolls as usual. */
+  function sideways(event: WheelEvent & { currentTarget: HTMLElement }) {
+    const line = event.currentTarget;
+    if (line.scrollWidth <= line.clientWidth || !event.deltaY || event.shiftKey) return;
+    line.scrollLeft += event.deltaY;
+    event.preventDefault();
   }
 </script>
 
-<header class="page-head">
-  <h1>Settings</h1>
-  <input type="search" class="input" bind:value={query} placeholder="Search settings" aria-label="Search settings">
-  {#if query && !matchCount}<p role="status">No matching settings.</p>{/if}
-  {#if notice || prefs.error}<p class="notice" role="status">{prefs.error ?? notice}</p>{/if}
-</header>
+<svelte:window {onkeydown} />
 
-{#if s}
-  <div class="grid" bind:this={grid}>
-    <section class="panel plate account">
-      <h2>Account</h2>
-      {#if services.active.spotify}
-      {#if session.profile}
-        <div class="me">
-          {#if session.profile.image}<img src={session.profile.image} alt="" width="56" height="56" />{/if}
-          <div>
-            <p class="name">{session.profile.name}</p>
-            <p class="muted">Signed in with Spotify</p>
-          </div>
-        </div>
-      {/if}
-      <div class="actions">
-        <button class="pill" onclick={() => session.signOut()}>Sign out</button>
-        <button class="pill" onclick={async () => (await session.signOut(), session.signIn())}>Switch account</button>
-      </div>
-      <h3>Spotify app</h3>
-      <p class="muted">
-        {customId ? `Using your own Client ID ending in …${customId.slice(-6)}.` : BUILT_IN_CLIENT_ID ? "Using this build's Client ID." : "No Client ID set."}
-        Changing it signs you out.
-      </p>
-      <ClientIdForm initial={customId} compact />
-      {/if}
-      {#if account.required || account.status === "signed-in"}
-        <h3>Carbon account</h3>
-        {#if account.status === "signed-in"}
-          <p class="muted">
-            {account.user ? `${account.user.email} · ${account.user.plan} plan` : "Signed in. Carbon's servers can't be reached right now."}
-          </p>
-          <div class="actions">
-            <button class="pill" onclick={() => openUrl(CARBON.accountUrl)}>Manage account</button>
-            <button class="pill" onclick={() => account.signOut()}>Sign out of Carbon</button>
-          </div>
-        {:else}
-          <button class="pill accent" onclick={() => account.signIn()} disabled={account.status === "signing-in"}>
-            {account.status === "signing-in" ? "Waiting for your browser…" : "Sign in to Carbon"}
-          </button>
-        {/if}
-        {#if account.error}<p class="warn">{account.error}</p>{/if}
-      {/if}
-    </section>
-
-    <GeneralPanel />
-
-    <section class="panel plate">
-      <h2>Appearance</h2>
-      <p class="eyebrow">Theme</p>
-      <ThemePicker />
-      <label>Language <select class="input" value={activeLocale()} onchange={e=>selectLocale(e.currentTarget.value as Locale)}>{#each Object.entries(languages) as [code,name]}<option value={code}>{name}</option>{/each}</select></label>
-      <p class="eyebrow">Effects</p>
-      <div class="segmented" role="radiogroup" aria-label="Effects">
-        {#each EFFECTS as e (e.id)}
-          <button role="radio" aria-checked={s.effects === e.id} class:active={s.effects === e.id} onclick={() => prefs.update({ effects: e.id })} title={e.hint}>
-            {e.label}
-          </button>
-        {/each}
-      </div>
-      <p class="eyebrow">Accent</p>
-      <div class="swatches" role="radiogroup" aria-label="Accent colour">
-        {#each ACCENTS as accent (accent)}
-          <button
-            role="radio"
-            aria-checked={s.accent === accent}
-            aria-label={accent}
-            class="swatch"
-            data-swatch={accent}
-            class:active={s.accent === accent}
-            onclick={() => prefs.update({ accent })}
-          ></button>
-        {/each}
-      </div>
-      <label class="range">
-        <span class="eyebrow">Lyrics size: {Math.round(s.lyricsScale * 100)}%</span>
-        <input type="range" min="0.75" max="1.5" step="0.05" value={s.lyricsScale} onchange={(e) => prefs.update({ lyricsScale: Number(e.currentTarget.value) })} />
-      </label>
-      {#each FONT_ROLES as role (role.key)}
-        <FontPicker
-          label={role.label}
-          value={s[role.key]}
-          {fonts}
-          fallback={role.fallback}
-          onpick={(family) => prefs.update({ [role.key]: family } as Partial<Settings>)}
-        />
+<div class="settings">
+  <aside class="rail">
+    <h1>Settings</h1>
+    <label class="search">
+      <Icon name="search" size={16} />
+      <input bind:this={field} bind:value={query} onkeydown={onsearchkey} type="search" class="input" placeholder="Search settings" aria-label="Search settings" spellcheck="false" autocomplete="off" />
+    </label>
+    <nav bind:this={list} aria-label="Settings categories" onwheel={sideways}>
+      {#each CATEGORIES as category (category.id)}
+        {@const current = !searching && category.id === section}
+        <a
+          href={categoryHref(category.id)}
+          class="category pressable"
+          class:current
+          aria-current={current ? "page" : undefined}
+          data-sveltekit-replacestate
+          data-sveltekit-reset="false"
+        >
+          <Icon name={category.icon} size={18} />
+          <span>{t(category.label)}</span>
+        </a>
       {/each}
-    </section>
+    </nav>
+  </aside>
 
-    <AccessibilityPanel />
+  <div class="content">
+    {#if prefs.error}<p class="warn" role="alert">{prefs.error}</p>{/if}
 
-    <LyricsSettings settings={s} />
-    <CinemaSettings />
+    {#if searching}<SearchResults rows={found} {query} onopen={open} />{/if}
 
-    <section class="panel plate">
-      <h2>Interface sounds</h2>
-      <Toggle
-        checked={s.uiSounds}
-        label="Play interface sounds"
-        description="Soft taps and chimes as you use Carbon. Always silent while Spotify is playing."
-        onchange={async (v) => (await prefs.update({ uiSounds: v })) && v && playSound("toggle-on")}
-      />
-      <label class="range" class:off={!s.uiSounds}>
-        <span class="eyebrow">Volume: {Math.round(s.uiSoundVolume * 100)}%</span>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={s.uiSoundVolume}
-          disabled={!s.uiSounds}
-          onchange={async (e) => (await prefs.update({ uiSoundVolume: Number(e.currentTarget.value) })) && playSound("select")}
-        />
-      </label>
-    </section>
-
-    <section class="panel plate">
-      <h2>Integrations</h2>
-      <Toggle
-        checked={s.discordPresence}
-        disabled={!info?.discordConfigured}
-        label="Discord status"
-        description={info?.discordConfigured ? "Shows what you're listening to while Discord is open." : "Not available in this build."}
-        onchange={(v) => prefs.update({ discordPresence: v })}
-      />
-      {#if s.discordPresence}
-        <Toggle checked={s.discordArtwork} label="Show Discord artwork" onchange={v=>prefs.update({discordArtwork:v})}/>
-        <Toggle checked={s.discordTimestamps} label="Show playback time on Discord" onchange={v=>prefs.update({discordTimestamps:v})}/>
-        <Toggle checked={s.discordPaused} label="Show paused songs on Discord" onchange={v=>prefs.update({discordPaused:v})}/>
-      {/if}
-      <Toggle
-        checked={s.lastfmScrobbling}
-        disabled={!lastfm?.username}
-        label="Scrobble to Last.fm"
-        description={lastfm?.username ? `Connected as ${lastfm.username}.` : "When enabled, Carbon’s account service forwards the artist, track, album, duration and play time to Last.fm."}
-        onchange={(v) => prefs.update({ lastfmScrobbling: v })}
-      />
-      {#if lastfm?.configured}
-        {#if lastfm.username}
-          <button class="pill" onclick={disconnectLastfm}>Disconnect Last.fm</button>
-        {:else}
-          <button class="pill accent" onclick={connectLastfm} disabled={lastfmBusy}>{lastfmBusy ? "Waiting for Last.fm…" : "Connect Last.fm"}</button>
-        {/if}
-      {:else}
-        <p class="muted">Sign in to your Carbon account to connect Last.fm.</p>
-      {/if}
-    </section>
-
-    <ListenbrainzPanel />
-
-    <DesktopPanel />
-
-    <RemotePanel />
-
-    <ServicesPanel />
-
-    {#if services.active.youtube}<YoutubePanel />{/if}
-
-    <ServersPanel />
-
-    <PlaybackPanel />
-
-    <BackupPanel />
-
-    <section class="panel plate">
-      <h2>Sound</h2>
-      <p class="muted">EQ, loudness, crossfade and output device for local files played by Carbon's own engine.</p>
-      <a class="pill" href="/sound">Open Sound settings</a>
-      <Toggle checked={s.soundButton} label="Sound button in the player bar" description="One click to EQ and the rest of Sound settings." onchange={(v) => prefs.update({ soundButton: v })} />
-      <Toggle
-        checked={s.sourceBadges}
-        label="Show where songs come from"
-        description="A small tag under the playing song: Spotify, YouTube Music, local file, your server or radio."
-        onchange={(v) => prefs.update({ sourceBadges: v })}
-      />
-    </section>
-
-    <section class="panel plate">
-      <h2>System</h2>
-      <button class="pill" disabled={testing} onclick={testConnections}>Test provider connections</button>
-      {#if testing}<p role="status">Checking connections…</p>{/if}
-      {#if diagnostics.length}<ul>{#each diagnostics as item}<li>{item.name} · {item.status===null?"Unreachable":"HTTP "+item.status+" · "+item.elapsed+" ms"}</li>{/each}</ul>{/if}
-      <Toggle checked={s.miniOnMinimize} label="Open mini player on minimize" onchange={v=>prefs.update({miniOnMinimize:v})}/>
-      <Toggle checked={s.miniPinned} label="Keep mini player on top" onchange={v=>prefs.update({miniPinned:v})}/>
-      <Toggle checked={s.miniClickThrough} label="Click through the mini player" description="Turn this off here to use the mini player buttons again." onchange={v=>prefs.update({miniClickThrough:v})}/>
-      <Toggle checked={startup} label="Open at startup" description="Starts in the background when you sign in to your computer. Click the tray icon, or press the show/hide shortcut, to open it." onchange={toggleStartup} />
-      <Toggle checked={s.closeToTray} label="Keep playing when closed" description="Closing the window keeps Carbon in the tray. Quit from the tray icon." onchange={(v) => prefs.update({ closeToTray: v })} />
-    </section>
-
-    <section class="panel plate">
-      <h2>Updates</h2>
-      <p class="muted">Carbon {info?.version ?? ""}</p>
-      <Toggle
-        checked={s.autoUpdate}
-        label="Install updates automatically"
-        description="Downloads new versions in the background and installs them while Carbon is in the tray with nothing playing. Off: Carbon only tells you."
-        onchange={(v) => prefs.update({ autoUpdate: v })}
-      />
-      {#if updates.state === "ready"}
-        <p>Version {updates.version} is downloaded and ready.</p>
-        <button class="pill accent" onclick={() => updates.install()}>Restart to update</button>
-      {:else if updates.state === "available"}
-        <p>Version {updates.version} is out.</p>
-        <button class="pill accent" onclick={() => updates.install()}>Update and restart</button>
-      {:else if updates.state === "downloading"}
-        <div class="bar"><span style="transform: scaleX({updates.progress})"></span></div>
-      {:else}
-        <button class="pill" onclick={() => updates.check()} disabled={updates.state === "checking"}>
-          {updates.state === "checking" ? "Checking…" : updates.state === "current" ? "You're up to date · check again" : "Check for updates"}
-        </button>
-      {/if}
-      {#if updates.notes}<details><summary>Release notes</summary><p class="notes">{updates.notes}</p></details>{/if}
-      <button class="pill" onclick={()=>openUrl("https://github.com/pealz1/carbon/releases")}>Version history</button>
-      {#if updates.error}<p class="warn">{updates.error}</p>{/if}
-    </section>
-
-    <section class="panel plate">
-      <h2>About & data</h2>
-      <div class="links">
-        <button class="link" onclick={() => openUrl("https://getcarbon.cc")}>getcarbon.cc</button>
-        <button class="link" onclick={() => openUrl("https://github.com/pealz1/carbon")}>Source on GitHub</button>
-        <button class="link" onclick={() => openUrl("https://getcarbon.cc/privacy")}>Privacy</button>
+    {#if prefs.value}
+      <div hidden={searching}>
+        <Category id="account" current={section}><AccountSettings /></Category>
+        <Category id="appearance" current={section}><AppearanceSettings /></Category>
+        <Category id="playback" current={section}><PlaybackPanel /></Category>
+        <Category id="lyrics" current={section}><LyricsSettings /></Category>
+        <Category id="sound" current={section}><SoundSettings /></Category>
+        <Category id="services" current={section}>
+          <ServicesPanel />
+          {#if services.active.youtube}<YoutubePanel />{/if}
+          <ServersPanel />
+          <ConnectionTest />
+        </Category>
+        <Category id="integrations" current={section}>
+          <IntegrationsSettings />
+          <ListenbrainzPanel />
+          <RemotePanel />
+        </Category>
+        <Category id="desktop" current={section}><DesktopPanel /></Category>
+        <Category id="accessibility" current={section}><AccessibilityPanel /></Category>
+        <Category id="data" current={section}><DataSettings /></Category>
       </div>
-      <div class="cache">
-        <p class="muted">
-          Cache: {cache === null ? "measuring…" : formatBytes(cache)} of notification artwork and library details. Clearing it is safe; Carbon fetches them again when needed.
-        </p>
-        <button class="pill" disabled={!cache || clearing} onclick={clearCache}>{clearing ? "Clearing…" : "Clear cache"}</button>
-      </div>
-      {#if confirmRemove}
-        <p class="warn">This signs you out of Spotify, Last.fm and ListenBrainz, resets every setting and forgets your local library and Carbon playlists. Your music files stay where they are.</p>
-        <div class="actions">
-          <button class="pill danger" onclick={removeEverything}>Yes, remove it all</button>
-          <button class="pill" onclick={() => (confirmRemove = false)}>Cancel</button>
-        </div>
-      {:else}
-        <button class="pill" onclick={() => (confirmRemove = true)}>Remove saved data…</button>
-      {/if}
-      {#if info?.installed}
-        <button class="pill danger" onclick={() => uninstall()}>Uninstall Carbon</button>
-      {/if}
-      <p class="fine">Carbon isn't affiliated with Spotify.</p>
-    </section>
+    {/if}
   </div>
-{/if}
+</div>
 
 <style>
-  .grid > :global([hidden]){display:none} .notes{white-space:pre-line}
-  .page-head {
-    align-items: baseline;
-  }
-
-  .notice {
-    margin: 0;
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .grid {
+  .settings {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-    gap: var(--sp-4);
+    grid-template-columns: 232px minmax(0, 720px);
+    column-gap: var(--sp-6);
     align-items: start;
   }
 
-  .account {
-    grid-row: span 2;
-  }
-
-  .panel {
+  /* The list keeps its place while a category scrolls, and while the page glides to the next one:
+     its own view-transition-name takes it out of the `page` transition (app.css). */
+  .rail {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
-    padding: var(--sp-5);
+    max-height: calc(100vh - var(--titlebar-h) - var(--player-h) - var(--inset) * 2);
+    padding: var(--sp-6) 0 var(--sp-4);
+    view-transition-name: settings-rail;
   }
 
-  h2 {
-    margin-bottom: var(--sp-1);
+  /* Arriving at Settings and leaving it, the list glides with the page. */
+  ::view-transition-old(settings-rail):only-child {
+    animation: vt-out 140ms var(--ease-out) both;
+  }
+
+  ::view-transition-new(settings-rail):only-child {
+    animation: vt-in 300ms var(--ease-out) both;
+  }
+
+  h1 {
+    padding: 0 var(--sp-3);
     font-size: var(--fs-section);
-    font-weight: 700;
+    font-weight: 800;
+    line-height: 40px;
   }
 
-  h3 {
-    margin-top: var(--sp-4);
-    font-size: var(--fs-lead);
-    font-weight: 700;
+  .search {
+    position: relative;
+    display: block;
+    flex: none;
   }
 
-  .muted,
-  .fine {
-    margin: 0;
-    color: var(--text-muted);
-    font-size: var(--fs-small);
-    line-height: 1.5;
-  }
-
-  .fine {
+  .search :global(svg) {
+    position: absolute;
+    top: 50%;
+    left: var(--sp-3);
+    translate: 0 -50%;
     color: var(--text-faint);
+    pointer-events: none;
+  }
+
+  .search .input {
+    width: 100%;
+    padding-left: calc(var(--sp-5) + var(--sp-2));
+  }
+
+  nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+    /* Room for the focus ring inside the scrolling box. */
+    margin: -3px;
+    padding: 3px;
+    overflow-y: auto;
+  }
+
+  .category {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--sp-3);
+    min-height: 38px;
+    padding: 0 var(--sp-3);
+    border-radius: var(--r-md);
+    color: var(--text-muted);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      background var(--dur-fast),
+      color var(--dur-fast),
+      box-shadow var(--dur-med),
+      transform var(--dur-spring) var(--ease-spring);
+    --press: var(--press-wide);
+  }
+
+  .category:hover {
+    background: var(--glass-hover);
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .category.current {
+    background: var(--glass-active);
+    box-shadow: var(--rim);
+    color: var(--text);
+  }
+
+  .category.current :global(svg) {
+    color: var(--accent);
+  }
+
+  .content {
+    min-width: 0;
+    padding-top: var(--sp-6);
   }
 
   .warn {
-    margin: 0;
+    margin: 0 0 var(--sp-4);
     color: var(--warning);
     font-size: var(--fs-small);
   }
 
-  .me {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-3);
-  }
+  /* A narrow stage: the list becomes a line of pills above the content, still in reach as it scrolls. */
+  @container stage (max-width: 900px) {
+    .settings {
+      grid-template-columns: minmax(0, 1fr);
+    }
 
-  .me img {
-    border-radius: var(--r-pill);
-    object-fit: cover;
-  }
+    .rail {
+      flex-flow: row wrap;
+      align-items: center;
+      gap: var(--sp-2) var(--sp-4);
+      max-height: none;
+      margin: 0 calc(var(--page-x) * -1);
+      padding: var(--sp-4) var(--page-x) var(--sp-3);
+      background: var(--stage);
+      box-shadow: 0 1px 0 var(--stage-edge);
+    }
 
-  .name {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 700;
-  }
+    h1 {
+      padding: 0;
+      line-height: 36px;
+    }
 
-  .actions,
-  .links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-  }
+    .search {
+      flex: 1 1 200px;
+      max-width: 320px;
+      margin-left: auto;
+    }
 
-  .eyebrow {
-    margin: var(--sp-2) 0 0;
-  }
+    nav {
+      flex: 1 0 100%;
+      flex-direction: row;
+      gap: var(--sp-2);
+      padding-right: var(--sp-5);
+      overflow: auto hidden;
+      scrollbar-width: none;
+      /* The line fades out where more of it waits to the right. */
+      mask-image: linear-gradient(to right, #000 calc(100% - var(--sp-5)), transparent);
+    }
 
-  .swatches {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-    padding: 4px;
-  }
+    .category {
+      gap: var(--sp-2);
+      min-height: 34px;
+      border-radius: var(--r-pill);
+      background: var(--glass);
+    }
 
-  .swatch {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--r-pill);
-    background: var(--swatch);
-    transition:
-      transform var(--dur-med) var(--ease-spring),
-      box-shadow var(--dur-fast);
-  }
+    .category.current {
+      background: var(--paper);
+      box-shadow: none;
+      color: var(--ink);
+    }
 
-  .swatch.active {
-    box-shadow:
-      0 0 0 2px var(--stage),
-      0 0 0 4px var(--swatch);
-  }
+    .category.current :global(svg) {
+      color: inherit;
+    }
 
-  .range {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-
-  .range.off {
-    opacity: 0.5;
-  }
-
-  .bar {
-    height: 4px;
-    border-radius: var(--r-pill);
-    background: var(--glass-active);
-    overflow: hidden;
-  }
-
-  .bar span {
-    display: block;
-    height: 100%;
-    background: var(--accent);
-    transform-origin: left;
-    transition: transform var(--dur-med) var(--ease-out);
-  }
-
-  .cache {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--sp-2);
-  }
-
-  .link {
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .link:hover {
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    .content {
+      padding-top: var(--sp-5);
+    }
   }
 </style>

@@ -70,6 +70,14 @@
     playUri={p.uri}
     shuffleCount={tracks?.total ?? p.trackCount ?? undefined}
     menuItems={() => playlistMenu(p!, p!.largeImage)}
+    share={{ uri: p.uri, name: p.name }}
+    facts={[
+      ...(p.ownerName ? [{ label: "Made by", value: p.ownerName }] : []),
+      ...(tracks ? [{ label: "Songs", value: String(tracks.total ?? tracks.items.length) }] : []),
+      ...(tracks?.done && totalMs ? [{ label: "Length", value: formatTotal(totalMs) }] : []),
+      { label: "Visibility", value: p.collaborative ? "Collaborative" : p.public === false ? "Private" : "Public" },
+    ]}
+    feelIds={tracks?.items.slice(0, 20).map((t) => t.id)}
   >
     {#snippet byline()}
       {#if p?.ownerName}<span class="person"><span class="avatar"><Icon name="artist" size={15} /></span>{p.ownerName}</span>{/if}
@@ -119,8 +127,8 @@
     transition:
       background var(--dur-fast),
       box-shadow var(--dur-med),
-      translate var(--dur-med) var(--ease-spring),
-      transform var(--dur-med) var(--ease-spring);
+      translate var(--dur-spring) var(--ease-spring),
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .edit:hover {

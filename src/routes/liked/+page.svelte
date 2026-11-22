@@ -24,6 +24,7 @@
   playUri={contextUri}
   shuffleCount={liked.total ?? undefined}
   menuItems={() => toolItems({ kind: "liked", name: "Liked Songs" })}
+  feelIds={liked.items.slice(0, 20).map((t) => t.id)}
   chips={[{ label: "Collection", icon: "heart" }, ...(liked.total !== null ? [{ label: `${liked.total.toLocaleString()} songs`, icon: "note" as const }] : [])]}
 >
   {#snippet byline()}

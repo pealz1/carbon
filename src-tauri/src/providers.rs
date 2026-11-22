@@ -12,6 +12,12 @@ const SC_SESSION: &str = "soundcloud-api-refresh";
 const SC_CALLBACK: &str = "http://127.0.0.1:8888/soundcloud-callback";
 const SC_TOKEN: &str = "https://secure.soundcloud.com/oauth/token";
 const MAX_BODY: usize = 8 * 1024 * 1024;
+/// Tidal's share pages are about 10 KB; anything far larger isn't one.
+const MAX_PAGE: usize = 512 * 1024;
+const TIDAL_HOSTS: &[&str] = &["tidal.com"];
+const TIDAL_IMAGES: &[&str] = &["resources.tidal.com"];
+const TIDAL_REDIRECTS: usize = 3;
+const MAX_NAME: usize = 300;
 
 #[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -112,17 +118,23 @@ async fn json(request: RequestBuilder, name: &str) -> Result<Value, String> {
     json_response(response, name).await
 }
 
-async fn json_response(mut response: reqwest::Response, name: &str) -> Result<Value, String> {
+/// A successful answer's bytes, refused once it grows past `cap`.
+async fn body(mut response: reqwest::Response, name: &str, cap: usize) -> Result<Vec<u8>, String> {
     if !response.status().is_success() {
         return Err(format!("{name} returned HTTP {}.", response.status().as_u16()));
     }
     let mut bytes = Vec::new();
     while let Some(chunk) = response.chunk().await.map_err(|_| format!("{name} stopped responding."))? {
-        if bytes.len() + chunk.len() > MAX_BODY {
+        if bytes.len() + chunk.len() > cap {
             return Err(format!("{name} returned too much data."));
         }
         bytes.extend_from_slice(&chunk);
     }
+    Ok(bytes)
+}
+
+async fn json_response(response: reqwest::Response, name: &str) -> Result<Value, String> {
+    let bytes = body(response, name, MAX_BODY).await?;
     let value: Value = serde_json::from_slice(&bytes).map_err(|_| format!("Unreadable response from {name}."))?;
     if value.get("error").is_some_and(|e| !e.is_null()) {
         return Err(format!("{name} could not share this item."));
@@ -514,6 +526,149 @@ pub async fn soundcloud_get(catalog: State<'_, Catalog>, path: String, params: V
         .header("Authorization", format!("OAuth {}", catalog.soundcloud_token().await?));
     json(request, "SoundCloud").await
 }
+/// What Tidal's public share page says about a song, album or playlist: names and artwork only.
+/// Tidal publishes no track list there, and Carbon never asks it for audio.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Shared {
+    title: String,
+    artist: String,
+    image: Option<String>,
+    duration_ms: u64,
+}
+
+fn uuid(id: &str) -> bool {
+    id.len() == 36 && id.bytes().enumerate().all(|(i, b)| if matches!(i, 8 | 13 | 18 | 23) { b == b'-' } else { b.is_ascii_hexdigit() })
+}
+
+/// Remote text as one clean line of bounded length.
+fn name_of(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ").chars().filter(|c| !c.is_control()).take(MAX_NAME).collect()
+}
+
+/// The entities Tidal's attributes use ("&amp;", "&#39;"); anything unrecognised stays as written.
+fn unescape(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find('&') {
+        out.push_str(&rest[..at]);
+        rest = &rest[at..];
+        let end = rest.find(';').filter(|end| *end <= 8);
+        let decoded = end.and_then(|end| match &rest[1..end] {
+            "amp" => Some('&'),
+            "quot" => Some('"'),
+            "apos" => Some('\''),
+            "lt" => Some('<'),
+            "gt" => Some('>'),
+            code => {
+                let digits = code.strip_prefix('#')?;
+                let number = digits.strip_prefix('x').map_or_else(|| digits.parse().ok(), |hex| u32::from_str_radix(hex, 16).ok());
+                number.and_then(char::from_u32)
+            }
+        });
+        match (decoded, end) {
+            (Some(c), Some(end)) => {
+                out.push(c);
+                rest = &rest[end + 1..];
+            }
+            _ => {
+                out.push('&');
+                rest = &rest[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// One OpenGraph tag's content, as Tidal writes them: `<meta property="og:title" content="…">`.
+fn open_graph(page: &str, property: &str) -> Option<String> {
+    let start = format!("property=\"{property}\"");
+    let tag = page.split("<meta ").find(|tag| tag.starts_with(&start))?;
+    Some(unescape(tag.split_once("content=\"")?.1.split('"').next()?))
+}
+
+/// "PT3M28S" in milliseconds; 0 for anything else.
+fn iso_duration_ms(text: &str) -> u64 {
+    let (mut total, mut number) = (0u64, 0u64);
+    for c in text.strip_prefix("PT").unwrap_or("?").chars() {
+        let unit = match c {
+            '0'..='9' => {
+                number = number.saturating_mul(10).saturating_add(u64::from(c) - 48);
+                continue;
+            }
+            'H' => 3600,
+            'M' => 60,
+            'S' => 1,
+            _ => return 0,
+        };
+        total = total.saturating_add(number.saturating_mul(unit));
+        number = 0;
+    }
+    total.min(86_400).saturating_mul(1000)
+}
+
+/// The item a share page describes: its schema.org block, else its OpenGraph title ("Artist - Title").
+fn shared(page: &str) -> Option<Shared> {
+    let image = |address: Option<&str>| {
+        address.and_then(|a| Url::parse(a).ok()).filter(|url| allowed(url, TIDAL_IMAGES)).map(String::from)
+    };
+    for block in page.split("<script type=\"application/ld+json\">").skip(1) {
+        let Ok(item) = serde_json::from_str::<Value>(block.split("</script>").next().unwrap_or("")) else { continue };
+        if !matches!(item["@type"].as_str(), Some("MusicRecording" | "MusicAlbum" | "MusicPlaylist")) {
+            continue;
+        }
+        let title = name_of(item["name"].as_str()?);
+        let artists: Vec<&str> = item["byArtist"].as_array().into_iter().flatten().filter_map(|a| a["name"].as_str()).collect();
+        return (!title.is_empty()).then(|| Shared {
+            title,
+            artist: name_of(&artists.join(", ")),
+            image: image(item["image"].as_str()),
+            duration_ms: iso_duration_ms(item["duration"].as_str().unwrap_or("")),
+        });
+    }
+    // Tidal's "Not Found" page has a title but no music type.
+    if !open_graph(page, "og:type")?.starts_with("music.") {
+        return None;
+    }
+    let full = open_graph(page, "og:title")?;
+    // shortcut: splits at the first " - ", wrong for an artist with one in their name; the schema.org block above is what normally answers.
+    let (artist, title) = full.split_once(" - ").unwrap_or(("", &full));
+    let title = name_of(title);
+    (!title.is_empty()).then(|| Shared { title, artist: name_of(artist), image: image(open_graph(page, "og:image").as_deref()), duration_ms: 0 })
+}
+
+/// A Tidal link's public title, artist and cover, read from its share page on tidal.com.
+#[tauri::command]
+pub async fn tidal_shared(catalog: State<'_, Catalog>, kind: String, id: String) -> Result<Shared, String> {
+    let known = match kind.as_str() {
+        "track" | "album" => numeric(&id),
+        "playlist" => uuid(&id),
+        _ => false,
+    };
+    if !known {
+        return Err("Choose a Tidal song, album or playlist link.".into());
+    }
+    let mut url = Url::parse(&format!("https://tidal.com/{kind}/{id}")).map_err(|e| e.to_string())?;
+    // An album's address gains its name through a redirect; only tidal.com itself is followed.
+    for _ in 0..TIDAL_REDIRECTS {
+        // Tidal refuses requests that don't say who is asking.
+        let request = catalog.http.get(url.clone()).header(reqwest::header::USER_AGENT, concat!("Carbon/", env!("CARGO_PKG_VERSION")));
+        let response = request.send().await.map_err(|_| "Could not reach Tidal.")?;
+        if response.status().is_redirection() {
+            let next = response.headers().get(reqwest::header::LOCATION).and_then(|h| h.to_str().ok()).and_then(|to| url.join(to).ok());
+            url = next.filter(|next| allowed(next, TIDAL_HOSTS)).ok_or("Tidal sent this link somewhere else.")?;
+            continue;
+        }
+        if response.status().as_u16() == 404 {
+            return Err("Tidal doesn't share this publicly.".into());
+        }
+        let page = body(response, "Tidal", MAX_PAGE).await?;
+        return shared(&String::from_utf8_lossy(&page)).ok_or_else(|| "Tidal's page didn't say what this is.".into());
+    }
+    Err("Tidal sent this link somewhere else.".into())
+}
+
 pub async fn forget(catalog: &Catalog) -> Result<(), String> {
     let mut guard = catalog.soundcloud.lock().await;
     *guard = None;
@@ -535,5 +690,39 @@ mod tests {
         }
         assert!(allowed(&Url::parse("https://music.apple.com/us/browse").unwrap(), Provider::Apple.hosts()));
         assert!(!numeric("1/other"));
+    }
+
+    const SONG: &str = r#"<head><title>I&#39;M THAT GIRL by Beyoncé on TIDAL</title><meta property="og:type" content="music.song"><meta property="og:title" content="Beyoncé - I&#39;M THAT GIRL"><meta property="og:image" content="https://resources.tidal.com/images/d3c4372b/640x640.jpg">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"MusicRecording","byArtist":[{"@type":"MusicGroup","name":"Daft Punk"},{"name":"Pharrell Williams"}],"duration":"PT3M28S","image":"https://resources.tidal.com/images/d3c4372b/640x640.jpg","inAlbum":{"name":"RENAISSANCE"},"name":"I'M THAT GIRL"}</script>
+<script type="application/ld+json">{"@graph":[{"@type":"Organization","name":"TIDAL"}]}</script></head>"#;
+
+    #[test]
+    fn a_tidal_share_page_gives_its_public_names_and_cover() {
+        let song = shared(SONG).unwrap();
+        assert_eq!(song.title, "I'M THAT GIRL");
+        assert_eq!(song.artist, "Daft Punk, Pharrell Williams");
+        assert_eq!(song.duration_ms, 208_000);
+        assert_eq!(song.image.as_deref(), Some("https://resources.tidal.com/images/d3c4372b/640x640.jpg"));
+    }
+
+    #[test]
+    fn open_graph_answers_when_the_schema_block_is_missing() {
+        let page = SONG.split("<script").next().unwrap();
+        let song = shared(page).unwrap();
+        assert_eq!((song.artist.as_str(), song.title.as_str(), song.duration_ms), ("Beyoncé", "I'M THAT GIRL", 0));
+        // Artwork from any other host is dropped, and the "Not Found" page describes nothing.
+        assert_eq!(shared(&page.replace("resources.tidal.com", "resources.tidal.com.evil.test")).unwrap().image, None);
+        assert_eq!(shared(r#"<meta property="og:title" content="Not Found - TIDAL">"#), None);
+    }
+
+    #[test]
+    fn tidal_ids_and_durations_are_read_strictly() {
+        assert!(uuid("36ea71a8-445e-41a4-82ab-6628c581535d"));
+        assert!(!uuid("36ea71a8-445e-41a4-82ab-6628c581535d/../x"));
+        assert!(!uuid("36ea71a8x445e-41a4-82ab-6628c581535d"));
+        assert_eq!(iso_duration_ms("PT1H2M3S"), 3_723_000);
+        assert_eq!(iso_duration_ms("3:28"), 0);
+        assert_eq!(unescape("Tom &amp; Jerry &#x27;s &bogus; &"), "Tom & Jerry 's &bogus; &");
+        assert_eq!(name_of("  a\n b  ").as_str(), "a b");
     }
 }

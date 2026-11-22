@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fade } from "svelte/transition";
+  import { keepInView } from "$lib/keep-in-view";
   import type { MenuEntry, MenuItem } from "$lib/menu.svelte";
   import Icon from "./Icon.svelte";
   import MenuPanel from "./MenuPanel.svelte";
@@ -26,8 +28,11 @@
   } = $props();
 
   const MARGIN = 8;
+  /** Rows arrive one after another; past this many they arrive together, so long menus don't lag. */
+  const STAGGER_ROWS = 10;
   let panel = $state<HTMLElement>();
-  let place = $state({ left: 0, top: 0, ready: false });
+  /** `origin` is the corner the panel grows from: the one nearest what opened it. */
+  let place = $state({ left: 0, top: 0, origin: "top left", ready: false });
   let openIndex = $state<number | null>(null);
   let submenuAt = $state({ x: 0, y: 0, flipX: 0, focus: false });
 
@@ -36,11 +41,14 @@
 
   $effect(() => {
     if (!panel) return;
-    const rect = panel.getBoundingClientRect();
-    const fitsRight = x + rect.width <= innerWidth - MARGIN;
-    const left = fitsRight || flipX === null ? Math.min(x, innerWidth - rect.width - MARGIN) : flipX - rect.width;
-    const top = Math.min(y, innerHeight - rect.height - MARGIN);
-    place = { left: Math.max(MARGIN, left), top: Math.max(MARGIN, top), ready: true };
+    // Layout size, not the painted box: the panel is still scaled down for its opening animation.
+    const width = panel.offsetWidth;
+    const height = panel.offsetHeight;
+    const fitsRight = x + width <= innerWidth - MARGIN;
+    const left = fitsRight || flipX === null ? Math.min(x, innerWidth - width - MARGIN) : flipX - width;
+    const top = Math.min(y, innerHeight - height - MARGIN);
+    const origin = `${top < y ? "bottom" : "top"} ${left < x ? "right" : "left"}`;
+    place = { left: Math.max(MARGIN, left), top: Math.max(MARGIN, top), origin, ready: true };
     if (autofocus) buttons()[0]?.focus();
   });
 
@@ -116,7 +124,9 @@
   class:ready={place.ready}
   role="menu"
   tabindex="-1"
-  style="left: {place.left}px; top: {place.top}px"
+  style="left: {place.left}px; top: {place.top}px; transform-origin: {place.origin}"
+  use:keepInView
+  out:fade|global={{ duration: 110 }}
   onkeydown={onKey}
   oncontextmenu={(e) => e.preventDefault()}
 >
@@ -133,7 +143,7 @@
         disabled={entry.disabled}
         aria-haspopup={entry.items ? "menu" : undefined}
         aria-expanded={entry.items ? openIndex === i : undefined}
-        style="--depth: {entry.depth ?? 0}"
+        style="--depth: {entry.depth ?? 0}; --i: {Math.min(i, STAGGER_ROWS)}"
         onclick={(e) => activate(i, e.currentTarget)}
         onpointerenter={(e) => hover(i, e.currentTarget)}
       >
@@ -166,16 +176,29 @@
     padding: 5px;
     border-radius: var(--r-lg);
     opacity: 0;
-    transform: scale(0.86);
-    transform-origin: top left;
+    transform: scale(0.94);
+    /* No overshoot here: a panel that springs past its size would poke out of the window. */
     transition:
-      opacity var(--dur-fast) var(--ease-out),
-      transform 320ms var(--ease-spring);
+      opacity 120ms var(--ease-out),
+      transform 220ms var(--ease-out);
   }
 
   .menu-panel.ready {
     opacity: 1;
     transform: none;
+  }
+
+  /* Rows rise in just behind the panel. */
+  .menu-panel.ready > :global(*) {
+    animation: row-in 260ms var(--ease-out) backwards;
+    animation-delay: calc(var(--i, 0) * 14ms + 30ms);
+  }
+
+  @keyframes row-in {
+    from {
+      opacity: 0;
+      translate: 0 6px;
+    }
   }
 
   .menu-panel:focus {
@@ -194,7 +217,7 @@
     color: var(--text);
     font-size: var(--fs-body);
     text-align: left;
-    transition: transform var(--dur-med) var(--ease-spring);
+    transition: transform var(--dur-spring) var(--ease-spring);
     --press: var(--press-wide);
   }
 
@@ -211,7 +234,7 @@
     scale: 0.94 0.8;
     transition:
       opacity var(--dur-fast) var(--ease-out),
-      scale var(--dur-med) var(--ease-spring);
+      scale var(--dur-spring) var(--ease-spring);
   }
 
   button:hover::before,
@@ -253,7 +276,7 @@
     opacity: 0.8;
     transition:
       opacity var(--dur-fast),
-      scale var(--dur-med) var(--ease-spring);
+      scale var(--dur-spring) var(--ease-spring);
   }
 
   button:hover .icon,

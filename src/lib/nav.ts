@@ -1,16 +1,16 @@
-// The sidebar's sections, as data, so a new source of music adds a section instead of markup.
+// Where every page lives, as data. The sidebar shows a handful of places; every other page belongs
+// to one of them (your library, your listening, search) and is reached from there, and the command
+// palette lists them all.
 import type { IconName } from "$lib/components/Icon.svelte";
+
+/** The place a page belongs to when it isn't in the sidebar. "more" is reached from menus only. */
+export type Group = "library" | "you" | "search" | "more";
 
 export interface NavItem {
   href: string;
   label: string;
   icon: IconName;
-  /** Listed on this hub page instead of the sidebar (the command palette still has it). */
-  hub?: "/browse" | "/you";
-  /** One line for the hub tile. */
-  blurb?: string;
-  /** The hub tile's colour, as an oklch hue. */
-  hue?: number;
+  group?: Group;
 }
 
 export interface NavSection {
@@ -27,9 +27,9 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/", label: "Home", icon: "home" },
       { href: "/library", label: "Library", icon: "library" },
       { href: "/liked", label: "Liked Songs", icon: "heart" },
-      { href: "/podcasts", label: "Podcasts", icon: "podcast", hub: "/browse", blurb: "Shows and episodes you follow on Spotify", hue: 160 },
-      { href: "/smart", label: "Smart playlists", icon: "spark", hub: "/you", blurb: "Playlists that fill themselves from rules", hue: 300 },
-      { href: "/stats", label: "Your top music", icon: "chart", hub: "/you", blurb: "Your most played artists and songs", hue: 150 },
+      { href: "/podcasts", label: "Podcasts", icon: "podcast", group: "library" },
+      { href: "/smart", label: "Smart playlists", icon: "spark", group: "library" },
+      { href: "/stats", label: "Your top music", icon: "chart", group: "you" },
     ],
   },
   {
@@ -39,7 +39,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/youtube", label: "Home", icon: "home" },
       { href: "/youtube/library", label: "Library", icon: "library" },
       { href: "/youtube/playlist/LM", label: "Liked Music", icon: "heart" },
-      { href: "/youtube/search", label: "Search", icon: "search", hub: "/browse", blurb: "Songs, videos, albums and artists on YouTube Music", hue: 25 },
+      { href: "/youtube/search", label: "YouTube Music search", icon: "search", group: "search" },
     ],
   },
   {
@@ -66,40 +66,37 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/server/plex/artists", label: "Artists", icon: "artist" },
     ],
   },
-  // Carbon's own, whichever service is connected: three entries, and two pages of tiles for the rest.
+  // Carbon's own, whichever service is connected.
   {
     id: "carbon",
     label: "Carbon",
     items: [
-      { href: "/browse", label: "Browse", icon: "cloud" },
+      { href: "/radio", label: "Radio", icon: "radio" },
       { href: "/local", label: "Local files", icon: "folder" },
-      { href: "/you", label: "Yours", icon: "artist" },
-      // On Browse: listening on the open web, no account needed.
-      { href: "/radio", label: "Radio", icon: "radio", hub: "/browse", blurb: "Live stations from around the world and near you", hue: 350 },
-      { href: "/mixes", label: "Daily mixes", icon: "spark", hub: "/browse", blurb: "Mixes made from what you play, fresh every day", hue: 275 },
-      { href: "/soundcloud", label: "SoundCloud", icon: "cloud", hub: "/browse", blurb: "Tracks, sets and mixes from independent artists", hue: 45 },
-      { href: "/apple", label: "Apple Music", icon: "note", hub: "/browse", blurb: "Previews, charts and Apple's editors' picks", hue: 15 },
-      { href: "/deezer", label: "Deezer", icon: "equalizer", hub: "/browse", blurb: "Charts, playlists and full previews", hue: 290 },
-      { href: "/mixcloud", label: "Mixcloud", icon: "radio", hub: "/browse", blurb: "DJ mixes, radio shows and long sets", hue: 240 },
-      { href: "/bandcamp", label: "Bandcamp", icon: "album", hub: "/browse", blurb: "Albums straight from the artists", hue: 195 },
-      { href: "/archive", label: "Internet Archive", icon: "library", hub: "/browse", blurb: "Live recordings and public-domain music", hue: 90 },
-      { href: "/import", label: "Import playlist", icon: "listAdd", hub: "/browse", blurb: "Bring a playlist over from another service", hue: 120 },
-      // On Yours: what Carbon keeps for you on this PC.
-      { href: "/history", label: "History", icon: "clock", hub: "/you", blurb: "Everything you've played, day by day", hue: 210 },
-      { href: "/collections", label: "Collections", icon: "stack", hub: "/you", blurb: "Albums and playlists gathered your way", hue: 40 },
-      { href: "/recap", label: "Recap", icon: "calendar", hub: "/you", blurb: "Your listening, week by week and year by year", hue: 340 },
-      { href: "/bookmarks", label: "Bookmarks", icon: "bookmark", hub: "/you", blurb: "Pages you saved to come back to", hue: 30 },
-      { href: "/offline", label: "Offline music", icon: "import", hub: "/you", blurb: "Songs saved to play without a connection", hue: 180 },
-      { href: "/sound", label: "Sound", icon: "equalizer", hub: "/you", blurb: "Equalizer, crossfade and loudness for local files", hue: 200 },
-      { href: "/profile", label: "Profile and sync", icon: "artist", hub: "/you", blurb: "Your Carbon account and what syncs", hue: 60 },
+      // Your library: what you keep, wherever it came from.
+      { href: "/collections", label: "Collections", icon: "stack", group: "library" },
+      { href: "/mixes", label: "Daily mixes", icon: "spark", group: "library" },
+      { href: "/bookmarks", label: "Bookmarks", icon: "bookmark", group: "library" },
+      { href: "/offline", label: "Offline music", icon: "import", group: "library" },
+      { href: "/import", label: "Import playlist", icon: "listAdd", group: "library" },
+      // Your listening: what Carbon has seen you play.
+      { href: "/profile", label: "Profile and sync", icon: "artist", group: "you" },
+      { href: "/wrapped", label: "Wrapped", icon: "spark", group: "you" },
+      { href: "/recap", label: "Recap", icon: "calendar", group: "you" },
+      { href: "/history", label: "History", icon: "clock", group: "you" },
+      // Sources, under Search: listening on the open web, no account needed.
+      { href: "/soundcloud", label: "SoundCloud", icon: "cloud", group: "search" },
+      { href: "/apple", label: "Apple Music", icon: "note", group: "search" },
+      { href: "/deezer", label: "Deezer", icon: "equalizer", group: "search" },
+      { href: "/mixcloud", label: "Mixcloud", icon: "radio", group: "search" },
+      { href: "/bandcamp", label: "Bandcamp", icon: "album", group: "search" },
+      { href: "/archive", label: "Internet Archive", icon: "library", group: "search" },
+      // The player bar's sound menu and Settings lead here.
+      { href: "/sound", label: "Sound", icon: "equalizer", group: "more" },
     ],
   },
 ];
 
-/**
- * The sections for the services that are connected. Each source of music is its own section, so
- * Spotify and YouTube Music never share one; Carbon's own section needs no account and is always there.
- */
 const GATED: Record<string, (running: Running) => boolean> = {
   spotify: (r) => r.spotify,
   youtube: (r) => r.youtube,
@@ -115,22 +112,41 @@ export interface Running {
   servers?: readonly string[];
 }
 
+/** Every page of the services that are connected (the command palette lists these). */
 export const sectionsFor = (running: Running): NavSection[] => NAV_SECTIONS.filter((s) => GATED[s.id]?.(running) ?? true);
 
-/** The sidebar: each section without the pages its hubs list, and no section left empty. */
-export const sidebarSections = (running: Running): NavSection[] =>
-  sectionsFor(running)
-    .map((s) => ({ ...s, items: s.items.filter((i) => !i.hub) }))
+/** What a place holds besides its own page, from the services that are connected. */
+export const groupItems = (group: Group, running: Running): NavItem[] => sectionsFor(running).flatMap((s) => s.items.filter((i) => i.group === group));
+
+/** The services' own library pages: each is the front page of "your library". */
+const LIBRARIES = ["/library", "/youtube/library"];
+const under = (href: string, path: string) => path === href || path.startsWith(`${href}/`);
+
+/** The place a page belongs to, so its sidebar entry lights up there and its sibling pages are offered. */
+export const groupOf = (path: string): Group | undefined =>
+  LIBRARIES.some((href) => under(href, path)) ? "library" : NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.group && under(i.href, path))?.group;
+
+/** The pages offered together across the top of a library or listening page: the front page, then the rest. */
+export function groupPages(group: Group, running: Running): NavItem[] {
+  const front = group === "library" ? sectionsFor(running).flatMap((s) => s.items.filter((i) => LIBRARIES.includes(i.href))) : [];
+  return [...front, ...groupItems(group, running)];
+}
+
+/**
+ * The sidebar: the few places that aren't reached from another. With one service (or none) they
+ * read as a single list with no heading; with several, each service keeps its name.
+ */
+export function sidebarSections(running: Running): NavSection[] {
+  const shown = sectionsFor(running)
+    .map((s) => ({ ...s, items: s.items.filter((i) => !i.group) }))
     .filter((s) => s.items.length);
-
-/** What a hub page lists, from the sections that are connected. */
-export const hubItems = (hub: NonNullable<NavItem["hub"]>, running: Running): NavItem[] =>
-  sectionsFor(running).flatMap((s) => s.items.filter((i) => i.hub === hub));
-
-/** The hub a page lives under, so its sidebar entry lights up there too. */
-export const hubOf = (path: string): NavItem["hub"] =>
-  NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.hub && (path === i.href || path.startsWith(`${i.href}/`)))?.hub;
+  const hasLibrary = shown.some((s) => s.items.some((i) => LIBRARIES.includes(i.href)));
+  // No service's library to hang Carbon's shelves on: the first of them stands in as Library.
+  const library = hasLibrary ? [] : groupItems("library", running).slice(0, 1).map((i) => ({ ...i, label: "Library", icon: "library" as const }));
+  const all = shown.map((s) => (s.id === "carbon" ? { ...s, items: [...library, ...s.items] } : s));
+  return all.length > 2 ? all : [{ id: "main", label: "", items: all.flatMap((s) => s.items) }];
+}
 
 /** Each section's home only matches itself; other entries also light up for pages below them. */
 const HOMES = new Set(["/", "/youtube", "/server/subsonic", "/server/jellyfin", "/server/plex"]);
-export const isActive = (href: string, path: string): boolean => (HOMES.has(href) ? path === href : path === href || path.startsWith(`${href}/`));
+export const isActive = (href: string, path: string): boolean => (HOMES.has(href) ? path === href : under(href, path));

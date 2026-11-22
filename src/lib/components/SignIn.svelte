@@ -13,18 +13,16 @@
   <section class="hero">
     <h1><Wordmark height={120} /><span class="sr-only">carbon</span></h1>
     {#if needsId}
-      <p class="lede">
-        One-time setup, about 2 minutes. Spotify lets each developer app serve only 5 listeners, so Carbon runs on your own free Spotify app. Create it once and you're set.
-      </p>
+      <p class="lede">Spotify limits each app to 5 listeners, so Carbon runs on your own free Spotify app. About 2 minutes, once.</p>
       <ClientIdForm />
     {:else}
-      <p class="lede">A fast, quiet place for your music. Sign in with your Spotify Premium account to start listening.</p>
+      <p class="lede">Sign in with your Spotify Premium account.</p>
       <div class="cta">
         <button onclick={() => session.signIn()} disabled={waiting}>
           {waiting ? "Waiting for your browser…" : "Sign in with Spotify"}
         </button>
         {#if waiting}
-          <p class="hint">Approve Carbon in the browser tab that just opened, then come back here.</p>
+          <p class="hint">Approve Carbon in your browser, then come back.</p>
         {/if}
       </div>
     {/if}
@@ -83,7 +81,7 @@
     font-weight: 700;
     font-size: 1rem;
     box-shadow: 0 18px 40px -14px var(--accent-glow);
-    transition: transform var(--dur-fast) var(--ease-spring), opacity var(--dur-fast);
+    transition: transform var(--dur-spring) var(--ease-spring), opacity var(--dur-fast);
   }
 
   button:hover:not(:disabled) {

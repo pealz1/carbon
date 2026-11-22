@@ -1,8 +1,12 @@
 <script lang="ts">
-  // A searchable list of installed fonts, each shown in itself. Combobox pattern: focus stays in
-  // the search field; arrows move through the list, Enter picks, Escape closes.
+  // A settings row that picks an installed font: the list opens under the row, each family shown in
+  // itself. Combobox pattern: focus stays in the search field; arrows move through the list, Enter
+  // picks, Escape closes.
   import { tick } from "svelte";
   import { fontStack, matchFonts } from "$lib/fonts";
+  import { t } from "$lib/i18n/locale.svelte";
+  import Row from "$lib/settings/Row.svelte";
+  import Icon from "./Icon.svelte";
 
   interface Props {
     label: string;
@@ -68,81 +72,88 @@
   });
 </script>
 
+{#snippet menu()}
+  <!-- Focusable so a click on its padding keeps focus inside and doesn't close it. -->
+  <div class="menu" tabindex="-1">
+    <input
+      bind:this={search}
+      bind:value={query}
+      oninput={() => (active = 0)}
+      {onkeydown}
+      class="input"
+      type="search"
+      role="combobox"
+      aria-label="Search fonts for {label.toLowerCase()}"
+      aria-expanded="true"
+      aria-controls="{id}-list"
+      aria-autocomplete="list"
+      aria-activedescendant={options.length ? optionId(active) : undefined}
+      placeholder={fonts ? `Search ${fonts.length} fonts` : "Loading fonts…"}
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <ul bind:this={list} id="{id}-list" role="listbox" aria-label={label}>
+      {#each options as name, i (name)}
+        <li
+          id={optionId(i)}
+          role="option"
+          tabindex="-1"
+          aria-selected={name === value}
+          class:active={i === active}
+          style:font-family={family(name)}
+          onclick={() => pick(name)}
+          onkeydown={(e) => e.key === "Enter" && pick(name)}
+          onpointermove={() => (active = i)}
+        >
+          {name || t("Default")}
+        </li>
+      {/each}
+    </ul>
+    {#if !options.length}<p class="none" role="status">No installed font matches “{query.trim()}”.</p>{/if}
+  </div>
+{/snippet}
+
 <div class="picker" onfocusout={(e) => open && !e.currentTarget.contains(e.relatedTarget as Node | null) && close(false)}>
-  <button bind:this={trigger} class="current" aria-expanded={open} aria-controls={open ? `${id}-list` : undefined} onclick={toggle}>
-    <span class="eyebrow">{label}</span>
-    <span class="name" style:font-family={family(value)}>{value || "Default"}</span>
-  </button>
-  {#if open}
-    <!-- Focusable so a click on its padding keeps focus inside and doesn't close it. -->
-    <div class="menu" tabindex="-1">
-      <input
-        bind:this={search}
-        bind:value={query}
-        oninput={() => (active = 0)}
-        {onkeydown}
-        type="search"
-        role="combobox"
-        aria-label="Search fonts for {label.toLowerCase()}"
-        aria-expanded="true"
-        aria-controls="{id}-list"
-        aria-autocomplete="list"
-        aria-activedescendant={options.length ? optionId(active) : undefined}
-        placeholder={fonts ? `Search ${fonts.length} fonts` : "Loading fonts…"}
-        autocomplete="off"
-        spellcheck="false"
-      />
-      <ul bind:this={list} id="{id}-list" role="listbox" aria-label={label}>
-        {#each options as name, i (name)}
-          <li
-            id={optionId(i)}
-            role="option"
-            tabindex="-1"
-            aria-selected={name === value}
-            class:active={i === active}
-            style:font-family={family(name)}
-            onclick={() => pick(name)}
-            onkeydown={(e) => e.key === "Enter" && pick(name)}
-            onpointermove={() => (active = i)}
-          >
-            {name || "Default"}
-          </li>
-        {/each}
-      </ul>
-      {#if !options.length}<p class="none" role="status">No installed font matches “{query.trim()}”.</p>{/if}
-    </div>
-  {/if}
+  <Row {label} keywords="font typeface family" below={open ? menu : undefined}>
+    <button bind:this={trigger} class="current" aria-expanded={open} aria-controls={open ? `${id}-list` : undefined} onclick={toggle}>
+      <span class="name" style:font-family={family(value)}>{value || t("Default")}</span>
+      <Icon name={open ? "up" : "down"} size={14} />
+    </button>
+  </Row>
 </div>
 
 <style>
-  .picker {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-
   .current {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--sp-1);
-    padding: var(--sp-2) var(--sp-3);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    width: 240px;
+    max-width: 100%;
+    height: 36px;
+    padding: 0 var(--sp-3);
     border-radius: var(--r-md);
-    border: 1px solid var(--glass-edge);
     background: var(--glass);
+    box-shadow: var(--rim);
+    color: var(--text-muted);
     text-align: left;
+    transition:
+      background var(--dur-fast),
+      box-shadow var(--dur-med),
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .current:hover,
   .current[aria-expanded="true"] {
     background: var(--glass-hover);
+    box-shadow: var(--rim-hover);
   }
 
   .name {
-    max-width: 100%;
+    min-width: 0;
     overflow: hidden;
-    font-size: 1.15rem;
-    line-height: 1.3;
+    color: var(--text);
+    font-size: var(--fs-lead);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -151,11 +162,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
-    padding: var(--sp-2);
-    border-radius: var(--r-md);
-    background: var(--glass-strong);
-    border: 1px solid var(--glass-edge);
-    box-shadow: var(--shadow-float);
     transform-origin: top;
     animation: unfold var(--dur-med) var(--ease-out);
   }
@@ -163,18 +169,8 @@
   @keyframes unfold {
     from {
       opacity: 0;
-      transform: translateY(-4px) scale(0.98);
+      transform: translateY(-4px);
     }
-  }
-
-  input {
-    height: 34px;
-    padding: 0 var(--sp-3);
-    border-radius: var(--r-pill);
-    border: 1px solid var(--glass-edge);
-    background: var(--glass-active);
-    color: var(--text);
-    font: inherit;
   }
 
   ul {

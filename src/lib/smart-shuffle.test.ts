@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { artistKeys, fisherYates, shuffledFrom, spreadArtists } from "./smart-shuffle";
+import { artistKeys, fisherYates, shuffledFrom, spreadArtists, starSource, weightedShuffle } from "./smart-shuffle";
 import type { Track } from "./spotify/types";
 
 /** mulberry32: a small seeded generator, so every run of these tests sees the same "random" numbers. */
@@ -128,6 +128,31 @@ describe("shuffledFrom", () => {
     for (let seed = 1; seed <= 50; seed++) expect(clashes(shuffledFrom(list, 0, seeded(seed), true))).toBe(0);
     const plain = Array.from({ length: 50 }, (_, seed) => clashes(shuffledFrom(list, 0, seeded(seed + 1), false)));
     expect(plain.some((n) => n > 0)).toBe(true);
+  });
+
+  it("brings heavier items up earlier, and still shuffles", () => {
+    const items = ["a", "b", "c", "d"];
+    const weight = (item: string) => (item === "d" ? 3.5 : item === "a" ? 0.25 : 1);
+    const firsts = { a: 0, b: 0, c: 0, d: 0 } as Record<string, number>;
+    for (let seed = 1; seed <= 2000; seed++) firsts[weightedShuffle(items, weight, seeded(seed))[0]]++;
+    expect(firsts.d).toBeGreaterThan(firsts.b * 2);
+    expect(firsts.a).toBeLessThan(firsts.b / 2);
+    expect(firsts.a).toBeGreaterThan(0); // a low rating plays less, never never
+    expect([...weightedShuffle(items, weight, seeded(7))].sort()).toEqual(items);
+  });
+
+  it("tilts a shuffle toward rated songs only when something is rated", () => {
+    const plain = shuffledFrom(list, 0, seeded(3), false);
+    expect(shuffledFrom(list, 0, seeded(3), false)).toEqual(plain);
+    const favourite = list[list.length - 1];
+    starSource.starsOf = (uri) => (uri === favourite.uri ? 5 : 0);
+    try {
+      let early = 0;
+      for (let seed = 1; seed <= 400; seed++) if (shuffledFrom(list, 0, seeded(seed), false).indexOf(favourite) <= list.length / 3) early++;
+      expect(early).toBeGreaterThan(200);
+    } finally {
+      starSource.starsOf = () => 0;
+    }
   });
 
   it("returns nothing for an empty list", () => {

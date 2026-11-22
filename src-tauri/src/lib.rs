@@ -30,6 +30,7 @@ mod servers;
 mod settings;
 mod soundcloud;
 mod system;
+mod system_audio;
 #[cfg(windows)]
 mod taskbar;
 mod token_store;
@@ -109,6 +110,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     hotkeys::apply(&handle, &prefs.hotkeys);
     app.manage(SettingsState(Mutex::new(prefs)));
     system::start_with_windows_once(&handle);
+    system_audio::watch(&handle);
     app.manage(LibraryState(Mutex::new(library::load(&handle))));
     app.manage(BlocklistState(Mutex::new(blocklist::load(&handle))));
     app.manage(tray::build(&handle)?);
@@ -124,8 +126,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(lyrics_sources::LyricsSources::new());
     app.manage(servers::Servers::new(&app.package_info().version.to_string()));
     app.manage(bandcamp::Bandcamp::new(&app.package_info().version.to_string()));
-    app.manage(engine::spotify_eq::SpotifyEqInjected(sound.spotify_eq));
-    let window = engine::spotify_eq::create_main_window(app, sound.spotify_eq)?;
+    let window = engine::spotify_eq::create_main_window(app)?;
     app.manage(engine::Engine::spawn(&handle, sound));
 
     let media = MediaState::default();
@@ -232,6 +233,9 @@ pub fn run() {
             system::remove_saved_data,
             system::cache_size,
             system::cache_clear,
+            system_audio::output_devices,
+            system_audio::output_device_select,
+            system_audio::audio_identity_claim,
             engine::engine_play,
             engine::engine_pause,
             engine::engine_resume,
@@ -246,7 +250,6 @@ pub fn run() {
             engine::sound_presets,
             engine::sound_curve,
             engine::sound_devices,
-            engine::spotify_eq::sound_spotify_eq_injected,
             local_library::local_library_get,
             local_library::local_library_add_folder,
             local_library::local_library_remove_folder,
@@ -309,6 +312,7 @@ pub fn run() {
             servers::servers_connected,
             servers::server_get,
             providers::soundcloud_get,
+            providers::tidal_shared,
             bandcamp::bandcamp_search,
             bandcamp::bandcamp_release,
             bandcamp::bandcamp_band,

@@ -37,6 +37,15 @@
       { label: formatTotal(totalMs), icon: "clock" },
     ]}
     menuItems={() => albumMenu({ kind: "album", id: a.id, uri: a.uri, title: a.name, subtitle: "", image: a.image, playUri: a.uri }, a.tracks)}
+    share={{ uri: a.uri, name: a.artists.length ? `${a.name} – ${a.artists.map((x) => x.name).join(", ")}` : a.name }}
+    facts={[
+      ...(a.released ? [{ label: "Released", value: a.released }] : []),
+      ...(a.artists.length ? [{ label: a.artists.length === 1 ? "Artist" : "Artists", value: a.artists.map((x) => x.name).join(", ") }] : []),
+      ...(a.genres.length ? [{ label: "Genres", value: a.genres.join(", ") }] : []),
+      ...(a.label ? [{ label: "Record label", value: a.label }] : []),
+      ...(a.copyright ? [{ label: "Copyright", value: a.copyright }] : []),
+    ]}
+    feelIds={a.tracks.slice(0, 20).map((t) => t.id)}
   >
     {#snippet byline()}
       {#each a.artists as artist, i (artist.uri)}

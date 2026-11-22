@@ -1,11 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { t } from "$lib/i18n/locale.svelte";
 import { challengeFor, randomString } from "$lib/pkce";
 import type { Raw } from "$lib/soundcloud/shared/listed";
 import type { Track } from "$lib/spotify/types";
 
 export type Provider = "apple" | "deezer" | "soundcloud" | "mixcloud" | "archive";
-export type Source = Provider | "spotify" | "youtube";
+/** Tidal is read from its public share pages only: no catalogue, no player page, so it is not a Provider. */
+export type Source = Provider | "spotify" | "youtube" | "tidal";
 export type Kind = "track" | "album" | "playlist" | "artist";
 export interface Link {
   source: Source;
@@ -35,6 +37,7 @@ export const names: Record<Source, string> = {
   youtube: "YouTube Music",
   mixcloud: "Mixcloud",
   archive: "Internet Archive",
+  tidal: "Tidal",
 };
 export const homes: Record<Provider, string> = {
   apple: "https://music.apple.com/",
@@ -45,6 +48,7 @@ export const homes: Record<Provider, string> = {
 };
 const spotifyId = /^[a-zA-Z0-9]{22}$/;
 const numberId = /^\d{1,20}$/;
+const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 export function parseProviderLink(text: string): Link | null {
   let u: URL;
   try {
@@ -99,6 +103,13 @@ export function parseProviderLink(text: string): Link | null {
     if (parts.length === 2) return make("mixcloud", "track", parts.join("/"));
     if (parts.length === 3 && parts[1] === "playlists") return make("mixcloud", "playlist", parts.join("/"));
   }
+  if (["tidal.com", "www.tidal.com", "listen.tidal.com"].includes(u.hostname)) {
+    if (parts[0] === "browse") parts.shift();
+    // A song opened from its album reads /album/<id>/track/<id>; an album's address may carry its name before the id.
+    const [kind, ...rest] = parts.slice(parts[2] === "track" ? 2 : 0);
+    const id = [rest[1], rest[0]].find((part) => (kind === "playlist" ? uuid : numberId).test(part ?? ""));
+    return id && ["track", "album", "playlist"].includes(kind) ? make("tidal", kind as Kind, id.toLowerCase()) : null;
+  }
   if (
     ["archive.org", "www.archive.org"].includes(u.hostname) &&
     parts[0] === "details" &&
@@ -136,6 +147,8 @@ export function embedUrl(link: Link): string {
       return "https://www.mixcloud.com/widget/iframe/?" + new URLSearchParams({ feed: u.pathname, hide_cover: "0" });
     case "archive":
       return "https://archive.org/embed/" + encodeURIComponent(link.id);
+    case "tidal":
+      return `https://embed.tidal.com/${link.kind}s/${link.id}`;
     case "spotify":
       return `https://open.spotify.com/embed/${link.kind}/${link.id}`;
     case "youtube":
@@ -257,10 +270,30 @@ export const scPlaylists = async () => {
     .filter((p) => p.url);
 };
 
+export const TIDAL_NO_SONGS = "Tidal shares only the name and cover of albums and playlists, not their songs.";
+
+/** What Tidal's public share page says about a link: its name, artist and cover. Never a track list, never audio. */
+export async function tidalShared(link: Link): Promise<Song> {
+  const raw = await invoke<Raw>("tidal_shared", { kind: link.kind, id: link.id });
+  if (typeof raw?.title !== "string" || !raw.title.trim()) throw new Error(t("Tidal didn't share details for this link."));
+  return {
+    title: raw.title,
+    artist: typeof raw.artist === "string" ? raw.artist : "",
+    durationMs: Math.max(0, Number(raw.durationMs) || 0),
+    image: https(raw.image),
+    url: link.url,
+  };
+}
+
 export async function providerCollection(link: Link, signal?: AbortSignal): Promise<Collection> {
   const provider = link.source;
   if (provider === "youtube" || provider === "spotify")
     throw new Error("Use the connected music service for this link.");
+  if (provider === "tidal") {
+    if (link.kind !== "track") throw new Error(t(TIDAL_NO_SONGS));
+    const song = await tidalShared(link);
+    return { title: song.title, songs: [song] };
+  }
   if (provider === "soundcloud" && !(await connections().catch(() => null))?.soundcloud) {
     return (await import("./widget")).soundcloudWidget(link.url, signal);
   }

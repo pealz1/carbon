@@ -56,7 +56,7 @@
 {#if liked && !youtube.signedIn}
   <header class="page-head"><h1>Liked Music</h1></header>
   <div class="signin plate">
-    <p>Sign in to YouTube Music to see the songs you've liked. Browsing and playing work without it.</p>
+    <p>Sign in to YouTube Music to see your liked songs.</p>
     <a class="pill accent" href="/settings">Open Settings</a>
   </div>
 {:else if info.loading && !info.data}
@@ -73,6 +73,7 @@
     description={p.description || null}
     playUri={p.uri}
     shuffleCount={p.trackCount ?? undefined}
+    share={liked ? undefined : { uri: p.uri, name: p.name }}
     menuItems={card ? () => ytCardMenu(card!) : undefined}
   >
     {#snippet byline()}
@@ -112,8 +113,8 @@
     transition:
       background var(--dur-fast),
       box-shadow var(--dur-med),
-      translate var(--dur-med) var(--ease-spring),
-      transform var(--dur-med) var(--ease-spring);
+      translate var(--dur-spring) var(--ease-spring),
+      transform var(--dur-spring) var(--ease-spring);
   }
 
   .edit:hover {

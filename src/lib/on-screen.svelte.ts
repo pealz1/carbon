@@ -10,7 +10,11 @@ class OnScreen {
   /** Starts following the window; returns how to stop. Called once per window by the layout. */
   start(): () => void {
     const win = getCurrentWindow();
-    const apply = () => (this.current = !this.#away && document.visibilityState !== "hidden");
+    const apply = () => {
+      this.current = !this.#away && document.visibilityState !== "hidden";
+      // app.css pauses every CSS animation under [data-away], so nothing loops in the tray.
+      document.documentElement.toggleAttribute("data-away", !this.current);
+    };
     let asked = 0;
     const sync = () => {
       const mine = ++asked;

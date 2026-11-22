@@ -14,20 +14,24 @@
   // The window's wallpaper: the chrome is drawn straight on it. Black with nothing loaded; with a
   // track, four colour fields read from its artwork (never the artwork itself) drift slowly and
   // cross-fade when the song changes. Only transform and opacity animate.
-  // Reactive (cinema): the fields drift with the song's tempo, energy and volume, the light breathes
-  // once a bar, and local files add their real bass.
-  let { image, playing, reactive = false }: { image: string | null; playing: boolean; reactive?: boolean } = $props();
+  // Reactive: the fields drift with the song's tempo, energy and volume, the light breathes once a
+  // bar, and local files add their real bass. Cinema moves faster and keeps its light in every theme.
+  let { image, playing, reactive = false, cinema = false }: { image: string | null; playing: boolean; reactive?: boolean; cinema?: boolean } = $props();
   const tones = artTones(() => image);
 
   const style = $derived(tones.current ? tones.current.fields.map((f, i) => `--f${i}: ${css(f)}`).join("; ") : null);
 
-  /** Cinema drifts this much faster than the window's wallpaper before the song's pace applies. */
-  const CINEMA_DRIFT = 2.2;
+  /** How fast the fields drift before the song's pace applies: the window's wallpaper, and cinema. */
+  const WINDOW_DRIFT = 1.5;
+  const CINEMA_DRIFT = 2.4;
+  /** Fixed themes draw the chrome in one colour, so only these (and cinema) show the wash at all. */
+  const LIT_THEMES = new Set(["dynamic", "dynamic-oled"]);
   const BREATH_MS = breathSeconds(null) * 1000;
   let wallpaper = $state<HTMLElement>();
   let pulse = $state<HTMLElement>();
   let features = $state<AudioFeatures | null>(null);
-  const live = $derived(reactive && onScreen.current && !prefersReducedMotion.current && prefs.effects === "full" && prefs.motion !== "none");
+  const lit = $derived(cinema || LIT_THEMES.has(prefs.value?.theme ?? "dynamic"));
+  const live = $derived(reactive && lit && onScreen.current && !prefersReducedMotion.current && prefs.effects === "full" && prefs.motion !== "none");
 
   $effect(() => {
     const id = live && player.source === "spotify" ? player.track?.id : undefined;
@@ -43,7 +47,7 @@
   // Rates change smoothly on running animations; changing a CSS duration would make the fields jump.
   $effect(() => {
     if (!live || !wallpaper) return;
-    const rate = CINEMA_DRIFT * pace(input);
+    const rate = (cinema ? CINEMA_DRIFT : WINDOW_DRIFT) * pace(input);
     void style; // a new song's wash brings new animations
     const el = wallpaper;
     void tick().then(() => {
@@ -83,7 +87,7 @@
   });
 </script>
 
-<div class="wallpaper" class:paused={!onScreen.current} class:reactive aria-hidden="true" bind:this={wallpaper}>
+<div class="wallpaper" class:paused={!onScreen.current || !playing} class:cinema aria-hidden="true" bind:this={wallpaper}>
   <div class="pulse" bind:this={pulse}>
   {#key style}
     {#if style}
@@ -110,8 +114,17 @@
   }
 
   /* Fixed themes draw the chrome in one colour; cinema keeps the artwork's light in every theme. */
-  :global([data-theme]:not([data-theme="dynamic"])) .wallpaper:not(.reactive) .wash {
+  :global([data-theme]:not([data-theme="dynamic"], [data-theme="dynamic-oled"])) .wallpaper:not(.cinema) .wash {
     display: none;
+  }
+
+  /* Dynamic black: true black until music plays, then the light fades up; paused, it fades away. */
+  :global([data-theme="dynamic-oled"]) .wallpaper:not(.cinema) .wash {
+    transition-duration: 1600ms;
+  }
+
+  :global([data-theme="dynamic-oled"]) .wallpaper:not(.cinema) .wash.dim {
+    opacity: 0;
   }
 
   .pulse,
@@ -152,51 +165,85 @@
     left: -7vmax;
     top: -15vmax;
     background: radial-gradient(closest-side, var(--f0), transparent);
-    animation: drift-a 46s var(--ease-out) infinite alternate;
+    animation: drift-a 62s ease-in-out infinite alternate;
   }
 
   .b {
     right: -11vmax;
     top: -19vmax;
     background: radial-gradient(closest-side, var(--f1), transparent);
-    animation: drift-b 58s var(--ease-out) infinite alternate;
+    animation: drift-b 78s ease-in-out infinite alternate;
   }
 
   .c {
     left: -11vmax;
     bottom: -21vmax;
     background: radial-gradient(closest-side, var(--f3), transparent);
-    animation: drift-c 52s var(--ease-out) infinite alternate;
+    animation: drift-c 70s ease-in-out infinite alternate;
   }
 
   .d {
     right: -5vmax;
     bottom: -25vmax;
     background: radial-gradient(closest-side, var(--f0), transparent);
-    animation: drift-d 64s var(--ease-out) infinite alternate;
+    animation: drift-d 86s ease-in-out infinite alternate;
   }
 
+  /* Each field wanders through three places instead of sliding between two, so the light pools,
+     parts and crosses rather than swaying. */
   @keyframes drift-a {
-    to {
-      transform: translate3d(18vmax, 8vmax, 0) scale(2.24);
+    33% {
+      transform: translate3d(22vmax, 6vmax, 0) scale(2.3);
+    }
+
+    66% {
+      transform: translate3d(10vmax, 20vmax, 0) scale(1.75);
+    }
+
+    100% {
+      transform: translate3d(30vmax, 12vmax, 0) scale(2.15);
     }
   }
 
   @keyframes drift-b {
-    to {
-      transform: translate3d(-22vmax, 10vmax, 0) scale(1.8);
+    33% {
+      transform: translate3d(-26vmax, 12vmax, 0) scale(1.75);
+    }
+
+    66% {
+      transform: translate3d(-8vmax, 22vmax, 0) scale(2.35);
+    }
+
+    100% {
+      transform: translate3d(-30vmax, 4vmax, 0) scale(1.9);
     }
   }
 
   @keyframes drift-c {
-    to {
-      transform: translate3d(16vmax, -6vmax, 0) scale(2.3);
+    33% {
+      transform: translate3d(18vmax, -10vmax, 0) scale(2.35);
+    }
+
+    66% {
+      transform: translate3d(30vmax, -2vmax, 0) scale(1.8);
+    }
+
+    100% {
+      transform: translate3d(8vmax, -18vmax, 0) scale(2.2);
     }
   }
 
   @keyframes drift-d {
-    to {
-      transform: translate3d(-20vmax, -8vmax, 0) scale(1.84);
+    33% {
+      transform: translate3d(-24vmax, -6vmax, 0) scale(1.8);
+    }
+
+    66% {
+      transform: translate3d(-10vmax, -20vmax, 0) scale(2.3);
+    }
+
+    100% {
+      transform: translate3d(-28vmax, -14vmax, 0) scale(1.95);
     }
   }
 
