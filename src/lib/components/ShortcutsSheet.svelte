@@ -16,7 +16,7 @@
       </div>
     {/each}
   </dl>
-  <p class="hint">Right-click anything, or focus it and press the menu key, for more options.</p>
+  <p class="hint">Right-click anything for more options.</p>
 </Modal>
 
 <style>

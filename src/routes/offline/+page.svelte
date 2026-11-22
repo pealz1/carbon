@@ -32,13 +32,13 @@
 
 <header class="page-head">
   <h1>Offline music</h1>
-  <p>Play files saved on this device, including openly licensed recordings from Internet Archive.</p>
+  <p>Music saved on this PC.</p>
 </header>
 <a class="pill accent" href="/local?tab=songs">Play local files</a> <a class="pill" href="/archive">Find recordings</a>
 {#if error}<p role="alert">{error}</p>{/if}
 {#if data}<h2>Downloads</h2>
   <p>{mb(data.used)} of {mb(data.limit)} used</p>
-  {#if !data.files.length}<p>Open a recording in Internet Archive and choose an available audio file to save.</p>{/if}
+  {#if !data.files.length}<p>Save a recording from Internet Archive to see it here.</p>{/if}
   <ul>
     {#each data.files as file}<li>
         {file.name} · {mb(file.bytes)}

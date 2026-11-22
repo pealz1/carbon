@@ -115,10 +115,10 @@
       {/each}
     </ol>
   {:else}
-    <Status empty="Empty for now. Use the add-to-playlist button on any song, Spotify or local." />
+    <Status empty="Empty for now. Add songs with the add-to-playlist button." />
   {/if}
   {#if playable.some((t) => !isLocalUri(t.uri)) && playable.some((t) => isLocalUri(t.uri))}
-    <p class="fine">Spotify songs and local files take turns: one stops before the other starts, and crossfade only blends local files.</p>
+    <p class="fine">Crossfade only blends local files.</p>
   {/if}
 {/if}
 

@@ -103,7 +103,7 @@
     <section class="empty plate">
       <Icon name="folder" size={40} />
       <h2>Bring your own music</h2>
-      <p class="muted">Add a folder of MP3, FLAC, AAC/ALAC, Ogg Vorbis or WAV files. Carbon plays them with its own engine, EQ and gapless playback.</p>
+      <p class="muted">Add a folder of MP3, FLAC, AAC/ALAC, Ogg Vorbis or WAV files.</p>
       <button class="pill accent" onclick={lib.addFolder}><Icon name="plus" size={16} /> Add a folder</button>
     </section>
   {:else}

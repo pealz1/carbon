@@ -16,7 +16,7 @@
 
 <header class="page-head">
   <h1>Daily mixes</h1>
-  <p class="muted">A fresh selection from your listening history each day.</p>
+  <p class="muted">Fresh from your listening every day.</p>
 </header>
 {#if history.error}<p role="alert">{history.error}</p>{:else if history.loaded && !mixes.length}<p>
     Play some songs in Carbon to start your first mix.

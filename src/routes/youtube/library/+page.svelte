@@ -42,7 +42,7 @@
 
 {#if !youtube.signedIn}
   <div class="signin plate">
-    <p>Sign in to YouTube Music to see your playlists, albums and artists here. Browsing and playing work without it.</p>
+    <p>Sign in to YouTube Music to see your library.</p>
     <a class="pill accent" href="/settings">Open Settings</a>
   </div>
 {:else}

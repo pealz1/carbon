@@ -56,7 +56,7 @@
 {#if liked && !youtube.signedIn}
   <header class="page-head"><h1>Liked Music</h1></header>
   <div class="signin plate">
-    <p>Sign in to YouTube Music to see the songs you've liked. Browsing and playing work without it.</p>
+    <p>Sign in to YouTube Music to see your liked songs.</p>
     <a class="pill accent" href="/settings">Open Settings</a>
   </div>
 {:else if info.loading && !info.data}

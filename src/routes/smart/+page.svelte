@@ -40,7 +40,7 @@
   <section class="empty plate">
     <Icon name="spark" size={36} />
     <h2>Playlists that keep themselves up to date</h2>
-    <p>Pick songs from your Liked Songs, your own playlists, saved albums and local files by artist, date added, length, explicitness or release year. Carbon keeps the result as a playlist and refreshes it every day you open Carbon.</p>
+    <p>Playlists that fill themselves from rules and refresh daily.</p>
     <button class="pill accent" onclick={() => (editing = null)}><Icon name="plus" size={16} />New smart playlist</button>
   </section>
 {:else}

@@ -32,7 +32,7 @@
 {:else if !collections.loaded}
   <Status loading />
 {:else if !collections.list.length}
-  <Status empty="No collections yet. Make one, then add albums to it from an album's “…” menu." />
+  <Status empty="No collections yet. Add albums from an album's “…” menu." />
 {:else}
   <div class="grid">
     {#each collections.list as c (c.id)}

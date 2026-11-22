@@ -125,7 +125,7 @@
 
 {#if confirming}
   <Modal title="Clear your history?" onclose={() => (confirming = false)}>
-    <p class="confirm">Every play Carbon has kept on this PC is removed, and your recap starts over. Ratings and bookmarks stay. This can't be undone.</p>
+    <p class="confirm">Removes every play kept on this PC. Ratings and bookmarks stay. This can't be undone.</p>
     <div class="actions">
       <button class="pill" onclick={() => (confirming = false)}>Keep it</button>
       <button class="pill danger solid" onclick={clear}>Clear history</button>

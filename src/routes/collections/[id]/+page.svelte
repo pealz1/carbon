@@ -59,7 +59,7 @@
 
   {#if confirming}
     <Modal title="Delete {collection.name}?" onclose={() => (confirming = false)}>
-      <p class="confirm">The collection is removed from this PC. The albums themselves, and anything you saved on Spotify or YouTube Music, stay as they are.</p>
+      <p class="confirm">Only the collection is removed. Your saved albums stay.</p>
       <div class="actions">
         <button class="pill" onclick={() => (confirming = false)}>Keep it</button>
         <button class="pill danger solid" onclick={remove}>Delete collection</button>

@@ -38,7 +38,7 @@
 {:else if !bookmarks.loaded}
   <Status loading />
 {:else if !bookmarks.list.length}
-  <Status empty="Nothing bookmarked yet. Open the “…” menu of an album, artist, playlist or song and choose Bookmark." />
+  <Status empty="Nothing bookmarked yet. Choose Bookmark in any “…” menu." />
 {:else}
   {#if moments.length}
     <section>
