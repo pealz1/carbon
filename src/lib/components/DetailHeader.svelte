@@ -262,11 +262,12 @@
     position: absolute;
     border-radius: 50%;
     will-change: transform;
-    animation: var(--path) calc(var(--lap) / var(--pace, 1)) ease-in-out infinite alternate;
+    /* Each blob names its own keyframes below: Svelte scopes keyframe names, so one can't travel in a variable. */
+    animation: calc(var(--lap) / var(--pace, 1)) ease-in-out infinite alternate;
   }
 
   .blob.a {
-    --path: wash-a;
+    animation-name: wash-a;
     --lap: 34s;
     left: -12%;
     top: 0;
@@ -276,7 +277,7 @@
   }
 
   .blob.b {
-    --path: wash-b;
+    animation-name: wash-b;
     --lap: 43s;
     right: -14%;
     top: 4%;
@@ -286,7 +287,7 @@
   }
 
   .blob.c {
-    --path: wash-c;
+    animation-name: wash-c;
     --lap: 52s;
     left: 30%;
     top: 22%;

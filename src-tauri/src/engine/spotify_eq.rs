@@ -50,6 +50,11 @@ mod tests {
     }
 
     #[test]
+    fn a_muted_player_is_never_mistaken_for_a_silenced_one() {
+        assert!(SCRIPT.contains("if (el.paused || el.muted || el.volume === 0 || !config.enabled) return;"));
+    }
+
+    #[test]
     fn only_acts_inside_the_embedded_players() {
         let js = script("http://tauri.localhost");
         assert!(js.contains(r#"const PLAYERS = ["https://sdk.scdn.co", "https://www.youtube.com", "https://www.youtube-nocookie.com"];"#));

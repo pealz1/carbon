@@ -73,7 +73,8 @@
     let checks = 0;
     let quiet = 0;
     const timer = setInterval(() => {
-      if (el.paused || !config.enabled) return;
+      // Muted or at zero volume the player is meant to be silent: that says nothing about the routing.
+      if (el.paused || el.muted || el.volume === 0 || !config.enabled) return;
       graph.analyser.getFloatTimeDomainData(samples);
       const peak = samples.reduce((m, s) => Math.max(m, Math.abs(s)), 0);
       quiet = peak < 1e-5 ? quiet + 1 : 0;
