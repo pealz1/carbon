@@ -1,8 +1,8 @@
 <script lang="ts">
   import {t} from "$lib/i18n/locale.svelte";
   import { page } from "$app/state";
-  import { dialogs } from "$lib/dialogs.svelte";
-  import { hubOf, isActive, sidebarSections } from "$lib/nav";
+  import { groupOf, isActive, sidebarSections } from "$lib/nav";
+  import { prefs } from "$lib/preferences.svelte";
   import { serverSession } from "$lib/servers/session.svelte";
   import { services } from "$lib/services.svelte";
   import { session } from "$lib/session.svelte";
@@ -12,26 +12,35 @@
   import YoutubePlaylists from "./YoutubePlaylists.svelte";
 
   const path = $derived(page.url.pathname);
+  const sections = $derived(sidebarSections({ ...services.active, servers: serverSession.list.map((s) => s.kind) }));
+  const rows = $derived(sections.flatMap((s) => s.items));
+  const place = $derived(groupOf(path));
+  // A page that belongs to the library (collections, bookmarks, podcasts) lights the Library row.
+  const libraryRow = $derived(place === "library" && !rows.some((r) => isActive(r.href, path)) ? rows.find((r) => r.label === "Library")?.href : undefined);
+  const name = $derived(prefs.value?.displayName.trim() || session.profile?.name || "");
 </script>
 
 <aside class="sidebar" class:rail={view.rail} aria-label="Sidebar">
-  <button class="search" class:active={path === "/search"} onclick={() => (dialogs.palette = true)} aria-haspopup="dialog" aria-label="Search" title={view.rail ? "Search" : undefined}>
+  <!-- Search is a place too: every source's results, and the sources themselves. -->
+  <a class="search pressable" class:active={path === "/search" || place === "search"} href="/search" aria-label="Search" title={view.rail ? "Search" : undefined}>
     <span class="label">Search</span>
     <Icon name="search" size={18} />
-  </button>
+  </a>
 
   <div class="scroll">
-    {#each sidebarSections({ ...services.active, servers: serverSession.list.map((s) => s.kind) }) as section (section.id)}
-      {@const open = view.rail || !view.closed.includes(section.id)}
+    {#each sections as section (section.id)}
+      {@const open = view.rail || !section.label || !view.closed.includes(section.id)}
       <section class="section">
-        <button class="section-head" aria-expanded={open} onclick={() => view.toggleSection(section.id)}>
-          <span>{t(section.label)}</span>
-          <span class="fold" class:closed={!open}><Icon name="down" size={14} /></span>
-        </button>
+        {#if section.label}
+          <button class="section-head" aria-expanded={open} onclick={() => view.toggleSection(section.id)}>
+            <span>{t(section.label)}</span>
+            <span class="fold" class:closed={!open}><Icon name="down" size={14} /></span>
+          </button>
+        {/if}
         {#if open}
-          <nav aria-label={t(section.label)}>
+          <nav aria-label={section.label ? t(section.label) : t("Places")}>
             {#each section.items as item (item.href)}
-              {@const active = isActive(item.href, path) || hubOf(path) === item.href}
+              {@const active = isActive(item.href, path) || item.href === libraryRow}
               <a href={item.href} class="row nav pressable" class:active aria-current={active ? "page" : undefined} title={view.rail ? t(item.label) : undefined}>
                 <span class="icon"><Icon name={item.icon} size={21} filled={item.icon === "heart" && active} /></span>
                 <span class="name">{t(item.label)}</span>
@@ -45,17 +54,20 @@
     {#if services.active.youtube}<YoutubePlaylists rail={view.rail} />{/if}
   </div>
 
-  {#if session.profile}
-    <a href="/settings" class="profile pressable" class:active={path === "/settings"} aria-label="Settings for {session.profile.name}" title={view.rail ? "Settings" : undefined}>
-      {#if session.profile.image}
+  <!-- You: your listening (profile, top music, Wrapped, history) on the left, Settings on the right. -->
+  <div class="you">
+    <a href="/profile" class="profile pressable" class:active={place === "you"} aria-label="Your listening" title={view.rail ? "Your listening" : undefined}>
+      {#if session.profile?.image}
         <img src={session.profile.image} alt="" width="26" height="26" class="avatar" />
+      {:else if name}
+        <span class="avatar initials">{name.slice(0, 1).toUpperCase()}</span>
       {:else}
-        <span class="avatar initials">{session.profile.name.slice(0, 1).toUpperCase()}</span>
+        <span class="avatar initials"><Icon name="artist" size={15} /></span>
       {/if}
-      <span class="name">{session.profile.name}</span>
-      <span class="gear"><Icon name="settings" size={19} /></span>
+      <span class="name">{name || "You"}</span>
     </a>
-  {/if}
+    <a href="/settings" class="gear pressable" class:active={path === "/settings"} aria-label="Settings" title="Settings"><Icon name="settings" size={19} /></a>
+  </div>
 </aside>
 
 <style>
@@ -92,6 +104,7 @@
     background: var(--chrome-active);
     box-shadow: var(--rim-hover);
     color: var(--chrome-text);
+    text-decoration: none;
   }
 
   .search .label {
@@ -220,25 +233,56 @@
     white-space: nowrap;
   }
 
-  .profile {
+  .you {
+    display: flex;
+    gap: var(--sp-1);
+  }
+
+  .profile,
+  .gear {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
     height: 42px;
-    padding: 0 var(--sp-3) 0 var(--sp-2);
     border-radius: var(--r-md);
     background: var(--chrome-hover);
     font-weight: 600;
     text-decoration: none;
     transition:
       background var(--dur-fast),
-      transform var(--dur-med) var(--ease-spring);
+      box-shadow var(--dur-med),
+      transform var(--dur-spring) var(--ease-spring);
+  }
+
+  .profile {
+    flex: 1;
+    min-width: 0;
+    padding: 0 var(--sp-3) 0 var(--sp-2);
+  }
+
+  .gear {
+    flex: none;
+    width: 42px;
+    justify-content: center;
+    color: var(--chrome-text-muted);
   }
 
   .profile:hover,
-  .profile.active {
+  .profile.active,
+  .gear:hover,
+  .gear.active {
     background: var(--chrome-active);
+    box-shadow: var(--rim);
+    color: var(--chrome-text);
     text-decoration: none;
+  }
+
+  .gear > :global(svg) {
+    transition: rotate var(--dur-slow) var(--ease-out);
+  }
+
+  .gear:hover > :global(svg) {
+    rotate: 60deg;
   }
 
   .avatar {
@@ -257,11 +301,6 @@
     font-weight: 700;
   }
 
-  .gear {
-    display: grid;
-    color: var(--chrome-text-muted);
-  }
-
   /* Rail: icons and artwork only; names move to tooltips. */
   .rail {
     padding-inline: var(--sp-2);
@@ -273,9 +312,16 @@
   }
 
   .rail .search .label,
-  .rail :global(.section-head),
-  .rail .gear {
+  .rail :global(.section-head) {
     display: none;
+  }
+
+  .rail .you {
+    flex-direction: column;
+  }
+
+  .rail .gear {
+    width: auto;
   }
 
   /* Names leave the rail visually but stay as each row's accessible name. */

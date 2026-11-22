@@ -16,6 +16,7 @@
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import ContextMenu from "$lib/components/ContextMenu.svelte";
   import FolderDialog from "$lib/components/FolderDialog.svelte";
+  import GroupNav from "$lib/components/GroupNav.svelte";
   import LibraryTools from "$lib/components/LibraryTools.svelte";
   import LyricsPanel from "$lib/components/LyricsPanel.svelte";
   import NowPlayingBar from "$lib/components/NowPlayingBar.svelte";
@@ -181,7 +182,10 @@
             </span>
           </p>
         {/if}
-        {#if !redirect}{@render children()}{/if}
+        {#if !redirect}
+          <GroupNav />
+          {@render children()}
+        {/if}
       </main>
       {#if view.queue}<QueuePanel onclose={() => (view.queue = false)} />{/if}
       <Toasts />
