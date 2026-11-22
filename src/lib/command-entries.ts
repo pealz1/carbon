@@ -4,6 +4,7 @@ import { goto } from "$app/navigation";
 import type { IconName } from "$lib/components/Icon.svelte";
 import type { RecentEntry } from "$lib/command-palette";
 import { joinNames } from "$lib/format";
+import { t } from "$lib/i18n/locale.svelte";
 import { parseLink } from "$lib/links";
 import { carbonPlaylists } from "$lib/local/playlists.svelte";
 import { sectionsFor } from "$lib/nav";
@@ -61,14 +62,11 @@ export function playlistEntries(): Entry[] {
   return [...carbon, ...spotify, ...yt];
 }
 
-/** "Search Spotify for …" opens the full search page with the query. */
+/** "Search for …" opens the search page, which asks every source the listener has. */
 export function searchPageEntries(query: string): Entry[] {
-  const q = encodeURIComponent(query);
   if (!query) return [{ id: "s:page", label: "Search", detail: "Page", icon: "search", run: () => goto("/search") }];
-  const entries: Entry[] = [];
-  if (services.active.spotify) entries.push({ id: "s:spotify", label: `Search Spotify for \u201c${query}\u201d`, detail: "All results", icon: "search", run: () => goto(`/search?q=${q}`) });
-  if (services.active.youtube) entries.push({ id: "s:youtube", label: `Search YouTube Music for \u201c${query}\u201d`, detail: "All results", icon: "search", run: () => goto(`/youtube/search?q=${q}`) });
-  return entries;
+  const label = `${t("Search for")} “${query}”`;
+  return [{ id: "s:all", label, detail: t("All sources"), icon: "search", run: () => goto(`/search?q=${encodeURIComponent(query)}`) }];
 }
 
 const SERVICE_NAMES = { spotify: "Spotify", youtube: "YouTube Music" } as const;
