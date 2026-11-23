@@ -33,7 +33,7 @@
   const io = new IntersectionObserver((entries) => {
     entries.forEach((e) => (e.isIntersecting ? visible.add(e.target) : visible.delete(e.target)));
     mark();
-  }, { rootMargin: "-90px 0px -55% 0px" });
+  }, { rootMargin: "-96px 0px -55% 0px" });
 
   links.forEach((_, section) => io.observe(section));
 

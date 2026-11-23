@@ -7,12 +7,12 @@
     [data-step="verify"] form[data-form="verify"]  email (if unknown), .code
 */
 
-import { api, sessionHint } from "./api.js?v=3";
-import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=3";
+import { api, sessionHint } from "./api.js?v=4";
+import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=4";
 import {
   EMAIL_RE, cooldown, fieldError, formAlert, onSubmit, securing, setBusy, showError, showStep, store,
   wireCode, wirePassword,
-} from "./ui.js?v=3";
+} from "./ui.js?v=4";
 
 const RESEND_SECONDS = 60;
 const $ = (root, sel) => root.querySelector(sel);

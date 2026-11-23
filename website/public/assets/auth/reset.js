@@ -1,8 +1,8 @@
 /* /reset: code + new password. Success revokes every session, so the browser is signed out. */
-import { api, sessionHint } from "./api.js?v=3";
-import { requireEmail, wireResend } from "./flows.js?v=3";
-import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=3";
-import { fieldError, formAlert, onSubmit, securing, setFlash, store, takeFlash, wireCode, wirePassword, wireReveal } from "./ui.js?v=3";
+import { api, sessionHint } from "./api.js?v=4";
+import { requireEmail, wireResend } from "./flows.js?v=4";
+import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=4";
+import { fieldError, formAlert, onSubmit, securing, setFlash, store, takeFlash, wireCode, wirePassword, wireReveal } from "./ui.js?v=4";
 
 const RESEND_SECONDS = 60;
 const form = document.querySelector('[data-form="reset"]');

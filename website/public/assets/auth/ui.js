@@ -1,8 +1,8 @@
 /* Shared form behaviour for the account pages. */
 
-import { ApiError, UNAVAILABLE } from "./api.js?v=3";
-import { COMMON_PASSWORDS } from "./common-passwords.js?v=3";
-import { UnsupportedBrowserError } from "./password-key.js?v=3";
+import { ApiError, UNAVAILABLE } from "./api.js?v=4";
+import { COMMON_PASSWORDS } from "./common-passwords.js?v=4";
+import { UnsupportedBrowserError } from "./password-key.js?v=4";
 
 const DEFAULT_COOLDOWN = 60;
 
