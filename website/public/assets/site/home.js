@@ -49,6 +49,50 @@ function initParallax() {
   });
 }
 
+/* ---------- Feature panels: tilt toward the pointer; illustrations move only while on screen ---------- */
+
+const TILT_X = 7;
+const TILT_Y = 9;
+
+function initBento() {
+  const tiles = [...document.querySelectorAll("[data-bento] .tile")];
+  if (!tiles.length) return;
+  const live = new IntersectionObserver((entries) => {
+    for (const e of entries) e.target.classList.toggle("is-live", e.isIntersecting);
+  }, { threshold: 0.2 });
+  tiles.forEach((tile) => live.observe(tile));
+
+  if (matchMedia("(prefers-reduced-motion: reduce), (pointer: coarse)").matches) return;
+  for (const tile of tiles) {
+    const panel = tile.querySelector(".tile__in");
+    let frame = 0;
+    let point = null;
+    const apply = () => {
+      frame = 0;
+      if (!point) {
+        panel.style.setProperty("--rx", "0deg");
+        panel.style.setProperty("--ry", "0deg");
+        return;
+      }
+      const box = panel.getBoundingClientRect();
+      const x = (point.x - box.left) / box.width;
+      const y = (point.y - box.top) / box.height;
+      panel.style.setProperty("--rx", `${((0.5 - y) * TILT_X).toFixed(2)}deg`);
+      panel.style.setProperty("--ry", `${((x - 0.5) * TILT_Y).toFixed(2)}deg`);
+      panel.style.setProperty("--gx", `${(x * 100).toFixed(1)}%`);
+      panel.style.setProperty("--gy", `${(y * 100).toFixed(1)}%`);
+    };
+    tile.addEventListener("pointermove", (event) => {
+      point = { x: event.clientX, y: event.clientY };
+      frame ||= requestAnimationFrame(apply);
+    });
+    tile.addEventListener("pointerleave", () => {
+      point = null;
+      frame ||= requestAnimationFrame(apply);
+    });
+  }
+}
+
 /* ---------- Donations: /assets/support.json ----------
    { "stripeOnce": "https://donate.stripe.com/…", "stripeMonthly": "https://buy.stripe.com/…",
      "stripeManage": "https://billing.stripe.com/p/login/…", "githubSponsors": "https://github.com/sponsors/…" }
@@ -172,7 +216,7 @@ async function initData() {
   });
 }
 
-for (const init of [initParallax, initLyrics, initData]) {
+for (const init of [initParallax, initLyrics, initBento, initData]) {
   try {
     init();
   } catch (err) {
