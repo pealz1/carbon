@@ -29,6 +29,9 @@
 }
 
 .hero__copy {
+  position: relative;
+  /* Above the 3D stage, so the open download menu is never painted over. */
+  z-index: 5;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "title title" "lead cta" "lead fine";
