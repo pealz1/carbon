@@ -1,9 +1,10 @@
 /* /account: profile, backup codes, sessions, password change and account deletion. */
-import { api, sessionHint, UNAVAILABLE } from "./api.js?v=3";
-import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=3";
+import { api, sessionHint, UNAVAILABLE } from "./api.js?v=4";
+import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=4";
 import {
   cooldown, fieldError, formAlert, onSubmit, setBusy, setFlash, showError, wireCode, wirePassword, wireReveal, securing,
-} from "./ui.js?v=3";
+} from "./ui.js?v=4";
+import { toast } from "../site/toast.js?v=1";
 
 const LOGIN = "/login?next=%2Faccount";
 const CODE_RESEND_SECONDS = 60;
@@ -166,6 +167,7 @@ async function endSession(session, btn) {
   try {
     await api(`/v1/me/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" });
     pageAlert("That device was signed out.");
+    toast("Signed out of that device.", { tone: "ok" });
     await refresh();
   } catch (err) {
     if (guard(err)) return;
@@ -224,6 +226,7 @@ function wireBackupCodes() {
     try {
       await navigator.clipboard.writeText([...list.children].map((li) => li.textContent).join("\n"));
       label.textContent = "Copied";
+      toast("Backup codes copied. Keep them somewhere safe.", { tone: "ok" });
     } catch (err) {
       console.warn("Clipboard unavailable:", err);
       label.textContent = "Select and copy";
@@ -272,6 +275,7 @@ function wirePasswordChange() {
       form.reset();
       next.dispatchEvent(new Event("input"));
       formAlert(form, "Password changed. Your other sessions were signed out.", "ok");
+      toast("Password changed.", { tone: "ok" });
       refresh();
     },
     onError: (err) => guard(err),

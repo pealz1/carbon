@@ -1,12 +1,14 @@
 /*
-  Carbon accounts API client (contract: cloud/API.md, base https://api.getcarbon.cc).
+  Carbon accounts API client (contract: API.md in the carbon-cloud repo, base https://api.getcarbon.cc).
   Every request sends the session cookie and the CSRF header. Errors become ApiError:
     status 0 / code "unavailable"  network failure, or no API answering (not deployed yet)
     status 429                      rate limited; retryAfter in seconds when known
     otherwise                       the server's { error: { code, message } } envelope
 */
 
-export const API_BASE = "https://api.getcarbon.cc";
+/** Served from localhost (wrangler dev on 8788), the pages talk to a local API on 8787 of the same host. */
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+export const API_BASE = LOCAL_HOST ? `http://${window.location.hostname}:8787` : "https://api.getcarbon.cc";
 export const UNAVAILABLE = "Carbon accounts aren’t available yet — check back soon.";
 
 const HINT_KEY = "carbon.signedIn";
