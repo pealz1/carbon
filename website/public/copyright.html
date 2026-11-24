@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Copyright and IP Policy · Carbon</title>
+  <meta name="description" content="How to send Carbon a DMCA notice, counter-notice or trademark complaint, and what Carbon does and doesn’t host.">
+  <link rel="canonical" href="https://getcarbon.cc/copyright">
+  <meta name="theme-color" content="#090907">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=6">
+  <link rel="stylesheet" href="/assets/doc.css?v=7">
+  <script src="/assets/site/boot.js?v=1"></script>
+  <script type="module" src="/assets/site/main.js?v=2"></script>
+  <script src="/assets/toc.js?v=2" defer></script>
+</head>
+<body>
+  <div class="boot" aria-hidden="true"><img class="boot__mark" src="/assets/carbon-mark.svg?v=3" width="54" height="54" alt=""><span class="boot__line"></span></div>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg?v=3" width="28" height="28" alt=""><img class="brand__word" src="/assets/carbon-wordmark.svg?v=3" width="104" height="24" alt=""></a>
+      <nav class="nav" id="site-nav" aria-label="Primary">
+        <a class="nav__link" href="/#features"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/></svg><span class="nav__label">Features</span></a>
+        <a class="nav__link" href="/#lyrics"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h11M4 11.5h16M4 16.5h8"/><path d="M18 14.5v5"/></svg><span class="nav__label">Lyrics</span></a>
+        <a class="nav__link" href="/switch"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h13l-3.5-3.5M19 16H6l3.5 3.5"/></svg><span class="nav__label">Switch</span></a>
+        <a class="nav__link" href="/setup"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="nav__label">Setup</span></a>
+        <a class="nav__link" href="/#support"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg><span class="nav__label">Support</span></a>
+        <a class="nav__link" href="https://github.com/pealz1/carbon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg><span class="nav__label">GitHub</span></a>
+        <a class="nav__link nav__link--phone" href="/login" data-auth-out><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h5v16h-5M10 8l4 4-4 4M14 12H4"/></svg><span class="nav__label">Sign in</span></a>
+        <a class="nav__link" href="/admin" data-admin-link hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav__label">Admin</span></a>
+      </nav>
+      <div class="auth">
+        <a class="btn btn--quiet btn--sm auth__signin" href="/login" data-auth-out>Sign in</a>
+        <a class="avatar" href="/account" data-auth-in hidden><span data-avatar-initial aria-hidden="true">C</span><span class="sr-only">Your account</span></a>
+        <div class="split " data-dl data-dl-keep-label>
+        <a class="btn btn--primary btn--sm" href="https://github.com/pealz1/carbon/releases/latest" data-dl-main data-download="release-page"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg><span class="split__label"><span data-dl-text>Download</span></span></a>
+        <button class="btn btn--primary btn--sm split__more" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="dl-menu-bar" aria-label="Choose an installer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg></button>
+        <div class="menu" id="dl-menu-bar" role="menu" aria-label="Installers">
+          <div data-dl-groups><p class="menu__empty">Loading installers…</p></div>
+          <div class="menu__group"><a class="menu__item" role="menuitem" href="https://github.com/pealz1/carbon/releases/latest" data-download="release-page"><span>All files and release notes</span><small>github.com/pealz1/carbon</small><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5"/></svg></a></div>
+        </div>
+      </div>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="wrap doc-main">
+    <header class="doc-hero">
+      <h1>Copyright and IP Policy</h1>
+      <p class="doc-meta">Last updated November 24, 2026</p>
+      <p class="doc-note"><strong>The short version:</strong> Carbon does not host music. It plays music from the services you connect and from your own server and files, and lyrics come from third-party providers. If something people share on Carbon, such as a playlist name or a profile, infringes your rights, email <a class="link" href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> with the details below. This policy is part of the <a class="link" href="/terms">Terms of Service</a>.</p>
+    </header>
+
+    <div class="doc">
+      <details class="toc" data-toc open>
+        <summary>On this page</summary>
+        <nav aria-label="Copyright policy sections">
+          <ol>
+            <li><a href="#about">About this policy</a></li>
+            <li><a href="#hosting">What Carbon hosts</a></li>
+            <li><a href="#notice">Sending a copyright notice</a></li>
+            <li><a href="#next">What happens next</a></li>
+            <li><a href="#counter">Counter-notices</a></li>
+            <li><a href="#misrepresentation">False claims</a></li>
+            <li><a href="#repeat">Repeat infringers</a></li>
+            <li><a href="#trademark">Trademark complaints</a></li>
+            <li><a href="#other">Other rights and countries</a></li>
+            <li><a href="#ours">Carbon’s own IP</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ol>
+        </nav>
+      </details>
+
+      <article class="prose">
+        <section id="about" aria-labelledby="about-h">
+          <h2 id="about-h">About this policy</h2>
+          <p>We respect the rights of artists, songwriters, labels and other creators, and we expect people who use Carbon to do the same. This policy explains how to tell us about content on Carbon’s Services that you believe infringes your copyright or trademark, and how we respond. It follows the notice-and-takedown process of the US Digital Millennium Copyright Act (DMCA), 17 U.S.C. §512.</p>
+          <p>This page is not legal advice. If you are not sure whether something infringes your rights, consider speaking to a lawyer before sending a notice.</p>
+        </section>
+
+        <section id="hosting" aria-labelledby="hosting-h">
+          <h2 id="hosting-h">What Carbon hosts</h2>
+          <p><strong>Carbon does not host music audio on its servers.</strong> The app plays music from the services you connect, such as Spotify and YouTube Music, from your own Navidrome, Jellyfin or Plex server, from internet radio stations and from files on your device. Lyrics come from third-party providers such as LRCLIB.</p>
+          <p>The content that Carbon’s Services do store and show is limited to:</p>
+          <ul>
+            <li>online and shared playlists: their names, song identifiers and track details;</li>
+            <li>public profiles: a name, a bio and a list of playlists;</li>
+            <li>the name a host shows in a listen-together room;</li>
+            <li>the text, images and brand files on getcarbon.cc.</li>
+          </ul>
+          <p>Some complaints are better sent elsewhere:</p>
+          <div class="table-wrap table-wrap--fit">
+            <table>
+              <thead><tr><th scope="col">If your complaint is about</th><th scope="col">Contact</th></tr></thead>
+              <tbody>
+                <tr><td>A song, video or podcast on Spotify, YouTube or another music service</td><td>That service, through its own copyright process. Once it is removed there, it stops playing in Carbon too.</td></tr>
+                <tr><td>Lyrics shown in Carbon</td><td>The lyrics provider, such as LRCLIB. You can also tell us, and we will pass it on where we can.</td></tr>
+                <tr><td>A station in the radio directory</td><td>The station, or the Radio Browser directory.</td></tr>
+                <tr><td>Music on someone’s own server</td><td>The person who runs that server. Carbon has no access to it.</td></tr>
+                <tr><td>Code in Carbon’s GitHub repository</td><td>Us, at the address below, or GitHub’s own copyright process.</td></tr>
+                <tr><td>Anything Carbon’s Services store, listed above</td><td>Us, as described on this page.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="notice" aria-labelledby="notice-h">
+          <h2 id="notice-h">Sending a copyright notice</h2>
+          <p>If you believe content on Carbon’s Services infringes a copyright you own or are authorized to enforce, email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> with the subject “DMCA notice”. To be effective under 17 U.S.C. §512(c)(3), your notice must include:</p>
+          <ol>
+            <li>your physical or electronic signature, as the copyright owner or a person authorized to act for the owner;</li>
+            <li>a description of the copyrighted work you believe is infringed, or, if there are several, a representative list of them;</li>
+            <li>a description of the material you believe is infringing and where it is on the Services, specific enough for us to find it, such as the link to a shared playlist or profile;</li>
+            <li>your name, postal address, telephone number and email address, so we can contact you;</li>
+            <li>a statement that you believe in good faith that the use of the material is not authorized by the copyright owner, its agent or the law;</li>
+            <li>a statement that the information in your notice is accurate and, under penalty of perjury, that you are the copyright owner or authorized to act for the owner.</li>
+          </ol>
+          <p>A notice that leaves out these elements may not be valid, and we may ask you to complete it before we act. Notices in English are handled fastest.</p>
+        </section>
+
+        <section id="next" aria-labelledby="next-h">
+          <h2 id="next-h">What happens next</h2>
+          <ul>
+            <li>We review each notice. If it is complete and valid, we remove the material or disable access to it promptly, for example by making a playlist or profile private.</li>
+            <li>We tell the person who posted it and may send them a copy of your notice, including your name and contact details, so they can respond or file a counter-notice.</li>
+            <li>We keep a record of the notice and what we did.</li>
+            <li>We may decline notices that are incomplete, that do not concern content on Carbon’s Services, or that appear to be abusive.</li>
+          </ul>
+        </section>
+
+        <section id="counter" aria-labelledby="counter-h">
+          <h2 id="counter-h">Counter-notices</h2>
+          <p>If content you posted was removed and you believe that happened because of a mistake or misidentification, you can send a counter-notice to <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> with the subject “DMCA counter-notice”. Under 17 U.S.C. §512(g)(3), it must include:</p>
+          <ol>
+            <li>your physical or electronic signature;</li>
+            <li>a description of the material that was removed and where it was on the Services before it was removed;</li>
+            <li>a statement, under penalty of perjury, that you believe in good faith that the material was removed or disabled because of a mistake or misidentification;</li>
+            <li>your name, postal address and telephone number;</li>
+            <li>a statement that you consent to the jurisdiction of the federal district court for the district where your address is or, if your address is outside the United States, any judicial district in which Carbon may be found, and that you will accept service of legal process from the person who sent the original notice or their agent.</li>
+          </ol>
+          <p>When we receive a valid counter-notice, we send a copy to the person who sent the original notice and tell them we will restore the material in 10 business days. We restore it between 10 and 14 business days after receiving the counter-notice, unless they first tell us that they have filed a court action to stop the infringement.</p>
+        </section>
+
+        <section id="misrepresentation" aria-labelledby="misrepresentation-h">
+          <h2 id="misrepresentation-h">False claims</h2>
+          <p>Under 17 U.S.C. §512(f), anyone who knowingly and materially misrepresents that material is infringing, or that it was removed by mistake, can be liable for damages, including costs and legal fees. Before sending a notice, consider whether the use may be authorized or allowed by law, for example as fair use. Do not send a notice or counter-notice unless you are sure it is accurate.</p>
+        </section>
+
+        <section id="repeat" aria-labelledby="repeat-h">
+          <h2 id="repeat-h">Repeat infringers</h2>
+          <p>In appropriate circumstances, we suspend or close the accounts of people who repeatedly infringe other people’s copyrights, and we may refuse them new accounts. We decide case by case, taking into account valid notices, counter-notices and any other information we have. Removed content and suspension records are kept as the <a href="/privacy#retention">Privacy Policy</a> describes.</p>
+        </section>
+
+        <section id="trademark" aria-labelledby="trademark-h">
+          <h2 id="trademark-h">Trademark complaints</h2>
+          <p>If you believe a playlist, profile or room name on Carbon uses your trademark in a way that is likely to confuse people, for example by impersonating your brand, email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> with the subject “Trademark complaint” and:</p>
+          <ul>
+            <li>your name and contact details, and your relationship to the trademark owner;</li>
+            <li>the trademark, and where and for what it is registered or used;</li>
+            <li>where the content is on the Services, such as the link to a shared playlist or profile;</li>
+            <li>why you believe the use is likely to cause confusion;</li>
+            <li>a statement that the information in your complaint is accurate and that you are the owner or authorized to act for the owner.</li>
+          </ul>
+          <p>Referring to an artist, band or product by name to describe music is usually not trademark infringement. We may ask the person who posted the content to change it, or remove it, and we may share your complaint with them.</p>
+        </section>
+
+        <section id="other" aria-labelledby="other-h">
+          <h2 id="other-h">Other rights and countries</h2>
+          <p>If you believe content on Carbon’s Services breaks another law, such as a right of publicity, or the law of a country outside the United States, email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>. Tell us where the content is, which law it breaks and why, and include your contact details and a statement that your report is accurate and made in good faith. We will review it, may limit access to the content where it is illegal, and will tell you what we decided.</p>
+        </section>
+
+        <section id="ours" aria-labelledby="ours-h">
+          <h2 id="ours-h">Carbon’s own IP</h2>
+          <p>The Carbon app’s source code is available under the MIT license, and the <a href="/licenses">Licenses</a> page credits the open-source work it builds on. The Carbon name and logo are not covered by that license; the <a href="/brand">Brand and press</a> page explains how to use them. If you see a product, build or site that misuses Carbon’s name or logo, please let us know.</p>
+        </section>
+
+        <section id="contact" aria-labelledby="contact-h">
+          <h2 id="contact-h">Contact</h2>
+          <p>Send copyright notices, counter-notices and trademark complaints to <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>, with the subject line shown in each section.</p>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="foot">
+        <div class="foot__brand">
+          <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg?v=3" width="28" height="28" alt="" loading="lazy"><img class="brand__word" src="/assets/carbon-wordmark.svg?v=3" width="104" height="24" alt="" loading="lazy"></a>
+          <p>A free, open-source music app for Windows, macOS and Linux. Spotify, YouTube Music, your own server and your files in one window.</p>
+          <a class="chip" href="https://github.com/pealz1/carbon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg>MIT licensed</a>
+        </div>
+        <nav aria-labelledby="f-0">
+          <h2 id="f-0">Product</h2>
+          <ul>
+            <li><a href="/#download">Download</a></li>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/#lyrics">Lyrics</a></li>
+            <li><a href="/#compare">Compare</a></li>
+            <li><a href="/setup">Setup</a></li>
+            <li><a href="https://github.com/pealz1/carbon/releases">Releases</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-1">
+          <h2 id="f-1">Switch</h2>
+          <ul>
+            <li><a href="/switch#spotify">Spotify app</a></li>
+            <li><a href="/switch#spicetify">Spicetify</a></li>
+            <li><a href="/switch#cider">Cider</a></li>
+            <li><a href="/switch#youtube-music">YouTube Music desktop</a></li>
+            <li><a href="/switch#other">Other players</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-2">
+          <h2 id="f-2">Help</h2>
+          <ul>
+            <li><a href="/#faq">FAQ</a></li>
+            <li><a href="https://github.com/pealz1/carbon/issues/new/choose">Report a bug</a></li>
+            <li><a href="mailto:support@getcarbon.cc">Email</a></li>
+            <li><a href="/account">Account</a></li>
+            <li><a href="/#support">Donate</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-3">
+          <h2 id="f-3">Community</h2>
+          <ul>
+            <li><a href="https://github.com/pealz1/carbon/discussions">Discussions</a></li>
+            <li><a href="https://github.com/pealz1/carbon">Source</a></li>
+            <li><a href="https://github.com/pealz1/carbon/blob/main/CONTRIBUTING.md">Contribute</a></li>
+            <li><a href="/#supporters">Supporters</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-4">
+          <h2 id="f-4">Legal</h2>
+          <ul>
+            <li><a href="/legal">Legal center</a></li>
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/acceptable-use">Acceptable use</a></li>
+            <li><a href="/donation-terms">Donations</a></li>
+            <li><a href="/copyright">Copyright</a></li>
+            <li><a href="/cookies">Cookies</a></li>
+            <li><button class="text-btn" type="button" data-consent-open>Cookie settings</button></li>
+            <li><a href="/licenses">Licenses</a></li>
+            <li><a href="/security">Security</a></li>
+            <li><a href="/brand">Brand</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="foot__legal">
+        <p>Carbon is an independent project by pealz. It isn’t affiliated with, endorsed by or sponsored by Spotify, Google or any music service. Spotify is a trademark of Spotify AB; YouTube Music is a trademark of Google LLC. Other names and logos belong to their owners. By using getcarbon.cc or Carbon, you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+        <p>© 2026 Carbon</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

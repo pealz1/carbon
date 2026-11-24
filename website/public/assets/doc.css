@@ -538,3 +538,16 @@
   .swatches { grid-template-columns: minmax(0, 1fr); }
 }
 .brand-space .table-wrap table { min-width: 0; }
+
+/* ---------- legal pages ---------- */
+
+/* Disclaimers and liability limits must stand out (conspicuous), so they read in full ink and capitals. */
+.prose .caps { color: var(--c-text); font-size: var(--t-small); font-weight: 550; letter-spacing: .01em; text-transform: uppercase; }
+.legal-group { margin-top: var(--s-8); }
+.legal-group .prose p { margin-top: var(--s-2); }
+.card .legal-date { color: var(--c-text-3); font: 500 var(--t-micro) var(--f-mono); }
+/* Two-column legal tables fit a phone instead of scrolling sideways. */
+.table-wrap--fit table { min-width: 0; }
+/* Only legal documents use the table of contents; tighter rows keep the 26-item terms list on one desktop screen. */
+.toc ol { gap: 0; }
+.toc a { padding-block: .3rem; }

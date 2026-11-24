@@ -1112,31 +1112,50 @@ a.proof__item:hover { background: var(--c-fill); }
 .give__links { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin-top: var(--s-4); font-size: var(--t-small); font-weight: 600; }
 .give__fine { margin-top: var(--s-5); color: var(--c-ink-2); font-size: var(--t-micro); line-height: 1.5; }
 
+/* Once / Monthly: an ink thumb slides between the two halves on a spring. */
 .seg {
+  position: relative;
   display: inline-grid;
-  grid-auto-flow: column;
-  gap: 4px;
+  grid-template-columns: 1fr 1fr;
   margin: 0;
   padding: 4px;
   border: 0;
   border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--c-ink) 8%, transparent);
+  isolation: isolate;
 }
+.seg::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  z-index: -1;
+  width: calc(50% - 4px);
+  border-radius: var(--r-pill);
+  background: var(--c-ink);
+  box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--c-ink) 80%, transparent);
+  transition: transform 520ms var(--ease-spring);
+}
+.seg:has(input[value="monthly"]:checked)::before { transform: translateX(100%); }
+.seg:active::before { transition-duration: 680ms; }
 .seg label { position: relative; cursor: pointer; }
 .seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
 .seg span {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: .45rem;
   padding: .5rem 1.1rem;
   border-radius: var(--r-pill);
   font-size: var(--t-small);
   font-weight: 650;
   color: var(--c-ink-2);
-  transition: background-color var(--d-fast), color var(--d-fast);
+  transition: color 260ms var(--ease-out);
 }
-.seg input:checked + span { background: var(--c-ink); color: var(--c-paper); }
-.seg .ico { width: 16px; height: 16px; stroke-width: 2; }
+.seg input:checked + span { color: var(--c-paper); }
+.seg .ico { width: 16px; height: 16px; stroke-width: 2; transition: transform 520ms var(--ease-spring); }
+.seg input:checked + span .ico { transform: scale(1.12); }
 .seg input:focus-visible + span { outline: 2px solid var(--c-ink); outline-offset: 2px; }
 
 .wall { margin-top: var(--s-8); }
@@ -1215,3 +1234,6 @@ a.proof__item:hover { background: var(--c-fill); }
   .faq__grid { grid-template-columns: minmax(0, 1fr); gap: var(--s-5); }
   .qa__a { padding-right: 0; }
 }
+
+/* Donation consent line: Paper card, so ink tones, never yellow. */
+.give__consent { margin-top: var(--s-3); color: var(--c-ink-2); font-size: var(--t-micro); }

@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cookies and browser storage · Carbon</title>
+  <meta name="description" content="The two essential cookies getcarbon.cc uses, every item it keeps in your browser, the visit prompt, and how to change your choice.">
+  <link rel="canonical" href="https://getcarbon.cc/cookies">
+  <meta name="theme-color" content="#090907">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/assets/base.css?v=6">
+  <link rel="stylesheet" href="/assets/doc.css?v=7">
+  <script src="/assets/site/boot.js?v=1"></script>
+  <script type="module" src="/assets/site/main.js?v=2"></script>
+  <script src="/assets/toc.js?v=2" defer></script>
+</head>
+<body>
+  <div class="boot" aria-hidden="true"><img class="boot__mark" src="/assets/carbon-mark.svg?v=3" width="54" height="54" alt=""><span class="boot__line"></span></div>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap bar">
+      <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg?v=3" width="28" height="28" alt=""><img class="brand__word" src="/assets/carbon-wordmark.svg?v=3" width="104" height="24" alt=""></a>
+      <nav class="nav" id="site-nav" aria-label="Primary">
+        <a class="nav__link" href="/#features"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/></svg><span class="nav__label">Features</span></a>
+        <a class="nav__link" href="/#lyrics"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h11M4 11.5h16M4 16.5h8"/><path d="M18 14.5v5"/></svg><span class="nav__label">Lyrics</span></a>
+        <a class="nav__link" href="/switch"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h13l-3.5-3.5M19 16H6l3.5 3.5"/></svg><span class="nav__label">Switch</span></a>
+        <a class="nav__link" href="/setup"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="nav__label">Setup</span></a>
+        <a class="nav__link" href="/#support"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg><span class="nav__label">Support</span></a>
+        <a class="nav__link" href="https://github.com/pealz1/carbon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg><span class="nav__label">GitHub</span></a>
+        <a class="nav__link nav__link--phone" href="/login" data-auth-out><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h5v16h-5M10 8l4 4-4 4M14 12H4"/></svg><span class="nav__label">Sign in</span></a>
+        <a class="nav__link" href="/admin" data-admin-link hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav__label">Admin</span></a>
+      </nav>
+      <div class="auth">
+        <a class="btn btn--quiet btn--sm auth__signin" href="/login" data-auth-out>Sign in</a>
+        <a class="avatar" href="/account" data-auth-in hidden><span data-avatar-initial aria-hidden="true">C</span><span class="sr-only">Your account</span></a>
+        <div class="split " data-dl data-dl-keep-label>
+        <a class="btn btn--primary btn--sm" href="https://github.com/pealz1/carbon/releases/latest" data-dl-main data-download="release-page"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg><span class="split__label"><span data-dl-text>Download</span></span></a>
+        <button class="btn btn--primary btn--sm split__more" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="dl-menu-bar" aria-label="Choose an installer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg></button>
+        <div class="menu" id="dl-menu-bar" role="menu" aria-label="Installers">
+          <div data-dl-groups><p class="menu__empty">Loading installers…</p></div>
+          <div class="menu__group"><a class="menu__item" role="menuitem" href="https://github.com/pealz1/carbon/releases/latest" data-download="release-page"><span>All files and release notes</span><small>github.com/pealz1/carbon</small><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5"/></svg></a></div>
+        </div>
+      </div>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="wrap doc-main">
+    <header class="doc-hero">
+      <h1>Cookies and browser storage</h1>
+      <p class="doc-meta">Last updated November 24, 2026</p>
+      <p class="doc-note"><strong>The short version:</strong> getcarbon.cc uses two cookies, both essential for signing in, and none for analytics or advertising. It keeps a few small items in your browser’s storage. Only one of them is optional, a record of how you first found Carbon, and it is kept only if you choose Allow. The Carbon app uses no cookies and no analytics. This notice adds detail to the <a class="link" href="/privacy#cookies">Privacy Policy</a>.</p>
+    </header>
+
+    <div class="doc">
+      <details class="toc" data-toc open>
+        <summary>On this page</summary>
+        <nav aria-label="Cookie notice sections">
+          <ol>
+            <li><a href="#about">About this notice</a></li>
+            <li><a href="#cookies">Cookies</a></li>
+            <li><a href="#storage">Browser storage</a></li>
+            <li><a href="#prompt">The visit prompt</a></li>
+            <li><a href="#signals">Privacy signals</a></li>
+            <li><a href="#third-party">Other services the site contacts</a></li>
+            <li><a href="#app">The Carbon app</a></li>
+            <li><a href="#choices">Changing your choice</a></li>
+            <li><a href="#changes">Changes to this notice</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ol>
+        </nav>
+      </details>
+
+      <article class="prose">
+        <section id="about" aria-labelledby="about-h">
+          <h2 id="about-h">About this notice</h2>
+          <p>Cookies are small files a website asks your browser to keep. Browser storage (local storage and session storage) works in a similar way, but only the website’s own scripts can read it. This notice lists every cookie and storage item that getcarbon.cc and Carbon’s account service at api.getcarbon.cc use, why, and for how long.</p>
+        </section>
+
+        <section id="cookies" aria-labelledby="cookies-h">
+          <h2 id="cookies-h">Cookies</h2>
+          <p>We use two cookies, and both are essential: without them you could not stay signed in. Both are set by api.getcarbon.cc, are HttpOnly and Secure (page scripts can’t read them, and they only travel over HTTPS), and neither is used for analytics or advertising.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Cookie</th><th scope="col">What it does</th><th scope="col">How long it lasts</th></tr></thead>
+              <tbody>
+                <tr><td><code>__Host-carbon_session</code></td><td>Keeps you signed in to your Carbon account.</td><td>Up to 30 days after your last visit, and never more than 90 days after you signed in. Signing out ends it.</td></tr>
+                <tr><td><code>__Host-carbon_device</code></td><td>Remembers a browser where you finished a sign-in with an emailed code, so it can skip the code next time.</td><td>90 days.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Because these cookies are strictly necessary for a service you ask for, we do not ask for consent to use them.</p>
+        </section>
+
+        <section id="storage" aria-labelledby="storage-h">
+          <h2 id="storage-h">Browser storage</h2>
+          <p>The website keeps these items in your browser. They stay on your device; the website’s scripts read them, but they are not sent to us as cookies are.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Item</th><th scope="col">What it does</th><th scope="col">How long it lasts</th></tr></thead>
+              <tbody>
+                <tr><td><code>carbon.signedIn</code><br>local storage</td><td>Notes that you have signed in before, so the site knows to check whether you still are.</td><td>Until you sign out or the site finds you are signed out.</td></tr>
+                <tr><td><code>carbon.consent</code><br>local storage</td><td>Your answer to the visit prompt: Allow or Reject.</td><td>Until you change it or clear the site’s data.</td></tr>
+                <tr><td><code>carbon.firstVisit</code><br>local storage, <strong>only if you choose Allow</strong></td><td>Where you first came from: the linking address and campaign tags.</td><td>Until you choose Reject or clear the site’s data.</td></tr>
+                <tr><td><code>carbon.email</code>, <code>carbon.sent</code>, <code>carbon.flash</code><br>session storage</td><td>Your email address, when a code was last sent, and a one-time status message, while you move between sign-up and sign-in pages.</td><td>Until you close the tab.</td></tr>
+                <tr><td><code>carbon.seen</code><br>session storage</td><td>Whether you have already seen the loading screen, so it plays only once.</td><td>Until you close the tab.</td></tr>
+                <tr><td><code>carbon.gh.latest</code>, <code>carbon.gh.repo</code>, <code>carbon.gh.releases</code><br>session storage</td><td>A copy of Carbon’s public release information from GitHub, so the download menu loads quickly.</td><td>Ten minutes, and never past closing the tab.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="prompt" aria-labelledby="prompt-h">
+          <h2 id="prompt-h">The visit prompt</h2>
+          <p>The website counts visits as daily totals, without cookies, whatever you choose. <a href="/privacy#analytics">Website visits</a> explains exactly what is counted.</p>
+          <p>On your first visit, a prompt asks whether the site may remember how you found Carbon. It does not appear on sign-in, account or shared playlist pages.</p>
+          <ul>
+            <li><strong>Allow:</strong> your browser keeps <code>carbon.firstVisit</code>, so later visits count as returning, and a later download is credited to the link that first brought you here. Only the linking site’s name and campaign tags reach us.</li>
+            <li><strong>Reject:</strong> nothing extra is stored, and any first-visit record is deleted.</li>
+          </ul>
+          <p>Closing the prompt without choosing stores nothing extra. For visitors in the EEA, UK and Switzerland, the first-visit record relies on your consent, which you can withdraw at any time.</p>
+        </section>
+
+        <section id="signals" aria-labelledby="signals-h">
+          <h2 id="signals-h">Privacy signals</h2>
+          <p>If your browser sends Global Privacy Control or Do Not Track, the website treats it as a Reject. It sends no visit information at all, stores no first-visit record and does not show the prompt. The essential sign-in cookies still work, because you ask for them when you sign in.</p>
+        </section>
+
+        <section id="third-party" aria-labelledby="third-party-h">
+          <h2 id="third-party-h">Other services the site contacts</h2>
+          <p>We do not use advertising or analytics cookies, and we do not embed third-party trackers. To load its pages, the website contacts:</p>
+          <ul>
+            <li><strong>Cloudflare</strong>, which serves the website and the account service;</li>
+            <li><strong>Google Fonts</strong>, which serves the website’s fonts;</li>
+            <li><strong>GitHub’s public API</strong>, when the download menu looks up the latest release;</li>
+            <li><strong>Spotify’s and YouTube’s image servers</strong>, when a shared playlist page shows cover art.</li>
+          </ul>
+          <p>Each of them receives standard request information, such as your IP address and browser type, and handles it under its own privacy policy. Donation pages are run by Stripe on its own site, under Stripe’s own cookie policy.</p>
+        </section>
+
+        <section id="app" aria-labelledby="app-h">
+          <h2 id="app-h">The Carbon app</h2>
+          <p>The Carbon desktop app has no analytics, no tracking and no advertising identifiers. It keeps your sign-in tokens in your system’s credential store and your settings on your device, as <a href="/privacy#device">What stays on your device</a> describes. When you sign in to the app, it opens this website in your browser, where the cookies above apply.</p>
+        </section>
+
+        <section id="choices" aria-labelledby="choices-h">
+          <h2 id="choices-h">Changing your choice</h2>
+          <ul>
+            <li>Open <button class="text-btn" type="button" data-consent-open>Cookie settings</button> to change your answer to the visit prompt at any time. The same button is at the bottom of every page.</li>
+            <li>Clear this site’s data in your browser’s settings to remove every item above. You will be signed out.</li>
+            <li>Turn on Global Privacy Control in your browser to refuse optional storage on every visit.</li>
+            <li>You can block cookies in your browser, but then you will not be able to sign in.</li>
+          </ul>
+        </section>
+
+        <section id="changes" aria-labelledby="changes-h">
+          <h2 id="changes-h">Changes to this notice</h2>
+          <p>If we add, change or remove a cookie or storage item, we will update this notice and the date at the top. We will ask for your consent again before using anything optional that is new.</p>
+        </section>
+
+        <section id="contact" aria-labelledby="contact-h">
+          <h2 id="contact-h">Contact</h2>
+          <p>Questions about cookies or storage? Email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</p>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="foot">
+        <div class="foot__brand">
+          <a class="brand" href="/" aria-label="Carbon home"><img src="/assets/carbon-mark.svg?v=3" width="28" height="28" alt="" loading="lazy"><img class="brand__word" src="/assets/carbon-wordmark.svg?v=3" width="104" height="24" alt="" loading="lazy"></a>
+          <p>A free, open-source music app for Windows, macOS and Linux. Spotify, YouTube Music, your own server and your files in one window.</p>
+          <a class="chip" href="https://github.com/pealz1/carbon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg>MIT licensed</a>
+        </div>
+        <nav aria-labelledby="f-0">
+          <h2 id="f-0">Product</h2>
+          <ul>
+            <li><a href="/#download">Download</a></li>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/#lyrics">Lyrics</a></li>
+            <li><a href="/#compare">Compare</a></li>
+            <li><a href="/setup">Setup</a></li>
+            <li><a href="https://github.com/pealz1/carbon/releases">Releases</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-1">
+          <h2 id="f-1">Switch</h2>
+          <ul>
+            <li><a href="/switch#spotify">Spotify app</a></li>
+            <li><a href="/switch#spicetify">Spicetify</a></li>
+            <li><a href="/switch#cider">Cider</a></li>
+            <li><a href="/switch#youtube-music">YouTube Music desktop</a></li>
+            <li><a href="/switch#other">Other players</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-2">
+          <h2 id="f-2">Help</h2>
+          <ul>
+            <li><a href="/#faq">FAQ</a></li>
+            <li><a href="https://github.com/pealz1/carbon/issues/new/choose">Report a bug</a></li>
+            <li><a href="mailto:support@getcarbon.cc">Email</a></li>
+            <li><a href="/account">Account</a></li>
+            <li><a href="/#support">Donate</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-3">
+          <h2 id="f-3">Community</h2>
+          <ul>
+            <li><a href="https://github.com/pealz1/carbon/discussions">Discussions</a></li>
+            <li><a href="https://github.com/pealz1/carbon">Source</a></li>
+            <li><a href="https://github.com/pealz1/carbon/blob/main/CONTRIBUTING.md">Contribute</a></li>
+            <li><a href="/#supporters">Supporters</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="f-4">
+          <h2 id="f-4">Legal</h2>
+          <ul>
+            <li><a href="/legal">Legal center</a></li>
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/acceptable-use">Acceptable use</a></li>
+            <li><a href="/donation-terms">Donations</a></li>
+            <li><a href="/copyright">Copyright</a></li>
+            <li><a href="/cookies">Cookies</a></li>
+            <li><button class="text-btn" type="button" data-consent-open>Cookie settings</button></li>
+            <li><a href="/licenses">Licenses</a></li>
+            <li><a href="/security">Security</a></li>
+            <li><a href="/brand">Brand</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="foot__legal">
+        <p>Carbon is an independent project by pealz. It isn’t affiliated with, endorsed by or sponsored by Spotify, Google or any music service. Spotify is a trademark of Spotify AB; YouTube Music is a trademark of Google LLC. Other names and logos belong to their owners. By using getcarbon.cc or Carbon, you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+        <p>© 2026 Carbon</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

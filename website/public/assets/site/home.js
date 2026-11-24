@@ -126,17 +126,28 @@ function showDonations(data) {
   const link = box.querySelector("[data-give-link]");
   const big = box.querySelector("[data-give-big]");
   const seg = box.querySelector("[data-give-mode]");
-  const pick = (mode) => {
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pick = (mode, animate = false) => {
     link.href = hrefs[MODE[mode].key];
     link.textContent = MODE[mode].label;
     big.textContent = MODE[mode].big;
+    if (!animate || calm) return;
+    // The new headline and button rise in as the toggle's thumb slides over.
+    for (const [node, delay] of [[big, 0], [link, 60]]) {
+      node.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], {
+        duration: 420,
+        delay,
+        easing: "cubic-bezier(.16, 1, .3, 1)",
+        fill: "backwards",
+      });
+    }
   };
   link.rel = "noopener";
   link.hidden = false;
   box.querySelector("[data-give-soon]").hidden = true;
   seg.hidden = modes.length < 2;
   seg.querySelector(`input[value="${modes[0]}"]`).checked = true;
-  seg.addEventListener("change", (event) => pick(event.target.value));
+  seg.addEventListener("change", (event) => pick(event.target.value, true));
   pick(modes[0]);
   const more = [];
   if (hrefs.stripeManage) more.push(["Manage a monthly donation", hrefs.stripeManage]);
