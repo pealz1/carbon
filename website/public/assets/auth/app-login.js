@@ -5,7 +5,7 @@
   and send the browser to the loopback URL the API returns.
 */
 import { api, sessionHint, UNAVAILABLE } from "./api.js?v=4";
-import { signInFlow, signUpFlow, verifyFlow } from "./flows.js?v=4";
+import { signInFlow, signUpFlow, verifyFlow } from "./flows.js?v=5";
 import { formAlert, onSubmit, showStep, wireReveal } from "./ui.js?v=4";
 
 const RESEND_SECONDS = 60;

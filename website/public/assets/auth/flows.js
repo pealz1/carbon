@@ -220,7 +220,7 @@ export function signUpFlow(form, { onCreated }) {
       if (!requireEmail(email)) firstBad ??= email;
       if (!pw.valid()) { fieldError(password, pw.message()); firstBad ??= password; }
       if (!confirm.value || confirm.value !== password.value) { fieldError(confirm, "Passwords don’t match."); firstBad ??= confirm; }
-      if (!terms.checked) { fieldError(terms, "Please accept the Terms of Use and Privacy Policy."); firstBad ??= terms; }
+      if (!terms.checked) { fieldError(terms, "Please accept the Terms of Service, Acceptable Use Policy and Privacy Policy."); firstBad ??= terms; }
       firstBad?.focus();
       return !firstBad;
     },

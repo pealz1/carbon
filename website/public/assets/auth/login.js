@@ -1,6 +1,6 @@
 /* /login: password, then the emailed code or a backup code. */
 import { redirectIfSignedIn } from "./api.js?v=4";
-import { signInFlow } from "./flows.js?v=4";
+import { signInFlow } from "./flows.js?v=5";
 import { formAlert, safeNext, setFlash, takeFlash, wireReveal } from "./ui.js?v=4";
 
 const root = document.querySelector("[data-auth]");

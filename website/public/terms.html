@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Terms of use · Carbon</title>
-  <meta name="description" content="The terms for using Carbon, Carbon accounts and getcarbon.cc.">
+  <title>Terms of Service · Carbon</title>
+  <meta name="description" content="The terms for using Carbon, Carbon accounts, shared playlists, listen-together rooms and getcarbon.cc, including disclaimers, limits of liability and how disputes are resolved.">
   <link rel="canonical" href="https://getcarbon.cc/terms">
   <meta name="theme-color" content="#090907">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
   <link rel="stylesheet" href="/assets/base.css?v=6">
-  <link rel="stylesheet" href="/assets/doc.css?v=6">
+  <link rel="stylesheet" href="/assets/doc.css?v=7">
   <script src="/assets/site/boot.js?v=1"></script>
   <script type="module" src="/assets/site/main.js?v=2"></script>
   <script src="/assets/toc.js?v=2" defer></script>
@@ -54,9 +54,9 @@
 
   <main id="main" class="wrap doc-main">
     <header class="doc-hero">
-      <h1>Terms of Use</h1>
-      <p class="doc-meta">Last updated: November 11, 2026</p>
-      <p class="doc-note">These terms are written in plain language, but they are still a binding agreement between you and Carbon. Please read them in full, especially <a class="link" href="#disputes">Resolving disputes</a>: it requires individual arbitration, waives class actions and explains how to opt out within 30 days.</p>
+      <h1>Terms of Service</h1>
+      <p class="doc-meta">Last updated November 24, 2026</p>
+      <p class="doc-note"><strong>The short version:</strong> Carbon is free and open source. These terms cover your Carbon account, this website and the online services we run. Keep your account safe, follow the rules of Spotify and the other services you connect, don’t abuse the service or other people, and respect copyright. Carbon comes as is, without warranties, and our liability is limited. Donations are voluntary gifts that unlock nothing. These terms are a binding agreement, so please read them in full, especially <a class="link" href="#disputes">Resolving disputes</a>: it requires individual arbitration, waives class actions and jury trials, and explains how to opt out within 30 days.</p>
     </header>
 
     <div class="doc">
@@ -65,22 +65,28 @@
         <nav aria-label="Terms sections">
           <ol>
             <li><a href="#about">About these terms</a></li>
-            <li><a href="#spotify">Carbon and Spotify</a></li>
+            <li><a href="#acceptance">How you agree to them</a></li>
+            <li><a href="#spotify">Carbon and music services</a></li>
             <li><a href="#eligibility">Who can use Carbon</a></li>
             <li><a href="#accounts">Your Carbon account</a></li>
-            <li><a href="#donations">Donations</a></li>
+            <li><a href="#open-source">The app and its license</a></li>
+            <li><a href="#content">Content you share</a></li>
             <li><a href="#use">Acceptable use</a></li>
-            <li><a href="#open-source">Open-source code</a></li>
-            <li><a href="#ours">Our name, logo and content</a></li>
+            <li><a href="#circumvention">No circumvention</a></li>
             <li><a href="#third-party">Third-party services</a></li>
+            <li><a href="#donations">Donations</a></li>
+            <li><a href="#ours">Our name, logo and content</a></li>
+            <li><a href="#feedback">Feedback</a></li>
             <li><a href="#copyright">Copyright and DMCA notices</a></li>
-            <li><a href="#changes-service">Updates and changes to Carbon</a></li>
+            <li><a href="#changes-service">Updates, betas and availability</a></li>
             <li><a href="#termination">Suspension and termination</a></li>
             <li><a href="#disclaimers">Disclaimers</a></li>
             <li><a href="#liability">Limitation of liability</a></li>
             <li><a href="#indemnity">Indemnity</a></li>
+            <li><a href="#time-limit">Time limit for claims</a></li>
             <li><a href="#disputes">Resolving disputes</a></li>
             <li><a href="#law">Governing law</a></li>
+            <li><a href="#notices">Electronic notices</a></li>
             <li><a href="#changes">Changes to these terms</a></li>
             <li><a href="#general">General terms</a></li>
             <li><a href="#contact">Contact</a></li>
@@ -92,154 +98,255 @@
         <section id="about" aria-labelledby="about-h">
           <h2 id="about-h">About these terms</h2>
           <p>Carbon is an independent project by pealz. In these terms, “Carbon”, “we” and “us” mean that project and the person who runs it, and “you” means the person using it. You can reach us at <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</p>
-          <p>These terms cover everything we operate, which we call the “Services”:</p>
+          <p>These Terms of Service (“terms”) cover everything we operate, which we call the “Services”:</p>
           <ul>
-            <li>the official Carbon desktop app for Windows, including the builds and updates we publish;</li>
+            <li>the official Carbon desktop app for Windows, macOS and Linux, including the builds and updates we publish;</li>
             <li>the website at getcarbon.cc;</li>
-            <li>Carbon accounts and the account service at api.getcarbon.cc.</li>
+            <li>Carbon accounts and the account service at api.getcarbon.cc, including online playlists, shared playlists and profiles, follows, listening history sync, Last.fm scrobbling through our service, and listen-together rooms;</li>
+            <li>the emails we send and the support we give.</li>
           </ul>
-          <p>By creating an account or using the Services, you agree to these terms and to our <a href="/privacy">Privacy Policy</a>. If you do not agree, please do not use the Services.</p>
+          <p>These documents are part of these terms: the <a href="/privacy">Privacy Policy</a>, the <a href="/acceptable-use">Acceptable Use Policy</a>, the <a href="/donation-terms">Donation Terms</a> and the <a href="/copyright">Copyright and IP Policy</a>. The <a href="/cookies">Cookies notice</a> explains what the website stores in your browser. The <a href="/legal">Legal center</a> lists them all.</p>
+          <p>If one of those documents and these terms disagree on a topic, the more specific document controls for that topic. <a href="#disputes">Resolving disputes</a> always controls how disagreements between us are settled.</p>
+        </section>
+
+        <section id="acceptance" aria-labelledby="acceptance-h">
+          <h2 id="acceptance-h">How you agree to these terms</h2>
+          <p>You agree to these terms, and confirm that you have read the Privacy Policy, when you do any of these:</p>
+          <ul>
+            <li>create a Carbon account, by ticking the box on the sign-up form;</li>
+            <li>sign in to a Carbon account, on the website or in the app;</li>
+            <li>download, install or use an official Carbon build;</li>
+            <li>make a donation;</li>
+            <li>use getcarbon.cc or any other part of the Services.</li>
+          </ul>
+          <p>If you do not agree, do not use the Services. If you accept these terms for someone else, such as a child in your care, you confirm that you are allowed to do so and that you accept them for that person too.</p>
         </section>
 
         <section id="spotify" aria-labelledby="spotify-h">
-          <h2 id="spotify-h">Carbon and Spotify</h2>
-          <p>Carbon is a third-party client for Spotify. <strong>It is not made, endorsed, sponsored or supported by Spotify</strong>, and Spotify is a trademark of Spotify AB.</p>
+          <h2 id="spotify-h">Carbon, Spotify and other music services</h2>
+          <p>Carbon is an independent app that works with music services run by other companies. <strong>It is not made, endorsed, sponsored or supported by Spotify, Google, YouTube or any other music service.</strong> Spotify is a trademark of Spotify AB, and YouTube Music is a trademark of Google LLC.</p>
           <ul>
-            <li>Playing music in Carbon requires a Spotify Premium account. Your Spotify account, subscription and content are governed by Spotify’s own terms and privacy policy, not by ours.</li>
+            <li>Playing Spotify music in Carbon requires a Spotify Premium account. Your Spotify account, subscription and content are governed by Spotify’s own terms and privacy policy, not by ours.</li>
             <li>Carbon connects to Spotify through a developer app that you create and own, using your own Client ID. You are responsible for following Spotify’s developer terms for that app.</li>
-            <li>Spotify decides what its platform allows. If Spotify changes, limits or withdraws the features Carbon relies on, parts of Carbon may stop working, and we cannot promise a fix.</li>
+            <li>YouTube Music, SoundCloud, Bandcamp and the other sources you use in Carbon have their own terms, account rules and regional limits. Those apply when you use them through Carbon.</li>
+            <li>Each service decides what its platform allows. If a service changes, limits or withdraws the features Carbon relies on, parts of Carbon may stop working, and we cannot promise a fix.</li>
+            <li>Your libraries, playlists and subscriptions on those services belong to your accounts there. Carbon does not sell, license or host their music.</li>
           </ul>
         </section>
 
         <section id="eligibility" aria-labelledby="eligibility-h">
           <h2 id="eligibility-h">Who can use Carbon</h2>
-          <p>You must be at least 13 years old to use the Services. If the law where you live sets a higher minimum age for agreeing to online services on your own, you must meet that age.</p>
+          <p>You must be at least 13 years old to use the Services. If the law where you live sets a higher minimum age for agreeing to online services on your own (in parts of Europe it is up to 16), you must meet that age, or have a parent or guardian’s consent where the law allows it.</p>
           <p>If you are under 18, or under the age of majority where you live, you may use the Services only with the consent of a parent or legal guardian, who agrees to these terms on your behalf and is responsible for your use, including any donations.</p>
-          <p>You may not use the Services if the law prohibits you from doing so, or if we have previously closed your account for breaking these terms.</p>
+          <p>You may not use the Services if:</p>
+          <ul>
+            <li>the law prohibits you from doing so;</li>
+            <li>you are in, or ordinarily live in, a country or region under comprehensive US sanctions, or you are named on a US or other applicable list of sanctioned or restricted parties;</li>
+            <li>we have previously closed your account for breaking these terms, unless we agree otherwise.</li>
+          </ul>
+          <p>You must follow the export control and sanctions laws that apply to your use of the Services.</p>
         </section>
 
         <section id="accounts" aria-labelledby="accounts-h">
           <h2 id="accounts-h">Your Carbon account</h2>
-          <p>A Carbon account uses your email address and a password. Once accounts launch, you will need a free account to use the Carbon app.</p>
+          <p>A Carbon account uses your email address and a password. It is free, and you need one to use the Carbon app. It is separate from your Spotify account and any other account you connect.</p>
           <h3>How sign-in works</h3>
           <ul>
             <li>We confirm your email address with a one-time code when you sign up.</li>
-            <li>Each time you sign in, we email you a second one-time code. This two-step check is always on.</li>
+            <li>The first time you sign in on a browser, we email you a one-time code. That browser is then remembered for 90 days, so it can skip the code.</li>
             <li>You can generate backup codes to use if you cannot reach your email. Each backup code works once. Store them somewhere safe; we show them only once.</li>
+            <li>Your browser turns your password into a key before anything is sent, so we never see your password. The <a href="/security">Security</a> page explains how.</li>
           </ul>
           <h3>Your responsibilities</h3>
           <ul>
-            <li>Give a real email address that you control, and keep it up to date.</li>
-            <li>Keep your password, sign-in codes and backup codes confidential. Do not share your account or let anyone else use it.</li>
+            <li>Give accurate information, including a real email address that you control, and keep it up to date.</li>
+            <li>Use a strong password that you don’t use anywhere else. Keep your password, sign-in codes and backup codes confidential. Do not share your account or let anyone else use it.</li>
             <li>You are responsible for activity on your account unless it happened because of our own failure to protect it.</li>
-            <li>If you think someone else has access to your account, change your password, sign out your other sessions from your account page, and tell us at <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</li>
+            <li>If you think someone else has access to your account, change your password, sign out your other sessions from your <a href="/account">account page</a>, and tell us at <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</li>
           </ul>
-          <p>Accounts are personal. You may not sell, transfer or rent an account, or create accounts by automated means.</p>
+          <p>Accounts are personal. You may not sell, transfer, rent or share an account, create accounts by automated means, or create a new account to get around a suspension or a limit. We may refuse or close an account created with false information.</p>
         </section>
 
-        <section id="donations" aria-labelledby="donations-h">
-          <h2 id="donations-h">Donations</h2>
-          <p>Carbon is free, and every feature in it is free for everyone. You can choose to support the project with a donation, once or monthly. A donation is a voluntary gift: no goods, services or in-app benefits are provided in exchange, and donating does not change how the Services work for you. If you opt in, we may thank you by name on the Supporters wall at getcarbon.cc.</p>
+        <section id="open-source" aria-labelledby="open-source-h">
+          <h2 id="open-source-h">The app and its open-source license</h2>
+          <p>The source code of the Carbon desktop app is published on <a href="https://github.com/pealz1/carbon">GitHub</a> under the MIT license. Your rights to use, copy, modify and distribute that code come from the MIT license, and nothing in these terms limits them. The <a href="/licenses">Licenses</a> page shows the license and the third-party components Carbon includes, which come with their own licenses.</p>
+          <p>These terms cover what the MIT license does not: the online Services we run (accounts, the account service and its interfaces, online playlists and profiles, rooms and the website), the official builds and updates we publish, and our name and logo.</p>
+          <p>If you build, change or share your own version of Carbon:</p>
           <ul>
-            <li><strong>Payment.</strong> Donations are processed by Stripe or GitHub Sponsors under their own terms. We never receive or store your card details.</li>
-            <li><strong>Monthly donations.</strong> You can cancel at any time, using the link in your Stripe receipt email or the Stripe customer portal, or from your sponsorships on GitHub. Cancelling stops future payments; it does not refund past ones.</li>
-            <li><strong>Refunds.</strong> Donations are generally non-refundable. If you donated by mistake, for example the wrong amount or a duplicate payment, email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> within 14 days and we will refund it. We also refund wherever the law requires it.</li>
-            <li><strong>Taxes.</strong> Carbon is not a charity, so donations are not tax-deductible.</li>
+            <li>it is not an official build, and we are not responsible for it;</li>
+            <li>connecting it to Carbon accounts or the account service is still subject to these terms, the Acceptable Use Policy and our rate limits, and we may block a build that harms the Services or their users;</li>
+            <li>it must not use the Carbon name or logo in a way that suggests it is official (see <a href="#ours">Our name, logo and content</a>);</li>
+            <li>you are responsible for following the terms of the music services it connects to.</li>
           </ul>
-          <p>Please contact us before filing a chargeback so we can sort it out directly.</p>
+        </section>
+
+        <section id="content" aria-labelledby="content-h">
+          <h2 id="content-h">Content you share</h2>
+          <p>Some features put your content on the Services: playlists you save online or publish (their names, songs and details), your public profile’s name and bio, and the optional name you show in a listen-together room. We call this “your content”.</p>
+          <ul>
+            <li><strong>You own your content.</strong> We do not claim ownership of it. Songs, artwork and other material from music services belong to their owners, and saving or sharing a playlist gives no one any rights in the music.</li>
+            <li><strong>The license you give us.</strong> So we can run the Services, you give Carbon a worldwide, non-exclusive, royalty-free license to store, copy, process, display and transmit your content, only to operate, secure and improve the Services and as you direct. For example, when you publish a playlist, we show it to anyone with its link. The license ends when you delete the content or your account, apart from backup copies kept for a limited time, as the <a href="/privacy#retention">Privacy Policy</a> describes.</li>
+            <li><strong>Public links.</strong> Online copies are private until you publish them. Anyone with the link to a published playlist or profile can open it and pass the link on. Only publish what you are happy to make public. You can make it private again at any time.</li>
+            <li><strong>Your responsibility.</strong> You are responsible for your content and must have the right to share it. It must follow the <a href="/acceptable-use">Acceptable Use Policy</a>: for example, no hate, harassment, sexual content involving minors, impersonation or other people’s private information.</li>
+            <li><strong>Removal.</strong> We do not review content before it appears, and we are not responsible for content other users post. We may review, hide, make private or remove content, and act on the account that posted it, if we believe it breaks these terms or the law, or if we receive a valid legal notice. Where it is safe and lawful, we will tell you and explain how to ask us to reconsider.</li>
+          </ul>
         </section>
 
         <section id="use" aria-labelledby="use-h">
           <h2 id="use-h">Acceptable use</h2>
-          <p>Use Carbon to listen to music you are entitled to listen to. When using the Services, you agree not to:</p>
+          <p>Use Carbon to listen to music you are entitled to listen to. The full rules are in the <a href="/acceptable-use">Acceptable Use Policy</a>. In short, when using the Services you agree not to:</p>
           <ul>
             <li>break any law, or help anyone else do so;</li>
-            <li>download, record, rip or redistribute music or other content from Spotify, or get around any protection that Spotify or rights holders use;</li>
-            <li>use Carbon in a way that breaks Spotify’s terms or developer policies;</li>
+            <li>download, record, rip or redistribute music or other content from Spotify, YouTube or any other service, except where that service allows it;</li>
+            <li>use Carbon in a way that breaks Spotify’s terms or developer policies, or the terms of any other service you connect;</li>
+            <li>post content that is illegal, hateful, harassing or sexually exploits minors, or that infringes someone else’s rights;</li>
             <li>probe, scan, overload or attack the Services, or bypass rate limits, verification or other security measures;</li>
             <li>access accounts or data that are not yours, or try to guess passwords or codes;</li>
+            <li>upload or spread malware, or use the Services to attack anyone else;</li>
             <li>impersonate anyone, or misrepresent your connection to Carbon;</li>
             <li>send spam or abusive messages through any feature of the Services, including our emails;</li>
             <li>resell access to the Services or use them to build a competing hosted service without our permission.</li>
           </ul>
-          <p>Reading, building and modifying the open-source app code is welcome and is not a breach of these terms; see the next section.</p>
+          <p>Reading, building and modifying the open-source app code is welcome and is not a breach of these terms; see <a href="#open-source">The app and its open-source license</a>.</p>
         </section>
 
-        <section id="open-source" aria-labelledby="open-source-h">
-          <h2 id="open-source-h">Open-source code</h2>
-          <p>The source code of the Carbon desktop app is published on <a href="https://github.com/pealz1/carbon">GitHub</a> under the MIT license. Your rights to use, copy, modify and distribute that code come from the MIT license, and nothing in these terms limits them.</p>
-          <p>These terms cover the Services we run: accounts, the account service, the website and the official builds and updates we publish. If you run a modified or third-party build of Carbon, we are not responsible for it, and connecting it to Carbon accounts is still subject to these terms.</p>
-          <p>The MIT license covers code, not our name or logo. See the next section.</p>
-        </section>
-
-        <section id="ours" aria-labelledby="ours-h">
-          <h2 id="ours-h">Our name, logo and content</h2>
-          <p>The Carbon name, the Carbon logo and the design and text of this website belong to us. You may refer to Carbon by name to describe it accurately, but you may not use the name or logo in a way that suggests a modified build, another product or a service is official or endorsed by us.</p>
-          <p>Subject to these terms, we give you a personal, revocable, non-exclusive license to use the Services for your own, non-commercial listening.</p>
-          <p>If you send us ideas or feedback, we may use them without owing you anything. We are grateful for them all the same.</p>
+        <section id="circumvention" aria-labelledby="circumvention-h">
+          <h2 id="circumvention-h">No circumvention</h2>
+          <p>Carbon is built to work within the rules of the services it connects to. You agree not to use the Services, or any version of Carbon, to:</p>
+          <ul>
+            <li>get around digital rights management, copy protection or any other technical measure that a music service, rights holder or anyone else uses to protect content;</li>
+            <li>get Spotify Premium, YouTube Music or other paid features without paying for them;</li>
+            <li>download, save or record content from a music service, other than recordings you are allowed to download, such as public-domain or Creative Commons recordings, or your own files;</li>
+            <li>get around, overload or test rate limits, quotas, sign-in checks, verification codes, account locks, suspensions or other limits of the Services;</li>
+            <li>scrape, crawl or harvest data from the Services, including shared playlists and profiles, or access the account service by automated means other than the Carbon app used as intended;</li>
+            <li>reverse engineer, decompile or probe the private, server-side parts of the Services, except where the law allows it despite this restriction. This does not apply to the open-source app, which you may study and change under the MIT license.</li>
+          </ul>
+          <p>If a music service tells us, or we reasonably believe, that a use of Carbon breaks its rules, we may limit or block that use.</p>
         </section>
 
         <section id="third-party" aria-labelledby="third-party-h">
           <h2 id="third-party-h">Third-party services</h2>
-          <p>Carbon works with services run by other companies. Each has its own terms, and we are not responsible for their availability, content or practices.</p>
-          <dl>
-            <div><dt>Spotify</dt><dd>Music, your library and playback. Requires Premium.</dd></div>
-            <div><dt>Discord</dt><dd>Shows what you are playing on your profile while the Discord desktop app is running.</dd></div>
-            <div><dt>Last.fm</dt><dd>Records what you play, only if you connect your Last.fm account.</dd></div>
-            <div><dt>LRCLIB</dt><dd>Supplies time-synced lyrics, which are provided by its community and may contain mistakes.</dd></div>
-            <div><dt>GitHub</dt><dd>Hosts our source code, releases and update files, and processes donations made through GitHub Sponsors.</dd></div>
-            <div><dt>Stripe</dt><dd>Processes donations made through Stripe’s checkout.</dd></div>
-            <div><dt>Cloudflare</dt><dd>Hosts the website and the account service.</dd></div>
-            <div><dt>Resend</dt><dd>Delivers our account emails, such as sign-in codes.</dd></div>
-          </dl>
-          <p>The <a href="/privacy">Privacy Policy</a> explains what information each of them receives.</p>
+          <p>Carbon works with services run by other companies and communities:</p>
+          <div class="table-wrap table-wrap--fit">
+            <table>
+              <thead><tr><th scope="col">Service</th><th scope="col">What it does in Carbon</th></tr></thead>
+              <tbody>
+                <tr><td>Spotify</td><td>Your library and playback, through Spotify’s official Web Playback SDK. Playback requires Premium.</td></tr>
+                <tr><td>YouTube Music (Google)</td><td>Search, browsing and playback in Carbon’s YouTube player, and song matching for playlists.</td></tr>
+                <tr><td>Your own server</td><td>Your library on a Navidrome or other Subsonic-compatible, Jellyfin or Plex server.</td></tr>
+                <tr><td>SoundCloud, Bandcamp, Deezer, Mixcloud, Apple’s iTunes catalog, Internet Archive</td><td>Search, their official players and playlist imports.</td></tr>
+                <tr><td>Radio Browser</td><td>The open directory of internet radio stations. Each station streams its own audio.</td></tr>
+                <tr><td>LRCLIB and other lyrics sources</td><td>Time-synced lyrics, provided by their communities, which may contain mistakes.</td></tr>
+                <tr><td>Discord</td><td>Shows what you are playing as your status, while the Discord desktop app is running.</td></tr>
+                <tr><td>Last.fm</td><td>Records what you play, only if you connect it. Plays are forwarded by our account service.</td></tr>
+                <tr><td>ListenBrainz</td><td>Records what you play, only if you add your ListenBrainz token. Plays go straight from your device.</td></tr>
+                <tr><td>GitHub</td><td>Hosts our source code, releases and update files, and processes donations through GitHub Sponsors when offered.</td></tr>
+                <tr><td>Stripe</td><td>Processes donations made through Stripe’s checkout.</td></tr>
+                <tr><td>Cloudflare</td><td>Hosts the website and the account service.</td></tr>
+                <tr><td>Resend</td><td>Delivers our account emails, such as sign-in codes.</td></tr>
+                <tr><td>Google Fonts</td><td>Serves the website’s fonts.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>When you use a third-party service through Carbon:</p>
+          <ul>
+            <li>its own terms and privacy policy apply, and you must follow them;</li>
+            <li>Carbon is not affiliated with it, and it does not endorse Carbon;</li>
+            <li>we are not responsible for its content, availability, accuracy, security, charges or practices, or for changes it makes, including changes that stop a Carbon feature from working;</li>
+            <li>any dispute about it is between you and that service.</li>
+          </ul>
+          <p>If you connect Carbon to a Navidrome, Jellyfin or Plex server, you are responsible for having permission to use that server and the music on it. Carbon only connects to it for you.</p>
+          <p>The <a href="/privacy#services">Privacy Policy</a> explains what information each of them receives.</p>
+        </section>
+
+        <section id="donations" aria-labelledby="donations-h">
+          <h2 id="donations-h">Donations</h2>
+          <p>Carbon is free, and every feature in it is free for everyone. You can choose to support the project with a donation, once or monthly. Donations are covered by the <a href="/donation-terms">Donation Terms</a>. In short:</p>
+          <ul>
+            <li><strong>A gift, not a purchase.</strong> No goods, services or in-app benefits are provided in exchange, and donating does not change how the Services work for you.</li>
+            <li><strong>Payment.</strong> Donations are processed by Stripe, or by GitHub Sponsors when offered, under their own terms. We never receive or store your card details.</li>
+            <li><strong>Monthly donations.</strong> You can cancel at any time, using the link in your Stripe receipt email or “Manage a monthly donation” on the home page, which opens Stripe’s customer portal, or from your sponsorships on GitHub. Cancelling stops future payments; it does not refund past ones.</li>
+            <li><strong>Refunds.</strong> Donations are generally non-refundable. If you donated by mistake, for example the wrong amount or a duplicate payment, email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> within 14 days and we will refund it. We also refund charges you did not authorize, and wherever the law requires it.</li>
+            <li><strong>Taxes.</strong> Carbon is not a registered charity, so donations are not tax-deductible.</li>
+            <li><strong>Supporters wall.</strong> If you opt in, we may thank you by name on the Supporters wall at getcarbon.cc. Ask us at any time and we will remove you.</li>
+          </ul>
+          <p>Please contact us before filing a chargeback so we can sort it out directly.</p>
+        </section>
+
+        <section id="ours" aria-labelledby="ours-h">
+          <h2 id="ours-h">Our name, logo and content</h2>
+          <p>The Carbon name, the Carbon logo and the design and text of this website belong to us. The MIT license does not cover them. You may refer to Carbon by name to describe it accurately, and you may use the logo as the <a href="/brand">Brand and press</a> page allows, for example in articles and videos about Carbon. You may not use the name or logo in a way that suggests a modified build, another product or a service is official or endorsed by us, or in a name, domain or account that could be confused with ours.</p>
+          <p>Subject to these terms, we give you a personal, revocable, non-exclusive, non-transferable license to use the online Services for your own, non-commercial listening. This license does not limit your rights to the app’s source code under the MIT license.</p>
+          <p>Other names and logos on the Services belong to their owners. We reserve all rights that these terms do not expressly give you.</p>
+        </section>
+
+        <section id="feedback" aria-labelledby="feedback-h">
+          <h2 id="feedback-h">Feedback</h2>
+          <p>If you send us ideas, suggestions or feedback, including in GitHub issues and discussions, we may use them for any purpose without paying or crediting you, and you give us a perpetual, worldwide, royalty-free license to do so. We are grateful for them all the same. Code you contribute to the repository is covered by the repository’s license, not by this section.</p>
         </section>
 
         <section id="copyright" aria-labelledby="copyright-h">
           <h2 id="copyright-h">Copyright and DMCA notices</h2>
-          <p>We respect intellectual property and expect our users to do the same. Carbon does not host music; it plays content from Spotify, and lyrics come from LRCLIB.</p>
-          <p>If you believe something on the Services infringes your copyright, send a notice to <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> with the subject “DMCA notice”, including:</p>
-          <ol>
-            <li>your physical or electronic signature;</li>
-            <li>a description of the copyrighted work you believe is infringed;</li>
-            <li>where the material is on the Services, specific enough for us to find it;</li>
-            <li>your name, address, telephone number and email address;</li>
-            <li>a statement that you believe in good faith that the use is not authorized by the copyright owner, its agent or the law;</li>
-            <li>a statement, under penalty of perjury, that the information in your notice is accurate and that you are the owner or authorized to act for the owner.</li>
-          </ol>
-          <p>If material you provided was removed and you believe that was a mistake, you may send a counter-notice to the same address with your signature, the material and where it was, a statement under penalty of perjury that you believe it was removed by mistake or misidentification, your contact details, and your consent to the jurisdiction of the federal courts for your address (or, if you are outside the United States, any judicial district in which we may be found). We close the accounts of repeat infringers where appropriate.</p>
-          <p>Lyrics shown in Carbon are fetched from LRCLIB. You can also raise lyrics concerns with LRCLIB directly.</p>
+          <p>We respect intellectual property and expect our users to do the same. Carbon does not host music on its servers: it plays music from the services you connect and from your own server and files, and lyrics come from third-party providers such as LRCLIB.</p>
+          <p>If you believe content on the Services, such as a shared playlist or profile, infringes your copyright, send us a notice as the <a href="/copyright">Copyright and IP Policy</a> explains. That page also explains counter-notices and trademark complaints. Sending a notice that you know is false can make you liable for damages.</p>
+          <p>In appropriate circumstances, we close the accounts of users who repeatedly infringe other people’s copyrights.</p>
         </section>
 
         <section id="changes-service" aria-labelledby="changes-service-h">
-          <h2 id="changes-service-h">Updates and changes to Carbon</h2>
-          <p>The Carbon app checks for updates and installs them after verifying their signature, so you stay on a supported version. Some fixes, including security fixes, may require you to update before you can keep using an account.</p>
-          <p>Carbon is actively developed. We may add, change or remove features, and we may offer early or experimental features that are less reliable than the rest of the app. We may also suspend or end any part of the Services; where reasonable, we will give notice first.</p>
+          <h2 id="changes-service-h">Updates, betas and availability</h2>
+          <p>The Carbon app checks for updates and installs them after verifying their signature, so you stay on a supported version. Only the latest release gets security fixes. Some fixes, including security fixes, may require you to update before you can keep using an account.</p>
+          <h3>Beta and experimental features</h3>
+          <p>We may offer early, preview or experimental features. They may be unfinished, change without notice, lose data or stop working, and we may remove them at any time. Use them at your own risk; the <a href="#disclaimers">disclaimers</a> apply to them most of all.</p>
+          <h3>Availability</h3>
+          <p>The Services are free and run by an independent developer. We aim to keep them working, but we do not promise any level of availability, uptime, support or data backup, and there is no service-level agreement. Maintenance, outages at our providers or the music services, and events outside our control can interrupt them. Keep your own copies of anything important; the app can back up your library to a file.</p>
+          <h3>Changes and discontinuation</h3>
+          <p>Carbon is actively developed. We may add, change or remove features, set or change usage limits, and suspend or end any part of the Services, including Carbon accounts, temporarily or permanently. Where reasonable, we will give notice first. Before we close Carbon accounts for good, we will try to give at least 30 days’ notice so you can save your data.</p>
         </section>
 
         <section id="termination" aria-labelledby="termination-h">
           <h2 id="termination-h">Suspension and termination</h2>
           <p>You can stop using Carbon at any time and delete your account from your <a href="/account">account page</a>. Deleting your account removes your account data as described in the Privacy Policy.</p>
-          <p>We may suspend or close your account, or limit access to the Services, if you seriously or repeatedly break these terms, if we must do so by law, or if your use creates a risk to other users, to us or to the Services. Where it is safe and lawful, we will tell you why and give you a chance to respond.</p>
-          <p>When your account ends, your license to use the account-based Services ends too. The sections on open-source code, our content, disclaimers, limitation of liability, indemnity, resolving disputes, governing law and general terms continue to apply.</p>
+          <p>We may suspend or close your account, remove your content, or limit your access to the Services if:</p>
+          <ul>
+            <li>you seriously or repeatedly break these terms or the Acceptable Use Policy;</li>
+            <li>you repeatedly infringe other people’s copyrights;</li>
+            <li>we must do so by law, or a court or authority requires it;</li>
+            <li>your use creates a risk or legal exposure for other users, for us, for the music services or for the Services.</li>
+          </ul>
+          <p>Carbon’s admins can suspend an account. A suspension signs the account out everywhere and blocks sign-in until it is lifted. We keep a record of each suspension for 2 years, even if the account is deleted, as the <a href="/privacy#retention">Privacy Policy</a> explains. Where it is safe and lawful, we will tell you why and give you a chance to respond. If you think we made a mistake, reply to our message or email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</p>
+          <p>When your account ends, your license to use the account-based Services ends too, and your online content may be deleted. We keep some information afterwards only as the Privacy Policy describes. The parts of these terms that by their nature should continue, including the license you gave us for backups, our name and content, feedback, disclaimers, limitation of liability, indemnity, the time limit for claims, resolving disputes, governing law and general terms, continue to apply.</p>
         </section>
 
         <section id="disclaimers" aria-labelledby="disclaimers-h">
           <h2 id="disclaimers-h">Disclaimers</h2>
-          <p class="caps">To the fullest extent the law allows, the Services are provided “as is” and “as available”, without warranties of any kind, whether express or implied, including warranties of merchantability, fitness for a particular purpose, title and non-infringement.</p>
-          <p>We work hard to keep Carbon reliable and secure, but we do not promise that the Services will be uninterrupted, error-free or always compatible with Spotify, Windows or the third-party services listed above, or that lyrics and other third-party content will be accurate. Some places do not allow these exclusions, so parts of this section may not apply to you.</p>
+          <p class="caps">To the fullest extent the law allows, the Services are provided “as is” and “as available”, without warranties of any kind, whether express, implied or statutory, including warranties of merchantability, fitness for a particular purpose, title, quiet enjoyment, accuracy and non-infringement.</p>
+          <p>In particular, and to the same extent, we do not promise that:</p>
+          <ul>
+            <li>the Services will be uninterrupted, timely, secure or error-free, or that defects will be fixed;</li>
+            <li>any song, album, playlist, station or feature will be available, in your region or at all. Music availability is decided by the music services and rights holders, not by us;</li>
+            <li>lyrics, translations, romanisations, artwork, song matches, metadata, listening statistics or other information will be accurate or complete;</li>
+            <li>Carbon will stay compatible with Spotify, YouTube Music, your own server, other third-party services, or any operating system or device;</li>
+            <li>data you keep with the Services, such as online playlists or synced history, will never be lost. Keep your own backup.</li>
+          </ul>
+          <p>No advice or information from us creates a warranty that these terms do not state. Some places do not allow these exclusions, so parts of this section may not apply to you. Nothing here limits rights the law gives you that cannot be waived.</p>
         </section>
 
         <section id="liability" aria-labelledby="liability-h">
           <h2 id="liability-h">Limitation of liability</h2>
-          <p class="caps">To the fullest extent the law allows, Carbon will not be liable for any indirect, incidental, special, consequential or punitive damages, or for any loss of profits, data, goodwill or use, arising from or related to the Services, even if we were told such damages were possible.</p>
+          <p class="caps">To the fullest extent the law allows, Carbon, and the people who build and run it, will not be liable for any indirect, incidental, special, consequential, exemplary or punitive damages, or for any loss of profits, revenue, data, goodwill or use, arising from or related to these terms or the Services, whatever the legal theory, even if we were told such damages were possible.</p>
           <p class="caps">Our total liability for all claims relating to the Services is limited to the greater of the amount you paid us in the 12 months before the claim arose and US$50.</p>
-          <p>These limits do not apply to liability that cannot be limited by law, such as liability for fraud, or for death or personal injury caused by negligence where that rule applies.</p>
+          <p>To the same extent, we are not liable for the acts, content or failures of third-party services, including music services, your own server and payment processors; for content other users post; for access to your account that results from you not keeping your password or codes safe; or for anything a modified or third-party build of Carbon does.</p>
+          <p>These limits do not apply to liability that cannot be limited by law, such as liability for fraud or wilful misconduct, or for death or personal injury caused by negligence where that rule applies. If you are a consumer in the EEA or UK, we are responsible for loss you suffer that is a foreseeable result of our breaking these terms or failing to use reasonable care, and these limits apply only as far as your local law allows.</p>
         </section>
 
         <section id="indemnity" aria-labelledby="indemnity-h">
           <h2 id="indemnity-h">Indemnity</h2>
-          <p>If you break these terms or the law while using the Services, and someone brings a claim against us as a result, you agree to cover the reasonable costs, losses and legal fees we incur in responding to it. We will tell you about the claim promptly and let you take part in the response. This does not apply where the law does not allow it, or where the claim was caused by our own conduct.</p>
+          <p>If you break these terms or the law, infringe someone else’s rights, or misuse the Services, and someone brings a claim against Carbon or the people who run it as a result, you agree to cover the reasonable costs, losses, damages and legal fees we incur in responding to it. We will tell you about the claim promptly and let you take part in the response, and we will not settle it in a way that admits fault on your behalf without your consent. This does not apply where the claim was caused by our own conduct, or where the law where you live does not allow it.</p>
+        </section>
+
+        <section id="time-limit" aria-labelledby="time-limit-h">
+          <h2 id="time-limit-h">Time limit for claims</h2>
+          <p>To the extent the law allows, any claim relating to these terms or the Services must be started within one year after it arose, or, if later, within one year after you could reasonably have known about it. After that, the claim is permanently barred. This does not apply where the law sets a longer period that cannot be shortened by agreement. The time limit is paused while we try to resolve a dispute informally, as described below.</p>
         </section>
 
         <section id="disputes" aria-labelledby="disputes-h">
@@ -253,23 +360,35 @@
             <li>The arbitrator may award the same individual relief a court could, but only for the individual claimant.</li>
             <li>Hearings may take place by video or phone, or in the county where you live.</li>
             <li>Filing and arbitrator fees are paid as the AAA Consumer Rules provide. If those rules would make you pay more than a court filing fee, we will pay the difference.</li>
+            <li>The arbitrator decides questions about whether a claim must be arbitrated, except that a court decides questions about the class action waiver and the mass arbitration rules below.</li>
           </ul>
           <h3>Exceptions</h3>
           <ul>
             <li>Either of us may bring an individual claim in small claims court if it qualifies there and stays there.</li>
-            <li>Either of us may go to court to stop infringement or misuse of intellectual property.</li>
+            <li>Either of us may ask a court for an injunction or other equitable relief to stop infringement or other misuse of intellectual property, or unauthorized access to the Services.</li>
           </ul>
+          <h3>Mass arbitration</h3>
+          <p>If 25 or more demands for arbitration that raise similar claims are filed against Carbon, or by Carbon, by the same or coordinated lawyers or organizations within 90 days, they will be handled in batches of up to 100 demands each (the last batch may be smaller). Each batch has one arbitrator and is decided in a single proceeding, with one set of fees per batch. The AAA’s rules for mass arbitrations apply where they are consistent with this paragraph. The time limit for any claim waiting in a batch is paused until that batch begins. A court may enforce this paragraph.</p>
           <h3>Class action and jury trial waiver</h3>
           <p class="caps">You and Carbon may bring claims against each other only in an individual capacity, and not as a plaintiff or class member in any class, collective, consolidated or representative proceeding. You and Carbon each waive the right to a trial by jury.</p>
-          <p>If this class action waiver is found unenforceable for a particular claim, that claim must be decided by a court, not in arbitration, and the rest of this section still applies to other claims.</p>
+          <p>If this class action waiver is found unenforceable for a particular claim, that claim must be decided by a court, not in arbitration, and the rest of this section still applies to other claims. If a claim seeks public injunctive relief and a court rules that this relief cannot be waived, that request is decided by a court after any individual claims are arbitrated.</p>
           <h3>Your right to opt out</h3>
           <p>You can opt out of this agreement to arbitrate within 30 days of first accepting these terms. Email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> with the subject “Arbitration opt-out”, your name and the email address of your Carbon account, and a clear statement that you opt out of arbitration. Opting out does not affect any other part of these terms.</p>
+          <h3>If part of this section fails</h3>
+          <p>If any part of this section, other than the class action waiver, is found unenforceable, the rest of it still applies. This section continues to apply after your account ends.</p>
         </section>
 
         <section id="law" aria-labelledby="law-h">
           <h2 id="law-h">Governing law</h2>
-          <p>These terms and any dispute relating to them are governed by the laws of the State of California, USA, without regard to its conflict-of-laws rules, and by the Federal Arbitration Act for the arbitration agreement above. For any claim that is not arbitrated, you and Carbon agree to the exclusive jurisdiction of the state and federal courts located in California.</p>
+          <p>These terms and any dispute relating to them are governed by the laws of the State of California, USA, without regard to its conflict-of-laws rules, and by the Federal Arbitration Act for the arbitration agreement above. For any claim that is not arbitrated, you and Carbon agree to the exclusive jurisdiction of the state and federal courts located in California. The United Nations Convention on Contracts for the International Sale of Goods does not apply.</p>
           <p>If you live outside the United States, you may also have the benefit of mandatory consumer protection laws where you live, which these terms do not override.</p>
+        </section>
+
+        <section id="notices" aria-labelledby="notices-h">
+          <h2 id="notices-h">Electronic communications and notices</h2>
+          <p>By using the Services, you agree that we may communicate with you electronically: by email to your account’s address, in the app, or on this website. Agreements, notices and other messages we provide electronically satisfy any legal requirement that they be in writing.</p>
+          <p>While you have an account, we send emails you cannot turn off, such as sign-in codes and important notices about your account, its security or these terms. We do not send marketing email without your consent.</p>
+          <p>A notice to you is given when we send it to your account’s email address or show it in the app, so keep your address up to date. Send notices to us at <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>; they are given when we receive them.</p>
         </section>
 
         <section id="changes" aria-labelledby="changes-h">
@@ -281,19 +400,22 @@
         <section id="general" aria-labelledby="general-h">
           <h2 id="general-h">General terms</h2>
           <ul>
-            <li><strong>Entire agreement.</strong> These terms and the Privacy Policy are the whole agreement between you and Carbon about the Services. The MIT license separately governs the app’s source code.</li>
+            <li><strong>Entire agreement.</strong> These terms, with the Privacy Policy, the Acceptable Use Policy, the Donation Terms and the Copyright and IP Policy, are the whole agreement between you and Carbon about the Services, and replace any earlier agreement about them. The MIT license separately governs the app’s source code.</li>
             <li><strong>Severability.</strong> If any part of these terms is found unenforceable, the rest stays in effect, and the unenforceable part is applied as fully as the law allows.</li>
             <li><strong>No waiver.</strong> If we do not enforce a right right away, we have not given it up.</li>
             <li><strong>Assignment.</strong> You may not transfer these terms or your account. We may transfer them as part of a reorganization or a transfer of the project, as long as your rights under them are not reduced.</li>
-            <li><strong>Events outside our control.</strong> We are not responsible for delays or failures caused by events we cannot reasonably control, including outages at Spotify or our providers.</li>
-            <li><strong>Notices.</strong> We send notices to your account email address. You can send notices to <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</li>
-            <li><strong>Headings.</strong> Headings are for convenience and do not change the meaning of these terms.</li>
+            <li><strong>No third-party beneficiaries.</strong> No one other than you and Carbon has rights under these terms, except that the people who build and run Carbon may rely on the disclaimers and limits of liability.</li>
+            <li><strong>Our relationship.</strong> These terms do not create a partnership, employment, agency or joint venture between you and Carbon.</li>
+            <li><strong>Events outside our control.</strong> We are not responsible for delays or failures caused by events we cannot reasonably control, including natural disasters, war, unrest, epidemics, government action, internet or power failures, attacks, and outages or changes at Spotify, other music services or our providers.</li>
+            <li><strong>Survival.</strong> Any part of these terms that by its nature should continue after your account ends will continue, as listed in <a href="#termination">Suspension and termination</a>.</li>
+            <li><strong>Translations.</strong> These terms are written in English. If we provide a translation, the English version controls where they differ, unless the law where you live requires otherwise.</li>
+            <li><strong>Headings and wording.</strong> Headings are for convenience and do not change the meaning of these terms. “Including” means “including without limitation”.</li>
           </ul>
         </section>
 
         <section id="contact" aria-labelledby="contact-h">
           <h2 id="contact-h">Contact</h2>
-          <p>Questions about these terms? Email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>. For bugs and feature ideas, <a href="https://github.com/pealz1/carbon/issues">open an issue on GitHub</a>.</p>
+          <p>Questions about these terms? Email <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>. For bugs and feature ideas, <a href="https://github.com/pealz1/carbon/issues">open an issue on GitHub</a>. To report a security problem, see <a href="/security">Security</a>.</p>
         </section>
       </article>
     </div>
@@ -350,9 +472,14 @@
         <nav aria-labelledby="f-4">
           <h2 id="f-4">Legal</h2>
           <ul>
-            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/legal">Legal center</a></li>
             <li><a href="/terms">Terms</a></li>
-            <li><button class="text-btn" type="button" data-consent-open>Cookies</button></li>
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/acceptable-use">Acceptable use</a></li>
+            <li><a href="/donation-terms">Donations</a></li>
+            <li><a href="/copyright">Copyright</a></li>
+            <li><a href="/cookies">Cookies</a></li>
+            <li><button class="text-btn" type="button" data-consent-open>Cookie settings</button></li>
             <li><a href="/licenses">Licenses</a></li>
             <li><a href="/security">Security</a></li>
             <li><a href="/brand">Brand</a></li>
@@ -360,7 +487,7 @@
         </nav>
       </div>
       <div class="foot__legal">
-        <p>Carbon is an independent project by pealz. It isn’t affiliated with, endorsed by or sponsored by Spotify, Google or any music service. Spotify is a trademark of Spotify AB; YouTube Music is a trademark of Google LLC. Other names and logos belong to their owners.</p>
+        <p>Carbon is an independent project by pealz. It isn’t affiliated with, endorsed by or sponsored by Spotify, Google or any music service. Spotify is a trademark of Spotify AB; YouTube Music is a trademark of Google LLC. Other names and logos belong to their owners. By using getcarbon.cc or Carbon, you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
         <p>© 2026 Carbon</p>
       </div>
     </div>

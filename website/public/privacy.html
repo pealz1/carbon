@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
   <link rel="stylesheet" href="/assets/base.css?v=6">
-  <link rel="stylesheet" href="/assets/doc.css?v=6">
+  <link rel="stylesheet" href="/assets/doc.css?v=7">
   <script src="/assets/site/boot.js?v=1"></script>
   <script type="module" src="/assets/site/main.js?v=2"></script>
   <script src="/assets/toc.js?v=2" defer></script>
@@ -55,8 +55,8 @@
   <main id="main" class="wrap doc-main">
     <header class="doc-hero">
       <h1>Privacy Policy</h1>
-      <p class="doc-meta">Last updated November 23, 2026</p>
-      <p class="doc-note">This policy is written in plain language. <strong>The short version:</strong> the Carbon app has no ads, no analytics and no tracking. This website counts visits as daily totals, without cookies, and asks before it remembers how you found it. Your Spotify sign-in, settings and listening stay on your PC. For a Carbon account we keep your email, a hashed password and the security records needed to protect it, and we never sell your information.</p>
+      <p class="doc-meta">Last updated November 24, 2026</p>
+      <p class="doc-note">This policy is written in plain language. <strong>The short version:</strong> the Carbon app has no ads, no analytics and no tracking. This website counts visits as daily totals, without cookies, and asks before it remembers how you found it. Your Spotify sign-in, settings and listening stay on your device unless you choose to sync or share them. For a Carbon account we keep your email, a hashed password and the security records needed to protect it. We never sell your information, share it for advertising or use it to profile you, and you can see, export or delete it.</p>
     </header>
 
     <div class="doc">
@@ -66,17 +66,21 @@
           <ol>
             <li><a href="#scope">Who we are</a></li>
             <li><a href="#collect">What we collect</a></li>
-            <li><a href="#device">What stays on your PC</a></li>
+            <li><a href="#device">What stays on your device</a></li>
             <li><a href="#services">Services Carbon talks to</a></li>
             <li><a href="#use">How we use information</a></li>
             <li><a href="#share">Who we share it with</a></li>
+            <li><a href="#requests">Requests from authorities</a></li>
             <li><a href="#cookies">Cookies and browser storage</a></li>
             <li><a href="#analytics">Website visits</a></li>
             <li><a href="#retention">How long we keep it</a></li>
             <li><a href="#security">How we protect it</a></li>
+            <li><a href="#incidents">Security incidents</a></li>
             <li><a href="#rights">Your rights and choices</a></li>
-            <li><a href="#california">California residents</a></li>
+            <li><a href="#exercise">Making a request</a></li>
+            <li><a href="#us-states">US state privacy rights</a></li>
             <li><a href="#gdpr">EEA, UK and Swiss residents</a></li>
+            <li><a href="#automated">Automated decisions</a></li>
             <li><a href="#children">Children</a></li>
             <li><a href="#transfers">International transfers</a></li>
             <li><a href="#changes">Changes to this policy</a></li>
@@ -88,14 +92,29 @@
       <article class="prose">
         <section id="scope" aria-labelledby="scope-h">
           <h2 id="scope-h">Who we are</h2>
-          <p>Carbon is an independent project by pealz, and is responsible for the information described here (the “controller”, in GDPR terms). This policy covers the Carbon desktop app, Carbon accounts and the account service at api.getcarbon.cc, donations, and the website at getcarbon.cc. Contact us at <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</p>
-          <p>Public provider searches and playback contact the selected music service. Playlist matching sends the song and artist names you choose to YouTube Music. Downloaded audio and local file paths are stored on your device.</p>
-          <p>If you choose Save online, Carbon stores that playlist’s name, song identifiers and track metadata under your account. Online copies are private by default. Publishing a playlist or profile creates a link anyone with the link can open. You can make it private again, remove an online playlist, or delete your account to remove this data. Following a listener is saved under your account. If you turn on listening history sync, Carbon stores up to 5,000 Spotify or YouTube play timestamps and song metadata under your account. You can turn it off or delete your online history in Profile and sync.</p>
-          <p>Carbon is not affiliated with Spotify. What Spotify collects when you use its service is covered by <a href="https://www.spotify.com/legal/privacy-policy/">Spotify’s privacy policy</a>.</p>
+          <p>Carbon is an independent project by pealz. Carbon decides how and why the information described here is used, so it is responsible for it (the “controller”, in GDPR terms). In this policy, “Carbon”, “we” and “us” mean that project and the person who runs it. Contact us about anything in this policy at <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>.</p>
+          <p>This policy covers the Carbon desktop app for Windows, macOS and Linux, Carbon accounts and the account service at api.getcarbon.cc (including online playlists, shared playlists and profiles, listening history sync, Last.fm scrobbling and listen-together rooms), donations, and the website at getcarbon.cc. It sits alongside our <a href="/terms">Terms of Service</a>.</p>
+          <p>Carbon is not affiliated with Spotify, Google or any other music service. What those services collect when you use them, including through Carbon, is covered by their own policies, such as <a href="https://www.spotify.com/legal/privacy-policy/">Spotify’s privacy policy</a>.</p>
         </section>
 
         <section id="collect" aria-labelledby="collect-h">
           <h2 id="collect-h">What we collect</h2>
+          <p>This table sums up what reaches Carbon and where it comes from. The details follow.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Category</th><th scope="col">What it includes</th><th scope="col">Where it comes from</th></tr></thead>
+              <tbody>
+                <tr><td>Account details</td><td>Email address, whether it is verified, when the account was created, your plan, and a hash of your password</td><td>You, when you sign up</td></tr>
+                <tr><td>Security and session records</td><td>IP addresses, browser or app identifiers, sign-in events, rate-limit counters, hashed codes</td><td>Your browser and the app, automatically</td></tr>
+                <tr><td>Content you sync or share</td><td>Online playlists, your public profile’s name and bio, who you follow, and listening history if you turn on sync</td><td>You, through the app</td></tr>
+                <tr><td>Listen-together rooms</td><td>The optional name you show, and what the host is playing</td><td>You, through the app, while a room is open</td></tr>
+                <tr><td>Scrobbles</td><td>Artist, track, album, duration and play time, forwarded to Last.fm and not saved</td><td>The app, only if you connect Last.fm</td></tr>
+                <tr><td>Donation records</td><td>Name, email address, amount, date and any refund</td><td>Stripe or GitHub, when you donate</td></tr>
+                <tr><td>Website visit counts</td><td>Page, linking site, campaign tags, device type and country, as daily totals that identify nobody</td><td>Your browser, automatically, unless it sends Global Privacy Control or Do Not Track</td></tr>
+                <tr><td>Messages</td><td>Emails you send us and our replies</td><td>You</td></tr>
+              </tbody>
+            </table>
+          </div>
           <h3>Account information</h3>
           <ul>
             <li>Your email address, whether you have verified it, and when you created your account.</li>
@@ -110,6 +129,12 @@
           </ul>
           <h3>Sessions and devices</h3>
           <p>For each browser or Carbon app signed in to your account, we keep a session record: whether it is a web or app session, when it was created and last used, and the IP address and browser or app identifier (user agent) it signed in from. You can see and end these sessions on your <a href="/account">account page</a>.</p>
+          <h3>Playlists, profiles and history you sync</h3>
+          <p>Public provider searches and playback contact the selected music service. Playlist matching sends the song and artist names you choose to YouTube Music. Downloaded audio and local file paths are stored on your device.</p>
+          <p>If you choose Save online, Carbon stores that playlist’s name, song identifiers and track metadata under your account. Online copies are private by default. Publishing a playlist or profile creates a link anyone with the link can open. You can make it private again, remove an online playlist, or delete your account to remove this data. Following a listener is saved under your account. If you turn on listening history sync, Carbon stores up to 5,000 Spotify or YouTube play timestamps and song metadata under your account. You can turn it off or delete your online history in Profile and sync.</p>
+          <p>Local file paths, audio files and the sign-in details of the services you connect are never included when you share.</p>
+          <h3>Listen-together rooms</h3>
+          <p>If you start or join a listen-together room, Carbon’s room service at api.getcarbon.cc passes the optional name the host enters, and what the host is playing (the song’s identifier, title, artists and length, the playback position and whether it is paused), to everyone in the room, so their apps can play along. People join with the room’s code.</p>
           <h3>Donations</h3>
           <p>If you donate, Stripe or GitHub processes your payment, and Carbon never sees your card number. From them we receive your name, your email address (GitHub shares it only if you allow it), the amount and the date of each donation, and we keep a record of any refund.</p>
           <p>The Supporters wall on getcarbon.cc lists only people who opt in, with the name and optional link they choose. Ask us at any time and we will remove you.</p>
@@ -122,12 +147,14 @@
         </section>
 
         <section id="device" aria-labelledby="device-h">
-          <h2 id="device-h">What stays on your PC</h2>
-          <p>The Carbon app stores the following on your computer:</p>
+          <h2 id="device-h">What stays on your device</h2>
+          <p>The Carbon app stores the following on your computer. It does not reach Carbon’s servers unless a feature described above sends it:</p>
           <ul>
-            <li>your Spotify sign-in tokens and your Carbon app sign-in token, stored in Windows Credential Manager or macOS Keychain;</li>
+            <li>your Spotify sign-in tokens and your Carbon app sign-in token, stored in your system’s credential store, such as Windows Credential Manager or macOS Keychain;</li>
             <li>your Spotify Client ID and app settings;</li>
-            <li>an encrypted Last.fm connection, if you set one up. The app presents it with your Carbon app session when submitting plays.</li>
+            <li>an encrypted Last.fm connection, if you set one up. The app presents it with your Carbon app session when submitting plays;</li>
+            <li>your ListenBrainz token, if you add one, in the system’s credential store;</li>
+            <li>the listening history and recap Carbon keeps for you, recordings you download and the paths of your local files.</li>
           </ul>
           <p>You sign in to Spotify on Spotify’s own page, so Carbon never sees your Spotify password.</p>
         </section>
@@ -139,12 +166,15 @@
             <table>
               <thead><tr><th scope="col">Service</th><th scope="col">What it receives</th><th scope="col">When</th></tr></thead>
               <tbody>
-                <tr><td>Spotify</td><td>Your sign-in and playback requests</td><td>Whenever you use the app</td></tr>
+                <tr><td>Spotify</td><td>Your sign-in and playback requests</td><td>Whenever you use Spotify in the app</td></tr>
+                <tr><td>YouTube Music</td><td>Your searches and playback requests, and the song and artist names you choose to match</td><td>When you use YouTube Music or playlist matching</td></tr>
+                <tr><td>Other music sources</td><td>Your searches and playback requests, sent from your device</td><td>When you use SoundCloud, Bandcamp, Deezer, Mixcloud, the iTunes catalog, Internet Archive, Radio Browser or your own server</td></tr>
                 <tr><td>LRCLIB</td><td>The current track’s title, artist, album and duration</td><td>When Carbon looks up lyrics</td></tr>
                 <tr><td>Discord</td><td>What you are playing, passed to the Discord app on your PC, which shares it as your status</td><td>Only while the Discord desktop app is running</td></tr>
                 <tr><td>Last.fm</td><td>Now-playing updates and completed plays, forwarded by Carbon’s account service</td><td>When you connect Last.fm and enable scrobbling</td></tr>
+                <tr><td>ListenBrainz</td><td>Now-playing updates and completed plays, with your token, sent straight from your device</td><td>When you add a ListenBrainz token</td></tr>
                 <tr><td>GitHub</td><td>A standard request for update information</td><td>When Carbon checks for and downloads updates</td></tr>
-                <tr><td>Carbon accounts</td><td>Your account requests, as described above</td><td>When you sign in or manage your account</td></tr>
+                <tr><td>Carbon accounts</td><td>Your account requests, synced content and room traffic, as described above</td><td>When you sign in, sync, share, use a room or manage your account</td></tr>
               </tbody>
             </table>
           </div>
@@ -155,6 +185,7 @@
           <h2 id="use-h">How we use information</h2>
           <ul>
             <li><strong>To run your account:</strong> creating it, verifying your email, signing you in with two-step codes, keeping you signed in, and showing your sessions.</li>
+            <li><strong>To provide the features you choose:</strong> syncing and sharing playlists, profiles and history, running listen-together rooms, and forwarding scrobbles.</li>
             <li><strong>To keep accounts secure:</strong> rate limiting, lockouts, detecting suspicious sign-ins and preventing abuse.</li>
             <li><strong>To enforce our terms:</strong> suspending accounts that seriously or repeatedly break the <a href="/terms">terms</a>. A suspension signs the account out everywhere and blocks sign-in until it is lifted.</li>
             <li><strong>To improve the website:</strong> counting visits as daily totals, as described in <a href="#analytics">Website visits</a>.</li>
@@ -164,19 +195,49 @@
             <li><strong>To meet legal obligations:</strong> such as accounting records for donations, or responding to valid legal requests.</li>
           </ul>
           <p>We do not use your information for advertising, and we do not build profiles of your listening.</p>
+          <h3>Legal bases in the EEA, UK and Switzerland</h3>
+          <div class="table-wrap table-wrap--fit">
+            <table>
+              <thead><tr><th scope="col">Purpose</th><th scope="col">Legal basis</th></tr></thead>
+              <tbody>
+                <tr><td>Running your account and the features you choose</td><td>Contract: we need it to provide what you asked for.</td></tr>
+                <tr><td>Security, rate limits, lockouts and abuse prevention</td><td>Legitimate interests: keeping accounts and the Services safe.</td></tr>
+                <tr><td>Enforcing our terms, including suspension records</td><td>Legitimate interests: protecting users and the Services.</td></tr>
+                <tr><td>Daily website visit counts</td><td>Legitimate interests: running the website.</td></tr>
+                <tr><td>Remembering where you first came from</td><td>Consent, which you can withdraw at any time.</td></tr>
+                <tr><td>Account and policy emails</td><td>Contract, and legitimate interests for policy notices.</td></tr>
+                <tr><td>Donation records, refunds and cancellations</td><td>Legal obligation for accounting records, and legitimate interests for handling your requests.</td></tr>
+                <tr><td>Listing you on the Supporters wall</td><td>Consent, which you can withdraw at any time.</td></tr>
+                <tr><td>Answering your messages</td><td>Legitimate interests, or contract when it is about your account.</td></tr>
+                <tr><td>Responding to lawful requests</td><td>Legal obligation.</td></tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section id="share" aria-labelledby="share-h">
           <h2 id="share-h">Who we share it with</h2>
-          <p>We do not sell your personal information or share it for cross-context behavioral advertising. We share it only with:</p>
+          <p>We do not sell your personal information or share it for cross-context behavioral advertising, and we do not show targeted ads. We share it only with:</p>
           <ul>
             <li><strong>Cloudflare</strong>, which hosts the website, the account service and its database (including the website’s visit counts), and protects them from attacks.</li>
             <li><strong>Resend</strong>, which delivers our account emails and so receives your email address and the content of those emails.</li>
             <li><strong>Stripe and GitHub</strong>, which process donations. You give your payment details to them directly, under their own privacy policies.</li>
-            <li><strong>Authorities</strong>, when the law requires it, or when needed to protect the safety, rights or property of our users, the public or Carbon.</li>
+            <li><strong>Authorities</strong>, when the law requires it, or when needed to protect the safety, rights or property of our users, the public or Carbon. See <a href="#requests">Requests from authorities</a>.</li>
             <li><strong>A successor</strong>, if the project is transferred, in which case this policy continues to apply to your information unless you agree otherwise.</li>
           </ul>
           <p>Our providers may use your information only to provide their services to us.</p>
+          <p>Some things are shared because you choose to share them. A playlist or profile you publish can be seen by anyone with its link. People in a listen-together room see the host’s name, if one was entered, and what the host is playing. The music services and scrobbling services you connect receive what the table in <a href="#services">Services Carbon talks to</a> shows; they are not our providers, and their own policies apply.</p>
+          <p>If your browser sends a Global Privacy Control signal, we treat it as a request to opt out of the sale or sharing of your information. We already do neither, and the website then sends no visit information at all.</p>
+        </section>
+
+        <section id="requests" aria-labelledby="requests-h">
+          <h2 id="requests-h">Requests from authorities</h2>
+          <p>We give information to governments, courts or law enforcement only when we must: in response to a valid, legally binding request such as a subpoena, court order or warrant, or when we believe in good faith that it is needed to prevent death or serious harm.</p>
+          <ul>
+            <li>We check every request and push back on ones that are unclear, too broad or not legally valid.</li>
+            <li>We disclose only what the request requires. We hold little to begin with: no card numbers, no readable passwords and no listening history unless you sync it.</li>
+            <li>Unless the law or a court order forbids it, or it would put someone at risk, we tell the affected user before we disclose anything.</li>
+          </ul>
         </section>
 
         <section id="cookies" aria-labelledby="cookies-h">
@@ -192,7 +253,8 @@
             <li>in local storage, <strong>only if you choose Allow</strong>: where you first came from, as described in <a href="#analytics">Website visits</a>;</li>
             <li>in session storage, deleted when you close the tab: your email address and sign-in step while you move between sign-up or sign-in pages, whether you have already seen the loading screen, and a ten-minute copy of Carbon’s public release information from GitHub.</li>
           </ul>
-          <p>The website is served by Cloudflare and loads its fonts from Google Fonts. The download menu asks GitHub’s public API for the latest release. Each of them receives standard request information such as your IP address and browser type.</p>
+          <p>The website is served by Cloudflare and loads its fonts from Google Fonts. The download menu asks GitHub’s public API for the latest release, and shared playlist pages load cover images from Spotify’s and YouTube’s image servers. Each of them receives standard request information such as your IP address and browser type.</p>
+          <p>The <a href="/cookies">Cookies notice</a> lists each item and how to change your choice.</p>
         </section>
 
         <section id="analytics" aria-labelledby="analytics-h">
@@ -208,16 +270,20 @@
 
         <section id="retention" aria-labelledby="retention-h">
           <h2 id="retention-h">How long we keep it</h2>
-          <div class="table-wrap">
+          <div class="table-wrap table-wrap--fit">
             <table>
               <thead><tr><th scope="col">Information</th><th scope="col">Kept for</th></tr></thead>
               <tbody>
                 <tr><td>Account information</td><td>As long as your account exists. Deleting your account removes it, with your sessions, codes and security log, straight away. Our hosting provider’s database recovery history may hold a copy for up to 30 days.</td></tr>
+                <tr><td>Online playlists, published links and follows</td><td>Until you remove them or delete your account.</td></tr>
+                <tr><td>Synced listening history</td><td>At most 5,000 plays, until you delete your online history or your account.</td></tr>
+                <tr><td>Scrobbles forwarded to Last.fm</td><td>Not saved. Each one is passed to Last.fm and not kept in our database or logs.</td></tr>
                 <tr><td>One-time codes</td><td>Until used or expired after 10 minutes, then purged daily.</td></tr>
                 <tr><td>Backup codes</td><td>Until used, replaced or your account is deleted.</td></tr>
                 <tr><td>Sessions, with their IP address and user agent</td><td>Until you sign out, end the session or reset your password, or after 30 days without use; then purged daily.</td></tr>
                 <tr><td>Rate-limit counters</td><td>About an hour.</td></tr>
                 <tr><td>Website visit counts</td><td>400 days, as daily totals that identify nobody.</td></tr>
+                <tr><td>Your visit-prompt answer and first-visit record</td><td>In your browser only, until you change your answer or clear the site’s data.</td></tr>
                 <tr><td>Suspension records</td><td>A suspension stays on the account while it exists. Our record of each suspension or reinstatement (the account’s email, when, why and which admin) is kept for 2 years, even if the account is deleted, so a suspension can’t be erased by deleting and re-creating an account.</td></tr>
                 <tr><td>Security log</td><td>As long as your account exists.</td></tr>
                 <tr><td>Donation records</td><td>As long as accounting law requires, typically up to 7 years.</td></tr>
@@ -226,7 +292,7 @@
               </tbody>
             </table>
           </div>
-          <p>Email delivery logs held by Resend are kept for a limited period under Resend’s own policies.</p>
+          <p>Email delivery logs held by Resend are kept for a limited period under Resend’s own policies. If the law requires us to keep something longer, or we need it to deal with a legal claim, we keep only what is needed, only for that purpose and only for as long as it lasts.</p>
         </section>
 
         <section id="security" aria-labelledby="security-h">
@@ -238,7 +304,18 @@
             <li>All traffic uses HTTPS with HSTS. Session cookies are HttpOnly, Secure and scoped to the account service, and state-changing requests are protected against cross-site request forgery.</li>
             <li>Resetting or changing your password signs out your other sessions and app tokens.</li>
           </ul>
-          <p>No system is perfectly secure. If we learn of a breach that affects your information, we will notify you and any authority as the law requires.</p>
+          <p>The <a href="/security">Security</a> page has more detail and explains how to report a problem.</p>
+        </section>
+
+        <section id="incidents" aria-labelledby="incidents-h">
+          <h2 id="incidents-h">Security incidents</h2>
+          <p>No system is perfectly secure. If we learn of a breach that affects your information, we will:</p>
+          <ul>
+            <li>act quickly to contain it and find out what happened;</li>
+            <li>notify you without undue delay, by email or in the app, saying what happened, what information was involved, what we have done and what you can do;</li>
+            <li>notify any authority as the law requires, including a data protection authority within 72 hours where the GDPR or UK GDPR requires it;</li>
+            <li>keep a record of the incident and what we learned from it.</li>
+          </ul>
         </section>
 
         <section id="rights" aria-labelledby="rights-h">
@@ -247,56 +324,88 @@
           <ul>
             <li><strong>Access</strong> your information: your account page shows your email, plan and sessions. Email us for a full copy.</li>
             <li><strong>Correct</strong> it: email us to change your email address.</li>
-            <li><strong>Delete</strong> it: delete your account from your <a href="/account">account page</a>, or email us.</li>
+            <li><strong>Delete</strong> it: delete your account from your <a href="/account">account page</a>, or email us. You can also remove online playlists and your online history in the app.</li>
             <li><strong>Export</strong> it: email us and we will send your account data in a machine-readable format.</li>
             <li><strong>Object or restrict</strong> certain uses, where the law gives you that right.</li>
+            <li><strong>Withdraw consent</strong> you gave, such as for the first-visit record or the Supporters wall, at any time. This does not affect what happened before.</li>
+            <li><strong>Make shared content private</strong> again, or stop syncing history, in the app.</li>
           </ul>
-          <p>Send requests to <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> from your account’s email address. We may need to confirm it is you before acting, and we will respond within 30 days, or sooner if the law requires. We will never treat you differently for exercising these rights.</p>
+          <p>We will never treat you differently for exercising these rights.</p>
         </section>
 
-        <section id="california" aria-labelledby="california-h">
-          <h2 id="california-h">California residents</h2>
-          <p>Under the California Consumer Privacy Act, as amended by the CPRA, here is how this policy maps to California’s categories over the past 12 months:</p>
+        <section id="exercise" aria-labelledby="exercise-h">
+          <h2 id="exercise-h">Making a request</h2>
+          <p>Send requests to <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a> from your account’s email address. We will respond within 30 days, or sooner if the law requires.</p>
+          <ul>
+            <li><strong>Checking it’s you.</strong> We may need to confirm it is you before acting, usually by confirming you control the account’s email address. We ask only for what we need to verify you, and use it only for that.</li>
+            <li><strong>Agents.</strong> Someone you authorize may make a request for you. We may ask the agent for proof of authorization and ask you to confirm your identity.</li>
+            <li><strong>Cost.</strong> Requests are free. If a request is clearly unfounded or excessive, we may refuse it or, where the law allows, charge a reasonable fee, and we will explain why.</li>
+            <li><strong>Appeals.</strong> If we decline a request, in whole or in part, we will explain why. You can appeal by replying to our answer with the subject “Privacy appeal”. We will review the decision and tell you the result, with our reasons, within 45 days. If you are not satisfied, you can contact your state attorney general or your data protection authority.</li>
+          </ul>
+        </section>
+
+        <section id="us-states" aria-labelledby="us-states-h">
+          <h2 id="us-states-h">US state privacy rights</h2>
+          <p>California, Virginia, Colorado, Connecticut, Utah, Texas, Oregon and other US states with similar laws give residents rights over their personal information. Some of these laws may not apply to a small, free project like Carbon, but we offer these rights to every US resident:</p>
+          <ul>
+            <li>to know what personal information we collect, use and disclose, and to get a copy of it in a portable format;</li>
+            <li>to correct it and to delete it;</li>
+            <li>to opt out of the sale of personal information, targeted advertising and profiling that has legal or similarly significant effects. We do none of these;</li>
+            <li>to limit the use of sensitive personal information. We use it only to sign you in and protect your account;</li>
+            <li>not to be discriminated against for using these rights;</li>
+            <li>to appeal if we decline a request, as described in <a href="#exercise">Making a request</a>.</li>
+          </ul>
+          <h3 id="california">California</h3>
+          <p>This section, with <a href="#collect">What we collect</a> and <a href="#retention">How long we keep it</a>, is our notice at collection under the California Consumer Privacy Act, as amended by the CPRA. Here is how this policy maps to California’s categories over the past 12 months:</p>
           <ul>
             <li><strong>Identifiers:</strong> name (if you donate), email address, IP address, user agent, account and session identifiers.</li>
             <li><strong>Commercial information:</strong> donation records (the amount and date), if you donate.</li>
-            <li><strong>Internet activity:</strong> security records of account requests.</li>
+            <li><strong>Internet activity:</strong> security records of account requests and, if you turn on sync, listening history.</li>
+            <li><strong>Content you provide:</strong> online playlists, your profile’s name and bio, who you follow, and the name you show in a room.</li>
             <li><strong>Sensitive personal information:</strong> account login credentials (email and password), used only to sign you in and protect your account.</li>
           </ul>
-          <p>We collect these from you and your devices, use them for the purposes in <a href="#use">How we use information</a>, and disclose them only to the service providers in <a href="#share">Who we share it with</a>. We do not sell or share personal information, and we do not use sensitive personal information to infer characteristics about you.</p>
+          <p>We collect these from you and your devices, use them for the purposes in <a href="#use">How we use information</a>, keep them for the periods in <a href="#retention">How long we keep it</a>, and disclose them only to the service providers in <a href="#share">Who we share it with</a>. We do not sell or share personal information, we have not done so in the past 12 months, and we do not use sensitive personal information to infer characteristics about you. We offer no financial incentives: donations unlock nothing.</p>
           <p>You have the right to know, access, correct and delete your personal information, and not to be discriminated against for using these rights. You may use an authorized agent; we may ask the agent for proof of authorization and ask you to confirm your identity. We respond to verified requests within 45 days.</p>
+          <p>We do not share personal information with third parties for their own direct marketing, so California’s “Shine the Light” law gives us nothing to disclose.</p>
         </section>
 
         <section id="gdpr" aria-labelledby="gdpr-h">
           <h2 id="gdpr-h">EEA, UK and Swiss residents</h2>
-          <p>We rely on these legal bases:</p>
+          <p>The legal basis for each use is in <a href="#use">How we use information</a>. In short, we rely on these legal bases:</p>
           <ul>
-            <li><strong>Contract:</strong> to provide your account.</li>
-            <li><strong>Legitimate interests:</strong> to keep accounts and the Services secure and prevent abuse, balanced against your rights.</li>
+            <li><strong>Contract:</strong> to provide your account and the features you choose.</li>
+            <li><strong>Legitimate interests:</strong> to keep accounts and the Services secure, prevent abuse and count website visits, balanced against your rights.</li>
             <li><strong>Legal obligation:</strong> to keep donation records for accounting and respond to lawful requests.</li>
-            <li><strong>Consent:</strong> where we ask for it, such as listing you on the Supporters wall, which you can withdraw at any time.</li>
+            <li><strong>Consent:</strong> where we ask for it, such as listing you on the Supporters wall or remembering where you first came from, which you can withdraw at any time.</li>
           </ul>
-          <p>You have the right to access, rectify, erase, restrict and port your data, to object to processing based on legitimate interests, and to withdraw consent. You may also complain to your local data protection authority.</p>
+          <p>You have the right to access, rectify, erase, restrict and port your data, to object to processing based on legitimate interests, and to withdraw consent. Where we rely on legitimate interests, you can ask us how we balanced them against your rights.</p>
+          <p>You may also complain to a data protection authority: in the EEA, the authority where you live, work or think a breach happened; in the UK, the Information Commissioner’s Office; in Switzerland, the Federal Data Protection and Information Commissioner. We would appreciate the chance to sort it out with you first.</p>
+        </section>
+
+        <section id="automated" aria-labelledby="automated-h">
+          <h2 id="automated-h">Automated decisions</h2>
+          <p>We do not make decisions about you based solely on automated processing that have legal or similarly significant effects, and we do not profile you. Some security rules run automatically, such as rate limits, expiring codes and the 30-minute pause after ten failed sign-ins. They are temporary and exist only to protect accounts. If one blocks you by mistake, email us and we will look at it.</p>
         </section>
 
         <section id="children" aria-labelledby="children-h">
           <h2 id="children-h">Children</h2>
-          <p>Carbon is not intended for children under 13, and we do not knowingly collect personal information from them. Users under 18 need a parent or guardian’s consent. If you believe a child under 13 has created an account, contact us and we will delete it.</p>
+          <p>Carbon is not intended for children under 13, and we do not knowingly collect personal information from them, in line with the US Children’s Online Privacy Protection Act (COPPA). Where the law sets a higher age of digital consent, younger users need a parent or guardian’s consent, and users under 18 need a parent or guardian’s consent under our <a href="/terms#eligibility">terms</a>.</p>
+          <p>If we learn that we have collected personal information from a child under 13, we will delete it and close the account. If you believe a child under 13 has created an account, or you are a parent who wants to review or delete a child’s information, contact us and we will act promptly.</p>
         </section>
 
         <section id="transfers" aria-labelledby="transfers-h">
           <h2 id="transfers-h">International transfers</h2>
-          <p>Carbon is run from the United States, and our providers operate globally. Your information may be processed in the United States and other countries whose data protection laws differ from yours. Where required, we rely on safeguards such as the European Commission’s Standard Contractual Clauses offered by our providers.</p>
+          <p>Carbon is run from the United States, and our providers operate globally. Your information may be processed in the United States and other countries whose data protection laws differ from yours. Where required, we rely on safeguards such as the European Commission’s Standard Contractual Clauses offered by our providers, with the UK and Swiss additions where they apply.</p>
         </section>
 
         <section id="changes" aria-labelledby="changes-h">
           <h2 id="changes-h">Changes to this policy</h2>
-          <p>We will post any update here and change the date at the top. If a change materially affects how we handle your information, we will tell you by email or in the app before it takes effect.</p>
+          <p>We will post any update here and change the date at the top. If a change materially affects how we handle your information, we will tell you by email or in the app before it takes effect. Earlier versions of this page are in the website’s history on <a href="https://github.com/pealz1/carbon">GitHub</a>.</p>
         </section>
 
         <section id="contact" aria-labelledby="contact-h">
           <h2 id="contact-h">Contact</h2>
-          <p>Questions or requests about your privacy: <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>. Security problems: see <a href="/security">Security</a>.</p>
+          <p>Questions or requests about your privacy: <a href="mailto:support@getcarbon.cc">support@getcarbon.cc</a>. Security problems: see <a href="/security">Security</a>. Every legal document is listed in the <a href="/legal">Legal center</a>.</p>
         </section>
       </article>
     </div>
@@ -353,9 +462,14 @@
         <nav aria-labelledby="f-4">
           <h2 id="f-4">Legal</h2>
           <ul>
-            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/legal">Legal center</a></li>
             <li><a href="/terms">Terms</a></li>
-            <li><button class="text-btn" type="button" data-consent-open>Cookies</button></li>
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/acceptable-use">Acceptable use</a></li>
+            <li><a href="/donation-terms">Donations</a></li>
+            <li><a href="/copyright">Copyright</a></li>
+            <li><a href="/cookies">Cookies</a></li>
+            <li><button class="text-btn" type="button" data-consent-open>Cookie settings</button></li>
             <li><a href="/licenses">Licenses</a></li>
             <li><a href="/security">Security</a></li>
             <li><a href="/brand">Brand</a></li>
@@ -363,7 +477,7 @@
         </nav>
       </div>
       <div class="foot__legal">
-        <p>Carbon is an independent project by pealz. It isn’t affiliated with, endorsed by or sponsored by Spotify, Google or any music service. Spotify is a trademark of Spotify AB; YouTube Music is a trademark of Google LLC. Other names and logos belong to their owners.</p>
+        <p>Carbon is an independent project by pealz. It isn’t affiliated with, endorsed by or sponsored by Spotify, Google or any music service. Spotify is a trademark of Spotify AB; YouTube Music is a trademark of Google LLC. Other names and logos belong to their owners. By using getcarbon.cc or Carbon, you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
         <p>© 2026 Carbon</p>
       </div>
     </div>
