@@ -1,9 +1,10 @@
-// Signed updates from GitHub Releases (Tauri updater; the signature is checked against the public
+// Signed updates from the Carbon website (Tauri updater; the signature is checked against the public
 // key in tauri.conf.json before anything is installed). Carbon looks for them by itself, downloads
 // them in the background and installs when nobody would notice (see update-policy.ts).
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
+import { account } from "$lib/account.svelte";
 import { player } from "$lib/player.svelte";
 import { prefs } from "$lib/preferences.svelte";
 import { toasts } from "$lib/toast.svelte";
@@ -43,10 +44,12 @@ class Updates {
 
   /** Looks for a newer Carbon. A background check only logs a failure; the Settings button says so. */
   async check(quiet = false): Promise<boolean> {
+    const headers = account.updateHeaders();
+    if (!headers) return false;
     this.state = "checking";
     this.error = null;
     try {
-      this.#update = await check();
+      this.#update = await check({ headers });
       this.version = this.#update?.version ?? null;
       this.notes = this.#update?.body ?? null;
       this.state = this.#update ? "available" : "current";
@@ -62,7 +65,8 @@ class Updates {
   /** Fetches the update without installing it; music keeps playing meanwhile. */
   async download(quiet = false): Promise<boolean> {
     const update = this.#update;
-    if (!update || this.state === "downloading") return false;
+    const headers = account.updateHeaders();
+    if (!update || !headers || this.state === "downloading") return false;
     this.state = "downloading";
     this.progress = 0;
     let total = 0;
@@ -72,7 +76,7 @@ class Updates {
         if (event.event === "Started") total = event.data.contentLength ?? 0;
         if (event.event === "Progress") received += event.data.chunkLength;
         this.progress = total ? received / total : 0;
-      });
+      }, { headers });
       this.state = "ready";
       // No notice: the title bar shows "Restart to update", and it installs by itself from the tray.
       if (quiet) this.#quiet ??= setInterval(() => void this.#installIfQuiet(), QUIET_POLL_MS);

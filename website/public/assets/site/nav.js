@@ -4,7 +4,7 @@
   It asks only if this browser has signed in before, so first-time visitors make no credentialed
   cross-origin request. Any failure leaves the signed-out buttons.
 */
-import { API_BASE, sessionHint } from "../auth/api.js?v=4";
+import { API_BASE, sessionHint } from "../auth/api.js?v=5";
 
 const TIMEOUT_MS = 3000;
 

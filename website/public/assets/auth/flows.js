@@ -7,7 +7,7 @@
     [data-step="verify"] form[data-form="verify"]  email (if unknown), .code
 */
 
-import { api, sessionHint } from "./api.js?v=4";
+import { api, sessionHint } from "./api.js?v=5";
 import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=4";
 import {
   EMAIL_RE, cooldown, fieldError, formAlert, onSubmit, securing, setBusy, showError, showStep, store,
@@ -202,7 +202,7 @@ export function signInFlow(root, { onSignedIn, onNeedsVerify }) {
 
 /* ---------- Sign up ---------- */
 
-export function signUpFlow(form, { onCreated }) {
+export function signUpFlow(form, { onCreated, getAccessKey }) {
   const email = field(form, "email");
   const password = field(form, "password");
   const confirm = field(form, "confirm");
@@ -227,7 +227,10 @@ export function signUpFlow(form, { onCreated }) {
     async run() {
       const addr = email.value.trim();
       const passwordKey = await securing(form, () => derivePasswordKey(password.value, addr));
-      const res = await api("/v1/auth/signup", { method: "POST", body: { email: addr, passwordKey } });
+      const accessKey = getAccessKey?.();
+      const res = await api("/v1/auth/signup", {
+        method: "POST", body: { email: addr, passwordKey, ...(accessKey ? { accessKey } : {}) },
+      });
       if (res?.next && res.next !== "verify_email") console.warn("Unexpected signup step:", res.next);
       store.set("email", addr);
       await onCreated(addr, password.value);

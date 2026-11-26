@@ -1,0 +1,5 @@
+main.releases { width: min(100%, 780px); align-self: start; margin: 32px 0 60px; }
+nav { display:flex; flex-wrap:wrap; gap:24px; margin-bottom:36px; }
+section { margin-block:18px; }
+section ul { overflow-wrap:anywhere; }
+section h2 { margin:0; }

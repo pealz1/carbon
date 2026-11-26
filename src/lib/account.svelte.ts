@@ -21,7 +21,11 @@ class Account {
     return !this.required || this.status === "signed-in";
   }
 
-  /** Restores a saved session and refreshes the profile. Only a 401 signs you out. */
+  updateHeaders(): Record<string, string> | undefined {
+    return this.status === "signed-in" && this.#token ? { Authorization: `Bearer ${this.#token}` } : undefined;
+  }
+
+  /** Restores a saved session only after the accounts service verifies it. */
   async boot(): Promise<void> {
     try {
       this.#token = await invoke<string | null>("carbon_token_load", { apiUrl: CARBON.apiUrl });
@@ -33,13 +37,23 @@ class Account {
       this.status = "signed-out";
       return;
     }
-    this.status = "signed-in"; // a saved session counts while Carbon's servers are unreachable
+    await this.recheck();
+  }
+
+  async recheck(): Promise<void> {
+    const token = this.#token;
+    if (!token) return;
     try {
-      this.user = await fetchMe(this.#token);
+      const user = await fetchMe(token);
+      if (this.#token !== token) return;
+      this.user = user;
+      this.status = "signed-in";
       this.error = null;
     } catch (e) {
+      if (this.#token !== token) return;
       console.error("[account] profile refresh failed", e);
       if (e instanceof CarbonError && e.status === 401) await this.#forget();
+      if (this.status === "unknown") this.status = "signed-out";
       this.error = describeCarbonError(e);
     }
   }

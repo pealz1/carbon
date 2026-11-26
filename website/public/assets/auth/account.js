@@ -1,5 +1,5 @@
 /* /account: profile, backup codes, sessions, password change and account deletion. */
-import { api, sessionHint, UNAVAILABLE } from "./api.js?v=4";
+import { api, sessionHint, UNAVAILABLE } from "./api.js?v=5";
 import { derivePasswordKey, preloadArgon2 } from "./password-key.js?v=4";
 import {
   cooldown, fieldError, formAlert, onSubmit, setBusy, setFlash, showError, wireCode, wirePassword, wireReveal, securing,

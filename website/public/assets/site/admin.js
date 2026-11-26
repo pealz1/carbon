@@ -3,7 +3,7 @@
   /v1/admin call is checked server-side (admin role, CSRF, rate limits). All text from the API
   is set with textContent, never as markup.
 */
-import { api } from "../auth/api.js?v=4";
+import { api } from "../auth/api.js?v=5";
 import { barList, lineChart } from "./charts.js?v=1";
 import { el } from "./icons.js?v=1";
 import { toast } from "./toast.js?v=1";

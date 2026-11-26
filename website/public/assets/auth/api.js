@@ -8,7 +8,7 @@
 
 /** Served from localhost (wrangler dev on 8788), the pages talk to a local API on 8787 of the same host. */
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
-export const API_BASE = LOCAL_HOST ? `http://${window.location.hostname}:8787` : "https://api.getcarbon.cc";
+export const API_BASE = LOCAL_HOST ? `http://${window.location.hostname}:8787` : "";
 export const UNAVAILABLE = "Carbon accounts aren’t available yet — check back soon.";
 
 const HINT_KEY = "carbon.signedIn";

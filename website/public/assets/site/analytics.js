@@ -5,7 +5,7 @@
   visit's source, kept in localStorage, credits later downloads and marks returning visits.
   Do Not Track or Global Privacy Control turn all of it off.
 */
-import { API_BASE } from "../auth/api.js?v=4";
+import { API_BASE } from "../auth/api.js?v=5";
 import { browserSaysNo, consentState, onConsent } from "./consent.js?v=1";
 
 const FIRST_KEY = "carbon.firstVisit";

@@ -2,7 +2,7 @@
 import { initAnalytics } from "./analytics.js?v=1";
 import { initConsent } from "./consent.js?v=1";
 import { initCopy } from "./copy.js?v=1";
-import { initDownloads } from "./downloads.js?v=1";
+import { initDownloads } from "./downloads.js?v=2";
 import { initMenus } from "./menu.js?v=1";
 import { initNav } from "./nav.js?v=1";
 

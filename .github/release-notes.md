@@ -1,2 +1,6 @@
-- Fixed a URL parsing crash
-- Fixed private cookie nonces after forks
+- Added invite-only account access
+- Added gated website downloads
+- Added a website changelog
+- Added current volume percentage
+- Added playlist recommendations and radio
+- Added SoundCloud and TIDAL playlist tools

@@ -5,13 +5,9 @@
 */
 import { el, icon } from "./icons.js?v=1";
 
-const REPO = "pealz1/carbon";
-const API = `https://api.github.com/repos/${REPO}`;
-export const RELEASE_PAGE = `https://github.com/${REPO}/releases/latest`;
-const DOWNLOAD_PREFIX = `https://github.com/${REPO}/releases/download/`;
+export const RELEASE_PAGE = "/changelog";
+const DOWNLOAD_PREFIX = "/downloads/";
 const CACHE_MS = 10 * 60 * 1000;
-/** Star and download counts show once they pass this; below it they'd say little. Never invented. */
-const SHOW_COUNT_FROM = 100;
 
 const OS_NAME = { windows: "Windows", macos: "macOS", linux: "Linux" };
 const OS_ORDER = ["windows", "macos", "linux"];
@@ -24,8 +20,8 @@ async function cached(key, url) {
     const hit = JSON.parse(sessionStorage.getItem(key) || "null");
     if (hit && Date.now() - hit.at < CACHE_MS) return hit.data;
   } catch { /* no cache */ }
-  const res = await fetch(url, { credentials: "omit", headers: { Accept: "application/vnd.github+json" } });
-  if (!res.ok) throw new Error(`GitHub answered ${res.status} for ${url}`);
+  const res = await fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`Downloads answered ${res.status}`);
   const data = await res.json();
   try { sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), data })); } catch { /* storage full or blocked */ }
   return data;
@@ -34,7 +30,7 @@ async function cached(key, url) {
 /** One release asset as an installer, or null for signatures, update manifests and archives. */
 export function describe(asset) {
   const url = asset?.browser_download_url;
-  if (typeof url !== "string" || !url.startsWith(DOWNLOAD_PREFIX)) return null;
+  if (typeof url !== "string" || !url.startsWith(DOWNLOAD_PREFIX) || !/^\/downloads\/v\d+\.\d+\.\d+\/[A-Za-z0-9._-]+$/.test(url)) return null;
   const name = String(asset.name).toLowerCase();
   const type = TYPE_ORDER.find((t) => name.endsWith(`.${t}`));
   if (!type) return null;
@@ -80,7 +76,6 @@ export function recommended(installers, os) {
 }
 
 const dateOf = (iso) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-const compact = (n) => new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
 function menuItem(installer, version) {
   const a = el("a", "menu__item");
@@ -148,26 +143,14 @@ function showStat(name, value) {
   });
 }
 
-async function loadStats() {
-  try {
-    const [repo, releases] = await Promise.all([cached("carbon.gh.repo", API), cached("carbon.gh.releases", `${API}/releases?per_page=100`)]);
-    const stars = Number(repo?.stargazers_count) || 0;
-    const installs = (Array.isArray(releases) ? releases : []).flatMap(installersOf).reduce((sum, i) => sum + i.downloads, 0);
-    if (stars >= SHOW_COUNT_FROM) showStat("stars", compact(stars));
-    if (installs >= SHOW_COUNT_FROM) showStat("downloads", compact(installs));
-    if (Array.isArray(releases)) showStat("releases", String(releases.filter((r) => !r.draft).length));
-  } catch (err) {
-    console.debug("Carbon stats skipped:", err?.message || err);
-  }
-}
-
 export async function initDownloads() {
   const os = detectOS();
   document.documentElement.dataset.os = os ?? "unknown";
-  if (document.querySelector("[data-stat]")) loadStats();
   if (!document.querySelector("[data-dl], [data-os-list], [data-release-version]")) return;
   try {
-    const release = await cached("carbon.gh.latest", `${API}/releases/latest`);
+    const catalog = await cached("carbon.private.catalog", "/downloads/catalog.json");
+    const release = catalog.releases?.[0];
+    if (catalog.releases?.length) showStat("releases", String(catalog.releases.length));
     const installers = installersOf(release);
     const version = String(release?.tag_name || "").slice(0, 20);
     if (!installers.length) return;

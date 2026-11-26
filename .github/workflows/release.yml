@@ -177,8 +177,8 @@ jobs:
             | select([.jobs[] | select(.name | startswith("release (")) | .conclusion] == ["success","success","success","success"])
             | .headBranch | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' "$RUNNER_TEMP/build.json")
           echo "TAG=$tag" >> "$GITHUB_ENV"
-      - name: Verify assets and publish the signed update index
+      - name: Verify assets and upload the signed update index
         run: |
           python3 .github/release-manifest.py "$TAG" "$GH_REPO"
           gh release upload "$TAG" latest.json --clobber
-          gh release edit "$TAG" --notes-file .github/release-notes.md --draft=false --latest
+          gh release edit "$TAG" --notes-file .github/release-notes.md

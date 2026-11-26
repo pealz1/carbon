@@ -1,6 +1,6 @@
 /* Shared form behaviour for the account pages. */
 
-import { ApiError, UNAVAILABLE } from "./api.js?v=4";
+import { ApiError, UNAVAILABLE } from "./api.js?v=5";
 import { COMMON_PASSWORDS } from "./common-passwords.js?v=4";
 import { UnsupportedBrowserError } from "./password-key.js?v=4";
 

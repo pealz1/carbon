@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="/assets/base.css?v=6">
   <link rel="stylesheet" href="/assets/doc.css?v=7">
   <script src="/assets/site/boot.js?v=1"></script>
-  <script type="module" src="/assets/site/main.js?v=2"></script>
+  <script type="module" src="/assets/site/main.js?v=3"></script>
   <script src="/assets/toc.js?v=2" defer></script>
 </head>
 <body>
@@ -40,11 +40,11 @@
         <a class="btn btn--quiet btn--sm auth__signin" href="/login" data-auth-out>Sign in</a>
         <a class="avatar" href="/account" data-auth-in hidden><span data-avatar-initial aria-hidden="true">C</span><span class="sr-only">Your account</span></a>
         <div class="split " data-dl data-dl-keep-label>
-        <a class="btn btn--primary btn--sm" href="https://github.com/pealz1/carbon/releases/latest" data-dl-main data-download="release-page"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg><span class="split__label"><span data-dl-text>Download</span></span></a>
+        <a class="btn btn--primary btn--sm" href="/changelog" data-dl-main data-download="release-page"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg><span class="split__label"><span data-dl-text>Download</span></span></a>
         <button class="btn btn--primary btn--sm split__more" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="dl-menu-bar" aria-label="Choose an installer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg></button>
         <div class="menu" id="dl-menu-bar" role="menu" aria-label="Installers">
           <div data-dl-groups><p class="menu__empty">Loading installers…</p></div>
-          <div class="menu__group"><a class="menu__item" role="menuitem" href="https://github.com/pealz1/carbon/releases/latest" data-download="release-page"><span>All files and release notes</span><small>github.com/pealz1/carbon</small><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5"/></svg></a></div>
+          <div class="menu__group"><a class="menu__item" role="menuitem" href="/changelog" data-download="release-page"><span>All files and release notes</span><small>getcarbon.cc</small><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5"/></svg></a></div>
         </div>
       </div>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span></button>
@@ -207,7 +207,7 @@
             <li><a href="/#lyrics">Lyrics</a></li>
             <li><a href="/#compare">Compare</a></li>
             <li><a href="/setup">Setup</a></li>
-            <li><a href="https://github.com/pealz1/carbon/releases">Releases</a></li>
+            <li><a href="/changelog">Releases</a></li>
           </ul>
         </nav>
         <nav aria-labelledby="f-1">

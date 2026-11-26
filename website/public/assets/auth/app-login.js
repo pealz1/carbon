@@ -4,8 +4,8 @@
   We sign the user in (or up), call POST /v1/app/authorize with the cookie session,
   and send the browser to the loopback URL the API returns.
 */
-import { api, sessionHint, UNAVAILABLE } from "./api.js?v=4";
-import { signInFlow, signUpFlow, verifyFlow } from "./flows.js?v=5";
+import { api, sessionHint, UNAVAILABLE } from "./api.js?v=5";
+import { signInFlow, signUpFlow, verifyFlow } from "./flows.js?v=6";
 import { formAlert, onSubmit, showStep, wireReveal } from "./ui.js?v=4";
 
 const RESEND_SECONDS = 60;

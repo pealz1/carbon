@@ -1,15 +1,22 @@
 {
-  // Static-assets-only Worker for https://getcarbon.cc
+  // The Worker gates every asset before serving it from https://getcarbon.cc.
   "name": "carbon-site",
+  "main": "worker.mjs",
   "account_id": "8c28d68df63ec3278045b5cc68a0bba5",
   "compatibility_date": "2026-11-01",
   "workers_dev": false,
+  "preview_urls": false,
+  "vars": { "PRIVATE_SITE": "true" },
+  "services": [{ "binding": "API", "service": "carbon-api" }],
+  "r2_buckets": [{ "binding": "RELEASES", "bucket_name": "carbon-private-releases" }],
   "routes": [
     { "pattern": "getcarbon.cc", "custom_domain": true },
     { "pattern": "www.getcarbon.cc", "custom_domain": true }
   ],
   "assets": {
     "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash"
   }

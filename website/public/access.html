@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Private access</title>
+  <link rel="stylesheet" href="/access.css">
+  <script src="/access.js" type="module"></script>
+</head>
+<body>
+  <main data-auth>
+    <section data-step="key">
+      <div class="lock" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg></div>
+      <h1>Enter your access key</h1>
+      <form data-form="key" class="stack">
+        <label for="access-key">Access key</label>
+        <input id="access-key" name="key" required autocomplete="off" spellcheck="false" autocapitalize="off" minlength="24" maxlength="70">
+        <p class="alert" data-alert role="alert" hidden></p>
+        <button type="submit"><span data-label>Continue</span></button>
+      </form>
+      <p class="alt"><a href="/access?mode=login">Sign in to an existing account</a></p>
+      <p class="contact">Need a key? Contact <strong>ppealz</strong> on Discord or email <a href="mailto:pealz@pealz.cc">pealz@pealz.cc</a>.</p>
+      <p class="alt"><a href="mailto:pealz@pealz.cc?subject=%24100%20access%20key">Request a $100 access key</a></p>
+    </section>
+<section data-step="login" aria-labelledby="login-title" hidden>
+          <h1 id="login-title" tabindex="-1">Sign in</h1>
+          <p class="sub">Use your Carbon account. A browser you haven’t used before gets a code by email.</p>
+          <form class="stack" data-form="login" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="login-email">Email</label>
+              <input class="input" id="login-email" name="email" type="email" autocomplete="username" maxlength="254" required data-field="email" aria-describedby="login-email-err" aria-errormessage="login-email-err">
+              <p class="field__error" id="login-email-err"></p>
+            </div>
+            <div class="field">
+              <div class="field__row">
+                <label class="field__label" for="login-pw">Password</label>
+                <a class="link" href="/forgot">Forgot password?</a>
+              </div>
+              <div class="input-wrap">
+                <input class="input" id="login-pw" name="password" type="password" autocomplete="current-password" maxlength="128" required data-field="password" aria-describedby="login-pw-err" aria-errormessage="login-pw-err">
+                <button class="reveal" type="button" data-reveal aria-controls="login-pw" aria-pressed="false" aria-label="Show password">
+                  <svg class="ico ico--show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="ico ico--hide" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1Q11.3 5 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                </button>
+              </div>
+              <p class="field__error" id="login-pw-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Continue</span></button>
+          </form>
+          <p class="alt">By signing in, you agree to the <a class="link" href="/terms">Terms of Service</a> and <a class="link" href="/privacy">Privacy Policy</a>.</p>
+          <p class="alt" data-unverified hidden>Didn’t verify your email? <button class="text-btn" type="button" data-resend-verify><span data-label>Resend the code</span></button></p>
+          <p class="alt">New to Carbon? <a class="link" href="/access">Create an account</a></p>
+        </section>
+<section data-step="2fa" aria-labelledby="tfa-title" hidden>
+          <h1 id="tfa-title" tabindex="-1">Check your email</h1>
+          <p class="sub">Enter the 6-digit code we sent to <b data-2fa-email></b>. It expires in 10 minutes.</p>
+          <form class="stack" data-form="2fa" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field" data-code-mode>
+              <label class="field__label" for="tfa-code">Sign-in code</label>
+              <div class="code">
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <input class="code__input" id="tfa-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required data-field="code" aria-describedby="tfa-code-err" aria-errormessage="tfa-code-err">
+              </div>
+              <p class="field__error" id="tfa-code-err"></p>
+            </div>
+            <div class="field" data-backup-mode hidden>
+              <label class="field__label" for="tfa-backup">Backup code</label>
+              <input class="input mono" id="tfa-backup" name="backupCode" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="11" placeholder="abcde-12345" data-field="backupCode" aria-describedby="tfa-backup-hint tfa-backup-err" aria-errormessage="tfa-backup-err">
+              <p class="field__hint" id="tfa-backup-hint">Each backup code works once.</p>
+              <p class="field__error" id="tfa-backup-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Sign in</span></button>
+          </form>
+          <p class="alt">Didn’t get it? <button class="text-btn" type="button" data-resend><span data-label>Resend code</span></button></p>
+          <p class="alt"><button class="text-btn" type="button" data-toggle-backup>Use a backup code</button> · <button class="text-btn" type="button" data-restart>Start over</button></p>
+        </section>
+<section data-step="signup" aria-labelledby="signup-title" hidden>
+          <h1 id="signup-title" tabindex="-1">Create your account</h1>
+          <p class="sub">Finish creating your account with your verified access key.</p>
+          <form class="stack" data-form="signup" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="su-email">Email</label>
+              <input class="input" id="su-email" name="email" type="email" autocomplete="email" maxlength="254" required data-field="email" aria-describedby="su-email-err" aria-errormessage="su-email-err">
+              <p class="field__error" id="su-email-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="su-pw">Password</label>
+              <div class="input-wrap">
+                <input class="input" id="su-pw" name="password" type="password" autocomplete="new-password" maxlength="128" required data-field="password" aria-describedby="su-pw-rules su-pw-err" aria-errormessage="su-pw-err">
+                <button class="reveal" type="button" data-reveal aria-controls="su-pw" aria-pressed="false" aria-label="Show password">
+                  <svg class="ico ico--show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="ico ico--hide" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1Q11.3 5 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                </button>
+              </div>
+              <div class="meter" data-meter data-score="0" aria-hidden="true"><i></i><i></i><i></i><i></i><span></span></div>
+              <ul class="rules" id="su-pw-rules" data-rules>
+                <li data-rule="length">10 to 128 characters<span class="sr-only"> (not met)</span></li>
+                <li data-rule="letter">At least one letter<span class="sr-only"> (not met)</span></li>
+                <li data-rule="number">At least one number<span class="sr-only"> (not met)</span></li>
+                <li data-rule="email">Not your email name<span class="sr-only"> (not met)</span></li>
+              </ul>
+              <p class="field__error" id="su-pw-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="su-confirm">Confirm password</label>
+              <input class="input" id="su-confirm" name="confirm" type="password" autocomplete="new-password" maxlength="128" required data-field="confirm" aria-describedby="su-confirm-err" aria-errormessage="su-confirm-err">
+              <p class="field__error" id="su-confirm-err"></p>
+            </div>
+            <div class="field">
+              <label class="check" for="su-terms">
+                <input id="su-terms" name="terms" type="checkbox" required data-field="terms" aria-describedby="su-terms-err" aria-errormessage="su-terms-err">
+                <span>I agree to the <a class="link" href="/terms">Terms of Service</a>, <a class="link" href="/acceptable-use">Acceptable Use Policy</a> and <a class="link" href="/privacy">Privacy Policy</a>, and I’m at least 13, or older if the law where I live requires it.</span>
+              </label>
+              <p class="field__error" id="su-terms-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Create account</span></button>
+          </form>
+          <p class="alt">Already have an account? <a class="link" href="/login">Sign in</a></p>
+        </section>
+<section data-step="verify" aria-labelledby="verify-title" hidden>
+          <h1 id="verify-title" tabindex="-1">Verify your email</h1>
+          <p class="sub" data-known hidden>Enter the 6-digit code we sent to <b data-verify-email></b>. It expires in 10 minutes.</p>
+          <p class="sub" data-unknown hidden>Enter your email and the 6-digit code we sent you. Codes expire after 10 minutes.</p>
+          <form class="stack" data-form="verify" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field" data-email-field>
+              <label class="field__label" for="v-email">Email</label>
+              <input class="input" id="v-email" name="email" type="email" autocomplete="email" maxlength="254" data-field="email" aria-describedby="v-email-err" aria-errormessage="v-email-err">
+              <p class="field__error" id="v-email-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="v-code">Verification code</label>
+              <div class="code">
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <input class="code__input" id="v-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required data-field="code" aria-describedby="v-code-err" aria-errormessage="v-code-err">
+              </div>
+              <p class="field__error" id="v-code-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Verify email</span></button>
+          </form>
+          <p class="alt">Didn’t get it? Check your spam folder, or <button class="text-btn" type="button" data-resend><span data-label>Resend code</span></button></p>
+          <p class="alt">Wrong address? <a class="link" href="/access">Start again</a></p>
+        </section>
+<section data-step="forgot" aria-labelledby="forgot-title" hidden>
+          <h1 id="forgot-title" tabindex="-1">Forgot your password?</h1>
+          <p class="sub">Enter your account email. If it matches an account, we’ll send a code to reset your password.</p>
+          <form class="stack" data-form="forgot" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="f-email">Email</label>
+              <input class="input" id="f-email" name="email" type="email" autocomplete="email" maxlength="254" required data-field="email" aria-describedby="f-email-err" aria-errormessage="f-email-err">
+              <p class="field__error" id="f-email-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Send reset code</span></button>
+          </form>
+          <p class="alt">Already have a code? <a class="link" href="/reset">Enter it</a></p>
+          <p class="alt">Remembered it? <a class="link" href="/login">Sign in</a></p>
+        </section>
+<section data-step="reset" aria-labelledby="reset-title" hidden>
+          <h1 id="reset-title" tabindex="-1">Choose a new password</h1>
+          <p class="sub">Enter the 6-digit code from your email and a new password. This signs out all your sessions and apps.</p>
+          <form class="stack" data-form="reset" novalidate>
+            <div class="alert" role="alert" data-alert hidden></div>
+            <div class="field">
+              <label class="field__label" for="r-email">Email</label>
+              <input class="input" id="r-email" name="email" type="email" autocomplete="username" maxlength="254" required data-field="email" aria-describedby="r-email-err" aria-errormessage="r-email-err">
+              <p class="field__error" id="r-email-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="r-code">Reset code</label>
+              <div class="code">
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span><span class="code__box" aria-hidden="true"></span>
+                <input class="code__input" id="r-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required data-field="code" aria-describedby="r-code-err" aria-errormessage="r-code-err">
+              </div>
+              <p class="field__error" id="r-code-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="r-pw">New password</label>
+              <div class="input-wrap">
+                <input class="input" id="r-pw" name="password" type="password" autocomplete="new-password" maxlength="128" required data-field="password" aria-describedby="r-pw-rules r-pw-err" aria-errormessage="r-pw-err">
+                <button class="reveal" type="button" data-reveal aria-controls="r-pw" aria-pressed="false" aria-label="Show password">
+                  <svg class="ico ico--show" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="ico ico--hide" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1Q11.3 5 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                </button>
+              </div>
+              <div class="meter" data-meter data-score="0" aria-hidden="true"><i></i><i></i><i></i><i></i><span></span></div>
+              <ul class="rules" id="r-pw-rules" data-rules>
+                <li data-rule="length">10 to 128 characters<span class="sr-only"> (not met)</span></li>
+                <li data-rule="letter">At least one letter<span class="sr-only"> (not met)</span></li>
+                <li data-rule="number">At least one number<span class="sr-only"> (not met)</span></li>
+                <li data-rule="email">Not your email name<span class="sr-only"> (not met)</span></li>
+              </ul>
+              <p class="field__error" id="r-pw-err"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="r-confirm">Confirm new password</label>
+              <input class="input" id="r-confirm" name="confirm" type="password" autocomplete="new-password" maxlength="128" required data-field="confirm" aria-describedby="r-confirm-err" aria-errormessage="r-confirm-err">
+              <p class="field__error" id="r-confirm-err"></p>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit"><span data-label>Change password</span></button>
+          </form>
+          <p class="alt">No code? <button class="text-btn" type="button" data-resend><span data-label>Resend code</span></button></p>
+        </section>
+  </main>
+</body>
+</html>

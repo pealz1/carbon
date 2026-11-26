@@ -1,5 +1,5 @@
 /* /verify: enter the 6-digit code that confirms the email address. */
-import { verifyFlow } from "./flows.js?v=5";
+import { verifyFlow } from "./flows.js?v=6";
 import { formAlert, setFlash, store, takeFlash } from "./ui.js?v=4";
 
 const RESEND_SECONDS = 60;

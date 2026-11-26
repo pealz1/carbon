@@ -70,6 +70,9 @@
     void initLocale().catch(e=>console.error("[language]",e));
     if (popout) return;
     void account.boot();
+    const accessCheck = setInterval(() => {
+      if (account.required && account.status === "signed-in") void account.recheck();
+    }, 5 * 60_000);
     void serverSession.load();
     void organizer.load();
     void view.syncFullscreen();
@@ -97,13 +100,19 @@
     const stopPopouts = popouts.start();
     const stopSounds = installSoundFeedback(document);
     const onScreen = keepYoutubeOnScreen(async () => void (player.paused || (await player.togglePlay())));
-    return () => (stopUpdates(), stopSync(), stopOutput(), stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
+    return () => (clearInterval(accessCheck), stopUpdates(), stopSync(), stopOutput(), stopPopouts(), stopSounds(), void onScreen.then((stop) => stop()));
   });
 
   // Music services start once the Carbon account gate (if this build has one) is passed.
   let servicesStarted = false;
   $effect(() => {
-    if (popout || !account.open || servicesStarted) return;
+    if (popout) return;
+    if (!account.open) {
+      if (servicesStarted) player.stop();
+      servicesStarted = false;
+      return;
+    }
+    if (servicesStarted) return;
     servicesStarted = true;
     void services.boot();
   });
