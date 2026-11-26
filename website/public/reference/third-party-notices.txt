@@ -162,3 +162,6 @@ SIL Open Font License 1.1. The font copyrights and licenses are in
 
 The Cider glyphs include icons from Ionicons and Feather. Their MIT licenses
 accompany the assets in [src/lib/assets/cider-glyphs](src/lib/assets/cider-glyphs).
+
+The original artwork background worker is from the installed Cider 4.0.32
+renderer. The supplied file is kept byte-for-byte in static/cider-ui.

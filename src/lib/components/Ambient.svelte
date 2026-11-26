@@ -10,6 +10,7 @@
   import { prefs } from "$lib/preferences.svelte";
   import { bassLevel, breathSeconds, pace, smooth } from "$lib/song-pulse";
   import { css } from "$lib/wallpaper";
+  import CiderArtworkBackground from "./CiderArtworkBackground.svelte";
 
   // The window's wallpaper uses four colour fields, with a blurred layer for local artwork.
   // The colour fields cross-fade when the song changes. Only transform and opacity animate.
@@ -104,6 +105,9 @@
     {/if}
   {/key}
   </div>
+  {#if cinema && image && !prefersReducedMotion.current && prefs.effects === "full" && prefs.motion !== "none"}
+    <CiderArtworkBackground {image} paused={!playing || !onScreen.current} bpm={features?.tempo ?? null} />
+  {/if}
   <div class="vignette"></div>
   <div class="grain"></div>
 </div>
