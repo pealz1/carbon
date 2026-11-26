@@ -7,32 +7,29 @@
   import type { Card } from "$lib/spotify/types";
   import { pageHref } from "$lib/youtube/uri";
 
-  // What was played lately (albums, playlists, artists) as compact tiles: two rows and a faded
-  // third, the rest behind "Show more". `open` shows everything, for when Recent is the only shelf.
   let { title, cards, open = false }: { title: string; cards: Card[]; open?: boolean } = $props();
+  let row = $state<HTMLElement>();
+  let atStart = $state(true);
+  let atEnd = $state(false);
+  const rows = $derived(Math.min(cards.length, 3));
 
-  const ROWS = 2;
-  let grid = $state<HTMLElement>();
-  let columns = $state(4);
-  let expanded = $state(false);
+  function measure() {
+    if (!row) return;
+    atStart = row.scrollLeft < 4;
+    atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 4;
+  }
 
   $effect(() => {
-    const el = grid;
-    if (!el) return;
-    const count = () => (columns = Math.max(1, getComputedStyle(el).gridTemplateColumns.split(" ").length));
-    const sizes = new ResizeObserver(count);
-    sizes.observe(el);
-    count();
-    return () => sizes.disconnect();
+    void cards.length;
+    if (!row) return;
+    const resize = new ResizeObserver(measure);
+    resize.observe(row);
+    measure();
+    return () => resize.disconnect();
   });
 
-  const shownFirst = $derived(columns * ROWS);
-  const more = $derived(cards.length > shownFirst);
-  const folded = $derived(more && !open && !expanded);
-
-  function play(event: MouseEvent, card: Card) {
-    event.preventDefault();
-    event.stopPropagation();
+  const shift = (direction: number) => row?.scrollBy({ left: direction * row.clientWidth * 0.9, behavior: "smooth" });
+  function play(card: Card) {
     if (player.contextUri === card.playUri) return void player.togglePlay();
     void player.playContext(card.playUri);
   }
@@ -40,218 +37,118 @@
 
 {#if cards.length}
   <section class="recents">
-    <h2>{title}</h2>
-    <div class="grid" class:folded bind:this={grid}>
-      {#each cards as card, i (card.kind + card.id)}
+    <header>
+      <h2>{title}</h2>
+      {#if !open}
+        <div class="arrows">
+          <button onclick={() => shift(-1)} disabled={atStart} aria-label="Scroll {title} back"><Icon name="back" size={15} /></button>
+          <button onclick={() => shift(1)} disabled={atEnd} aria-label="Scroll {title} forward"><Icon name="forward" size={15} /></button>
+        </div>
+      {/if}
+    </header>
+    <ul class:open bind:this={row} onscroll={measure} style:--rows={rows}>
+      {#each cards as card (card.kind + card.id)}
         {@const live = player.contextUri === card.playUri}
-        <a
-          class="tile pressable"
-          class:live
-          class:late={i >= shownFirst}
-          href={card.kind === "track" ? undefined : pageHref(card.kind, card)}
-          inert={folded && i >= shownFirst}
-          style="--i: {Math.max(0, i - shownFirst)}"
-          oncontextmenu={(e) => menu.open(e, cardMenu(card))}
-        >
-          <span class="art" class:round={card.kind === "artist"}>
-            {#if card.uri.startsWith("spotify:playlist:")}
-              <SpotifyPlaylistCover id={card.id} image={card.image} size={22} />
-            {:else if card.image}
-              <img src={card.image} alt="" width="56" height="56" loading="lazy" decoding="async" draggable="false" />
-            {:else}
-              <Icon name={card.kind === "artist" ? "artist" : "note"} size={22} />
-            {/if}
-          </span>
-          <span class="text">
-            <span class="name">{card.title}</span>
-            <span class="sub">{card.subtitle}</span>
-          </span>
-          <button class="play" onclick={(e) => play(e, card)} aria-label="{live && !player.paused ? 'Pause' : 'Play'} {card.title}">
-            <Icon name={live && !player.paused ? "pause" : "play"} size={14} />
+        <li class:live>
+          <a class="tile" href={card.kind === "track" ? undefined : pageHref(card.kind, card)} oncontextmenu={(e) => menu.open(e, cardMenu(card))}>
+            <span class="art" class:round={card.kind === "artist"}>
+              {#if card.uri.startsWith("spotify:playlist:")}
+                <SpotifyPlaylistCover id={card.id} image={card.image} size={20} />
+              {:else if card.image}
+                <img src={card.image} alt="" width="42" height="42" loading="lazy" decoding="async" draggable="false" />
+              {:else}
+                <Icon name={card.kind === "artist" ? "artist" : "note"} size={19} />
+              {/if}
+            </span>
+            <span class="text">
+              <span class="name">{card.title}</span>
+              <span class="sub">{card.subtitle}</span>
+            </span>
+          </a>
+          <button class="play" onclick={() => play(card)} aria-label="{live && !player.paused ? 'Pause' : 'Play'} {card.title}">
+            <Icon name={live && !player.paused ? "pause" : "play"} size={18} />
           </button>
-        </a>
+        </li>
       {/each}
-    </div>
-    {#if more && !open}
-      <button class="pill ghost toggle" class:lifted={folded} onclick={() => (expanded = !expanded)} aria-expanded={expanded}>
-        {expanded ? "Show less" : "Show more"}
-        <span class="chevron" class:up={expanded}><Icon name="down" size={14} /></span>
-      </button>
-    {/if}
+    </ul>
   </section>
 {/if}
 
 <style>
-  .recents {
-    --tile-h: 64px;
-    margin-bottom: var(--sp-6);
-  }
-
-  h2 {
-    margin-bottom: var(--sp-3);
-    font-size: var(--fs-section);
-    font-weight: 700;
-  }
-
-  .grid {
+  .recents { margin-bottom: var(--sp-6); }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }
+  h2 { font-size: var(--fs-section); font-weight: 700; }
+  .arrows { display: flex; gap: var(--sp-2); }
+  .arrows button, .play {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
-    grid-auto-rows: var(--tile-h);
-    gap: var(--sp-2);
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-pill);
   }
-
-  /* Folded: two rows, then the top of a third fading out under the button. */
-  .grid.folded {
-    max-height: calc(var(--tile-h) * 2 + var(--sp-2) * 2 + 38px);
-    overflow: hidden;
-    mask-image: linear-gradient(to bottom, black calc(100% - 46px), transparent);
+  .arrows button { box-shadow: inset 0 0 0 1px var(--glass-edge); }
+  .arrows button:not(:disabled):hover, .play:hover { background: var(--glass-active); }
+  .arrows button:disabled { opacity: 0.45; cursor: default; }
+  ul {
+    display: grid;
+    grid-template-rows: repeat(var(--rows), 60px);
+    grid-auto-flow: column;
+    grid-auto-columns: max(300px, calc((100% - var(--sp-4)) / 2));
+    gap: 2px var(--sp-4);
+    padding: 0;
+    margin: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    list-style: none;
+    scroll-snap-type: x proximity;
   }
-
-  .tile {
-    position: relative;
+  ul.open {
+    grid-template-rows: none;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    grid-auto-flow: row;
+    grid-auto-rows: 60px;
+    overflow: visible;
+  }
+  li {
+    min-width: 0;
     display: flex;
+    align-items: center;
+    padding-right: var(--sp-2);
+    overflow: hidden;
+    border-radius: var(--r-md);
+    scroll-snap-align: start;
+  }
+  li:nth-child(odd) { background: var(--plate); }
+  li:hover, li:focus-within { background: var(--glass-hover); }
+  .tile {
+    display: flex;
+    flex: 1;
     align-items: center;
     gap: var(--sp-3);
     min-width: 0;
-    padding-right: var(--sp-3);
-    overflow: hidden;
-    border-radius: var(--r-md);
-    background: var(--plate);
-    box-shadow: var(--rim);
-    color: var(--text);
-    text-decoration: none;
-    transition:
-      background var(--dur-fast),
-      box-shadow var(--dur-med),
-      translate var(--dur-spring) var(--ease-spring),
-      transform var(--dur-spring) var(--ease-spring);
-    --press: var(--press-wide);
-  }
-
-  .tile:hover,
-  .tile:focus-within {
-    background: var(--glass-active);
-    box-shadow: var(--rim-hover);
-    translate: 0 -2px;
+    padding: var(--sp-2) var(--sp-3);
     text-decoration: none;
   }
-
-  /* Rows that "Show more" reveals rise in one after another. */
-  .grid:not(.folded) .late {
-    animation: rise 380ms var(--ease-out) backwards;
-    animation-delay: calc(var(--i) * 22ms);
-  }
-
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-  }
-
   .art {
     flex: none;
-    width: var(--tile-h);
-    height: var(--tile-h);
     display: grid;
+    width: 42px;
+    height: 42px;
     place-items: center;
     overflow: hidden;
-    background: var(--graphite-800);
-    color: var(--text-faint);
-  }
-
-  .art.round {
-    width: calc(var(--tile-h) - 12px);
-    height: calc(var(--tile-h) - 12px);
-    margin-left: 6px;
-    border-radius: var(--r-pill);
-  }
-
-  .art img,
-  .art :global(.cover) {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .text {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .name,
-  .sub {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .name {
-    font-weight: 650;
-  }
-
-  .live .name {
-    color: var(--accent);
-  }
-
-  .sub {
+    border-radius: var(--r-sm);
+    background: var(--plate);
     color: var(--text-muted);
-    font-size: var(--fs-small);
   }
-
-  /* Play arrives from the right under the pointer or the keyboard. */
-  .play {
-    flex: none;
-    width: 34px;
-    height: 34px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--r-pill);
-    background: var(--paper);
-    color: var(--ink);
-    opacity: 0;
-    translate: 8px 0;
-    transition:
-      opacity var(--dur-fast),
-      translate var(--dur-spring) var(--ease-spring),
-      scale var(--dur-spring) var(--ease-spring),
-      transform var(--dur-spring) var(--ease-spring);
-  }
-
-  .tile:hover .play,
-  .tile:focus-within .play,
-  .live .play {
-    opacity: 1;
-    translate: 0 0;
-  }
-
-  .play:hover {
-    scale: 1.08;
-  }
-
-  .toggle {
-    display: flex;
-    margin: var(--sp-2) auto 0;
-  }
-
-  /* Over the fade, so the button sits on the row it will reveal. */
-  .toggle.lifted {
-    position: relative;
-    margin-top: -20px;
-    background: var(--glass-strong);
-    box-shadow: var(--rim);
-    color: var(--text);
-  }
-
-  .chevron {
-    display: grid;
-    transition: rotate var(--dur-med) var(--ease-out);
-  }
-
-  .chevron.up {
-    rotate: 180deg;
-  }
+  .art.round { border-radius: var(--r-pill); }
+  .art img, .art :global(.cover) { width: 100%; height: 100%; object-fit: cover; }
+  .text { min-width: 0; display: grid; gap: 2px; }
+  .name, .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .name { font-weight: 650; }
+  .live .name { color: var(--accent); }
+  .sub { color: var(--text-muted); font-size: var(--fs-small); }
+  .play { flex: none; color: var(--text); opacity: 0; }
+  li:hover .play, li:focus-within .play, li.live .play { opacity: 1; }
+  @media (hover: none) { .play { opacity: 1; } }
+  @container stage (max-width: 760px) { ul:not(.open) { grid-auto-columns: 100%; } }
 </style>

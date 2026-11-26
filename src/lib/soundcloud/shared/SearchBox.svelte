@@ -5,7 +5,7 @@
 
   // The search box on a service's front page. What is typed settles into `term` after a pause and
   // lives in the address (?q=), so Back returns to the same results.
-  let { term = $bindable(), placeholder, label }: { term: string; placeholder: string; label: string } = $props();
+  let { term = $bindable(), placeholder, label, persist = true }: { term: string; placeholder: string; label: string; persist?: boolean } = $props();
   const DEBOUNCE_MS = 320;
   let query = $state(untrack(() => term));
 
@@ -14,7 +14,7 @@
     const timer = setTimeout(() => {
       if (next === term) return;
       term = next;
-      void goto(next ? `?q=${encodeURIComponent(next)}` : "?", { replace: true, reset: false });
+      if (persist) void goto(next ? `?q=${encodeURIComponent(next)}` : "?", { replace: true, reset: false });
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
   });

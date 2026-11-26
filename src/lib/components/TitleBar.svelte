@@ -7,6 +7,7 @@
   import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
   import Logo from "./Logo.svelte";
+  import PlaybackTools from "./PlaybackTools.svelte";
 
   /** `controls` off: just the mark and the window buttons (sign-in screens). */
   let { controls = true }: { controls?: boolean } = $props();
@@ -24,7 +25,6 @@
 <svelte:window onresize={syncMaximized} />
 
 <header class="titlebar" data-tauri-drag-region>
-  <button class="mark" onclick={() => location.reload()} aria-label="Refresh Carbon" title="Refresh"><Logo size={18} /></button>
   {#if controls}
     <nav class="lead" aria-label="History and layout">
       <button class="tb" onclick={() => history.back()} aria-label="Back" title="Back"><Icon name="back" size={18} /></button>
@@ -34,6 +34,7 @@
       </button>
     </nav>
   {/if}
+  <button class="mark" onclick={() => location.reload()} aria-label="Refresh Carbon" title="Refresh"><Logo size={18} /></button>
   <div class="spacer" data-tauri-drag-region></div>
   {#if controls}
     <!-- A found update lives here, quietly: its download fills the pill, then one click restarts into it. -->
@@ -43,6 +44,8 @@
         <span>{updates.state === "ready" ? "Restart to update" : updates.state === "downloading" ? "Updating" : "Update"}</span>
       </button>
     {/if}
+    <PlaybackTools />
+    <span class="rule" aria-hidden="true"></span>
     <div class="tools">
       <button class="tb" class:on={view.lyrics} onclick={view.toggleLyrics} aria-pressed={view.lyrics} aria-label="Lyrics" title="Lyrics">
         <Icon name="lyrics" size={18} />
@@ -81,7 +84,7 @@
     place-items: center;
     width: 32px;
     height: 32px;
-    margin: 0 var(--sp-2) 0 -4px;
+    margin: 0 var(--sp-2) 0 var(--sp-1);
     border-radius: var(--r-md);
     transition:
       background var(--dur-fast),

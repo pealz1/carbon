@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { parseProviderLink, embedUrl } from "./catalog";
+import { invoke } from "@tauri-apps/api/core";
+import { parseProviderLink, embedUrl, providerCollection, searchCatalog } from "./catalog";
 import { appleExport, matchSongs, rank, readTrackFile } from "./import";
 import type { Track } from "$lib/spotify/types";
+
+vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 const song = { title: "São Paulo", artist: "Ana", durationMs: 120000 };
 const track: Track = {
   id: "abcdefghijk",
@@ -14,6 +17,44 @@ const track: Track = {
   explicit: false,
 };
 describe("playlist transfer", () => {
+  it("loads ordered Apple Music playlist tracks through their catalog continuation", async () => {
+    const url = "https://music.apple.com/us/playlist/test/pl.u-test";
+    const next = "/v1/catalog/us/playlists/pl.u-test/tracks?offset=2";
+    const first = { type: "songs", attributes: { name: "First", artistName: "Ana", durationInMillis: 70000 } };
+    vi.mocked(invoke)
+      .mockResolvedValueOnce({
+        data: [{ attributes: { name: "Test playlist" }, relationships: { tracks: { data: [first, first], next } } }],
+      })
+      .mockResolvedValueOnce({ data: [{ type: "songs", attributes: { name: "Last", artistName: "Ben" } }] });
+    const list = await providerCollection(parseProviderLink(url)!);
+    expect(list.title).toBe("Test playlist");
+    expect(list.songs.map((track) => track.title)).toEqual(["First", "First", "Last"]);
+    expect(invoke).toHaveBeenCalledWith("provider_page", { provider: "apple", address: next, country: "us" });
+  });
+
+  it("selects Apple Music and Deezer catalog collections without treating them as tracks", async () => {
+    const expected = {
+      title: "Set",
+      url: "https://music.apple.com/ca/playlist/test/pl.u-test",
+      artist: "Curator",
+      durationMs: 0,
+      image: "https://is1-ssl.mzstatic.com/set/300x300.jpg",
+    };
+    vi.mocked(invoke).mockResolvedValueOnce({
+      results: { playlists: { data: [{ attributes: { name: "Set", url: expected.url,
+        curatorName: "Curator", artwork: { url: "https://is1-ssl.mzstatic.com/set/{w}x{h}.jpg" } } }] } },
+    });
+    expect(await searchCatalog("apple", "set", "ca", "playlist")).toEqual([expected]);
+    expect(invoke).toHaveBeenCalledWith("provider_catalog", { query: {
+      provider: "apple", action: "searchPlaylists", value: "set", country: "ca", offset: 0,
+    } });
+
+    vi.mocked(invoke).mockResolvedValueOnce({ data: [
+      { title: "Record", link: "https://www.deezer.com/album/10", artist: { name: "Ana" } },
+      { title: "External", link: "https://example.com/album/20" },
+    ] });
+    expect(await searchCatalog("deezer", "record", "us", "album")).toMatchObject([{ title: "Record", artist: "Ana" }]);
+  });
   it("recognizes all catalogs and retains the storefront", () => {
     for (const [url, source] of [
       ["https://open.spotify.com/playlist/1234567890123456789012", "spotify"],

@@ -5,8 +5,8 @@
   import Icon from "./Icon.svelte";
   import Slider from "./Slider.svelte";
 
-  // Cinema's volume: click to mute (and back to where it was), scroll to adjust, and a slider that
-  // rises above the button on hover or keyboard focus.
+  // Click to mute or restore the previous level. The footer keeps the range and value visible.
+  let { inline = false }: { inline?: boolean } = $props();
   let before = DEFAULT_VOLUME;
   const percent = $derived(Math.round(player.volume * 100));
 
@@ -18,11 +18,11 @@
   }
 </script>
 
-<div class="volume" onwheel={wheelVolume}>
-  <button class="ctl" onclick={mute} aria-label={player.volume > 0 ? "Mute" : "Unmute"}>
+<div class="volume" class:inline onwheel={wheelVolume}>
+  <button class="ctl" onclick={mute} aria-label={player.volume > 0 ? "Mute" : "Unmute"} title={player.volume > 0 ? "Mute" : "Unmute"}>
     <Icon name={player.volume > 0 ? "volume" : "mute"} size={18} />
   </button>
-  <div class="panel glass">
+  <div class="panel" class:glass={!inline}>
     <Slider value={player.volume} max={1} step={0.01} label="Volume" valuetext="{percent}%" oncommit={player.setVolume} onpreview={player.setVolume} />
     <span class="value tabular">{percent}%</span>
   </div>
@@ -61,11 +61,39 @@
   }
 
   .value {
-    width: 34px;
+    min-width: 4ch;
     font-size: var(--fs-caption);
     color: var(--text-muted);
     text-align: right;
   }
+
+  .inline {
+    align-items: center;
+    gap: var(--sp-1);
+  }
+
+  .inline .ctl {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: var(--r-pill);
+    color: var(--chrome-text);
+  }
+
+  .inline .ctl:hover { background: var(--chrome-hover); }
+
+  .volume.inline .panel {
+    position: static;
+    display: flex;
+    width: clamp(88px, 10vw, 145px);
+    gap: var(--sp-2);
+    padding: 0;
+    animation: none;
+  }
+
+  .inline .panel::after { content: none; }
+  .inline .value { color: var(--chrome-text-muted); }
 
   @keyframes rise {
     from {

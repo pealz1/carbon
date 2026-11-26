@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { page } from "$app/state";
-  import { DEFAULT_VOLUME } from "$lib/config";
   import { formatDuration } from "$lib/format";
   import { hasPage } from "$lib/local/tracks";
   import { onScreen } from "$lib/on-screen.svelte";
@@ -9,22 +7,19 @@
   import { prefs } from "$lib/preferences.svelte";
   import { sourceLabel } from "$lib/sources";
   import Stars from "$lib/ratings/Stars.svelte";
-  import { view } from "$lib/view.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import Logo from "./Logo.svelte";
   import LoopZone from "./LoopZone.svelte";
   import OutputMenu from "./OutputMenu.svelte";
-  import PlaybackTools from "./PlaybackTools.svelte";
   import PlayingElsewhere from "./PlayingElsewhere.svelte";
   import Slider from "./Slider.svelte";
-  import { wheelVolume } from "$lib/volume-wheel";
+  import VolumeControl from "./VolumeControl.svelte";
 
   // The player bar: part of the chrome, no card. Track on the left, progress over transport in
   // the middle, the room's controls on the right.
   const TICK_MS = 250;
   let position = $state(0);
-  const onNowPlaying = $derived(page.url.pathname === "/now-playing");
   const remaining = $derived(Math.max(0, player.durationMs - position));
   // A radio station is live: no position to show or seek, nothing before or after it.
   const live = $derived(player.source === "radio");
@@ -91,7 +86,7 @@
       </button>
       <button class="ctl" onclick={player.previous} disabled={live} aria-label="Previous" title="Previous"><Icon name="prev" size={20} /></button>
       <button class="ctl play" onclick={player.togglePlay} aria-label={player.paused ? "Play" : "Pause"}>
-        <Icon name={player.paused ? "play" : "pause"} size={26} />
+        <Icon name={player.paused ? "play" : "pause"} size={32} />
       </button>
       <button class="ctl" onclick={player.next} disabled={live} aria-label="Next" title="Next"><Icon name="next" size={20} /></button>
       <button
@@ -110,20 +105,8 @@
   </div>
 
   <div class="extras">
-    <PlaybackTools />
-    <a class="ctl" class:on={onNowPlaying} href={onNowPlaying ? "/" : "/now-playing"} aria-label="Now playing" title="Now playing">
-      <Icon name="album" size={18} />
-    </a>
-    <button class="ctl" onclick={view.enterCinema} aria-label="Cinema mode" title="Cinema mode (Ctrl+Shift+C)">
-      <Icon name="screen" size={18} />
-    </button>
     <OutputMenu />
-    <button class="ctl" onwheel={wheelVolume} onclick={() => player.setVolume(player.volume > 0 ? 0 : DEFAULT_VOLUME)} aria-label={player.volume > 0 ? "Mute" : "Unmute"} title={player.volume > 0 ? "Mute" : "Unmute"}>
-      <Icon name={player.volume > 0 ? "volume" : "mute"} size={18} />
-    </button>
-    <div class="volume" onwheel={wheelVolume}>
-      <Slider value={player.volume} max={1} step={0.01} label="Volume" valuetext="{Math.round(player.volume * 100)}%" oncommit={player.setVolume} onpreview={player.setVolume} />
-    </div>
+    <VolumeControl inline />
   </div>
 </section>
 
@@ -319,25 +302,15 @@
     box-shadow: 0 0 6px currentColor;
   }
 
-  /* Play: a solid paper disc, lifted, that swells a little under the pointer. */
+  /* Give the transport glyph all of the emphasis, with a compact hover target. */
   .play {
-    width: 44px;
-    height: 44px;
-    background: var(--paper);
-    color: var(--ink);
+    width: 40px;
+    height: 40px;
     opacity: 1;
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.5),
-      0 6px 18px -8px rgb(0 0 0 / 0.8);
   }
 
   .play:hover {
-    background: var(--paper);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.5),
-      0 0 0 4px rgb(var(--tint) / 0.1),
-      0 8px 22px -8px rgb(0 0 0 / 0.85);
-    scale: 1.06;
+    scale: 1.04;
   }
 
   .one {
@@ -355,20 +328,11 @@
     gap: 2px;
   }
 
-  .volume {
-    width: 104px;
-    display: flex;
-    margin-left: var(--sp-1);
-  }
-
   @media (max-width: 1100px) {
     .player {
       grid-template-columns: minmax(0, 1fr) minmax(280px, 1.2fr) auto;
       gap: var(--sp-4);
     }
 
-    .volume {
-      width: 72px;
-    }
   }
 </style>

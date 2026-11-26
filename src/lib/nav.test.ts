@@ -26,7 +26,7 @@ describe("navigation", () => {
     const running = { spotify: true, youtube: false };
     expect(hrefs(groupPages("library", running))).toEqual(["/library", "/podcasts", "/smart", "/collections", "/mixes", "/bookmarks", "/offline", "/import"]);
     expect(hrefs(groupPages("you", running))).toEqual(["/stats", "/profile", "/wrapped", "/recap", "/history"]);
-    expect(hrefs(groupItems("search", { spotify: false, youtube: false }))).toEqual(["/soundcloud", "/apple", "/deezer", "/mixcloud", "/bandcamp", "/archive"]);
+    expect(hrefs(groupItems("search", { spotify: false, youtube: false }))).toEqual(["/soundcloud", "/tidal", "/apple", "/deezer", "/mixcloud", "/bandcamp", "/archive"]);
     expect(hrefs(groupPages("library", { spotify: false, youtube: true }))[0]).toBe("/youtube/library");
   });
 

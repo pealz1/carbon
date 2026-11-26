@@ -94,7 +94,7 @@ describe("with nothing typed", () => {
     localStorage.setItem("carbon-recent-searches", JSON.stringify(["daft punk", "nina simone"]));
     await open();
     // Every page nav.ts files under Search, for the services that are on (here: YouTube Music).
-    expect([...document.querySelectorAll<HTMLAnchorElement>(".browse a")].map((a) => a.getAttribute("href"))).toEqual(["/youtube/search", "/soundcloud", "/apple", "/deezer", "/mixcloud", "/bandcamp", "/archive"]);
+    expect([...document.querySelectorAll<HTMLAnchorElement>(".browse a")].map((a) => a.getAttribute("href"))).toEqual(["/youtube/search", "/soundcloud", "/tidal", "/apple", "/deezer", "/mixcloud", "/bandcamp", "/archive"]);
     expect(text()).toContain("nina simone");
     expect(searchSource).not.toHaveBeenCalled();
 

@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { t } from "$lib/i18n/locale.svelte";
 import { challengeFor, randomString } from "$lib/pkce";
+import { entityId } from "$lib/soundcloud/map";
 import type { Raw } from "$lib/soundcloud/shared/listed";
 import type { Track } from "$lib/spotify/types";
 
@@ -159,7 +160,7 @@ export function embedUrl(link: Link): string {
 }
 export const openPlayer = (provider: Provider, address = homes[provider]) =>
   invoke<void>("provider_open", { provider, address });
-export const connections = () => invoke<{ soundcloud: boolean; soundcloudUser: boolean }>("provider_connections");
+export const connections = () => invoke<{ apple: boolean; soundcloud: boolean; soundcloudUser: boolean }>("provider_connections");
 export const credentials = (provider: Provider, key: string, secret = "") =>
   invoke<void>("provider_credentials", { provider, key, secret });
 export async function connectSoundCloud() {
@@ -183,7 +184,7 @@ export async function connectSoundCloud() {
     throw new Error("SoundCloud sign-in was cancelled or expired.");
   await invoke("soundcloud_authorize", { code: result.get("code"), verifier });
 }
-type Action = Kind | "albumTracks" | "playlistTracks" | "search" | "resolve" | "liked" | "myPlaylists";
+type Action = Kind | "albumTracks" | "playlistTracks" | "search" | "searchAlbums" | "searchPlaylists" | "resolve" | "liked" | "myPlaylists";
 const api = (provider: Provider, action: Action, value: string, country = "us", offset = 0) =>
   invoke<Raw>("provider_catalog", { query: { provider, action, value, country, offset } });
 export const fromTrack = (track: Track): Song => ({
@@ -255,9 +256,22 @@ function mapped(provider: Provider, item: Raw): Song | null {
 }
 const songsOf = (provider: Provider, items: unknown): Song[] =>
   entries(items).flatMap((item) => mapped(provider, item) ?? []);
-export async function searchCatalog(provider: Provider, term: string, country?: string): Promise<Song[]> {
-  const r = await api(provider, "search", term, country);
-  return songsOf(provider, r.results || r.data || r.collection || r.response?.docs || r);
+export async function searchCatalog(provider: Provider, term: string, country?: string, kind: "track" | "album" | "playlist" = "track"): Promise<Song[]> {
+  const r = await api(provider, kind === "album" ? "searchAlbums" : kind === "playlist" ? "searchPlaylists" : "search", term, country);
+  if (kind === "track") return songsOf(provider, r.results || r.data || r.collection || r.response?.docs || r);
+  return entries(r.results?.playlists?.data || r.results || r.data).flatMap((item) => {
+    const a = item.attributes ?? item;
+    const title = a.collectionName || a.title || a.name;
+    const url = https(a.collectionViewUrl || a.link || a.url);
+    if (typeof title !== "string" || !url || parseProviderLink(url)?.source !== provider) return [];
+    return [{
+      title,
+      url,
+      artist: a.artistName || a.artist?.name || a.creator?.name || a.curatorName || "",
+      durationMs: 0,
+      image: https(a.artworkUrl100 || a.cover_medium || a.picture_medium || a.artwork?.url?.replace("{w}", "300").replace("{h}", "300")),
+    }];
+  });
 }
 export const scLikes = async () => {
   const r = await api("soundcloud", "liked", "");
@@ -325,8 +339,9 @@ export async function providerCollection(link: Link, signal?: AbortSignal): Prom
   if (provider === "deezer" && (link.kind === "album" || link.kind === "playlist")) {
     base.tracks = await api(provider, link.kind === "album" ? "albumTracks" : "playlistTracks", link.id, link.country);
   }
-  if (provider === "soundcloud" && link.kind === "playlist" && base.id) {
-    const trackPage = await api(provider, "playlistTracks", String(base.id), link.country, 0);
+  const soundcloudPlaylistId = provider === "soundcloud" && link.kind === "playlist" ? entityId(base, "playlist") : "";
+  if (soundcloudPlaylistId) {
+    const trackPage = await api("soundcloud", "playlistTracks", soundcloudPlaylistId, link.country, 0);
     // The playlist's track endpoint returns complete records instead of ID-only stubs.
     if (trackPage.collection || Array.isArray(trackPage)) base.tracks = trackPage;
   }
@@ -335,6 +350,12 @@ export async function providerCollection(link: Link, signal?: AbortSignal): Prom
     return { title: songs[0]?.title || title, songs };
   }
   let page = base.tracks || base;
+  if (provider === "apple" && link.kind === "playlist") {
+    const playlist = entries(raw.data)[0];
+    if (!playlist) throw new Error("Apple Music didn't share this playlist.");
+    title = playlist.attributes?.name || title;
+    page = playlist.relationships?.tracks ?? await api(provider, "playlistTracks", link.id, link.country);
+  }
   let items = raw.results || page.data || page.collection || (Array.isArray(page) ? page : []);
   const songs = songsOf(provider, items);
   let next = page.next || page.next_href || page.paging?.next,

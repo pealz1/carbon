@@ -11,11 +11,14 @@
     homes,
     names,
     openPlayer,
+    parseProviderLink,
+    providerCollection,
     resolveProviderLink,
     scLikes,
     scPlaylists,
     searchCatalog,
     type Link,
+    type Collection,
     type Provider,
     type Song,
   } from "./catalog";
@@ -23,6 +26,7 @@
   let { provider }: { provider: Provider } = $props();
   let query = $state(""),
     country = $state("us"),
+    resultKind = $state<"track" | "album" | "playlist">("track"),
     rows = $state<Song[]>([]),
     sets = $state<{ title: string; url?: string }[]>([]);
   let selected = $state<Link | null>(null),
@@ -31,7 +35,14 @@
     problem = $state("");
   let appKey = $state(""),
     secret = $state(""),
-    connected = $state({ soundcloud: false, soundcloudUser: false });
+    connected = $state({ apple: false, soundcloud: false, soundcloudUser: false });
+  const TRACKS_PER_PAGE = 100;
+  let selectionTracks = $state<Collection | null>(null),
+    visibleTracks = $state(TRACKS_PER_PAGE);
+  const canShowTracks = $derived(
+    (selected?.kind === "album" && (provider === "apple" || provider === "deezer" || provider === "archive")) ||
+    (selected?.kind === "playlist" && (provider === "deezer" || provider === "mixcloud" || (provider === "apple" && connected.apple))),
+  );
   const library = $derived(
     {
       soundcloud: homes.soundcloud + "you/library",
@@ -73,6 +84,8 @@
     });
     if (link && link.source === provider) {
       selected = link;
+      selectionTracks = null;
+      visibleTracks = TRACKS_PER_PAGE;
       problem = "";
     } else problem = "Choose a link from " + names[provider] + ".";
   }
@@ -88,7 +101,7 @@
         await openPlayer(provider, "https://soundcloud.com/search?" + new URLSearchParams({ q: term }));
         return;
       }
-      rows = await searchCatalog(provider, term, country);
+      rows = await searchCatalog(provider, term, country, resultKind);
       sets = [];
       searched = true;
     });
@@ -99,6 +112,7 @@
       appKey = "";
       secret = "";
       connected = await connections();
+      if (provider === "apple" && remove && resultKind === "playlist") resultKind = "track";
     });
   }
 </script>
@@ -130,6 +144,13 @@
             aria-label="Two-letter storefront country"
           />
         </label>{/if}
+      {#if provider === "apple" || provider === "deezer"}
+        <select class="input" bind:value={resultKind} aria-label="Search type">
+          <option value="track">Songs</option>
+          <option value="album">Albums</option>
+          {#if provider === "deezer" || connected.apple}<option value="playlist">Playlists</option>{/if}
+        </select>
+      {/if}
       <button class="pill" disabled={busy || !query.trim()}>Search</button>
     </div>
   </form>
@@ -178,8 +199,42 @@
         Play in {names[provider]}
       </button>
       <a class="pill" href={"/import?url=" + encodeURIComponent(selected.url)}>Import this selection</a>
-      <button class="pill" onclick={() => (selected = null)}>Close player</button>
+      {#if canShowTracks}
+        <button class="pill" disabled={busy} onclick={() => run(async () => {
+          const target = selected;
+          if (!target) return;
+          const list = await providerCollection(target);
+          if (selected?.url === target.url) selectionTracks = list;
+        })}>Show tracks</button>
+      {/if}
+      <button class="pill" onclick={() => { selected = null; selectionTracks = null; }}>Close player</button>
     </div>
+    {#if selectionTracks}
+      <div class="collection">
+        <h2>{selectionTracks.title}</h2>
+        {#if selectionTracks.songs.length}
+          <ol>
+            {#each selectionTracks.songs.slice(0, visibleTracks) as song}
+              <li>
+                {#if song.url && parseProviderLink(song.url)?.source === provider}
+                  <button class="collection-song" onclick={() => run(() => openPlayer(provider, song.url))} disabled={busy}>
+                    <strong>{song.title}</strong>
+                    {#if song.artist}<span>{song.artist}</span>{/if}
+                  </button>
+                {:else}
+                  <strong>{song.title}</strong>{#if song.artist}<span>{song.artist}</span>{/if}
+                {/if}
+              </li>
+            {/each}
+          </ol>
+          {#if visibleTracks < selectionTracks.songs.length}
+            <button class="pill" onclick={() => (visibleTracks += TRACKS_PER_PAGE)}>Show more</button>
+          {/if}
+        {:else}
+          <p>No results.</p>
+        {/if}
+      </div>
+    {/if}
   {/if}
   {#if busy}<p role="status">Loading…</p>{/if}
   {#if problem}<p role="alert">{problem}</p>{/if}
@@ -193,6 +248,19 @@
         </li>{/each}
     </ul>{/if}
   {#each sets as set}<button class="pill" onclick={() => set.url && choose(set.url)}>{set.title}</button>{/each}
+  {#if provider === "apple"}
+    <details class="plate">
+      <summary>Provider settings</summary>
+      <p>Connect a MusicKit developer token to search Apple Music playlists and load their tracks.</p>
+      <label>Developer token <input class="input" type="password" bind:value={appKey} maxlength="4096" autocomplete="off" /></label>
+      <div class="actions">
+        <button class="pill" disabled={busy || !appKey.trim()} onclick={() => saveKeys()}>Save credentials</button>
+        {#if connected.apple}
+          <button class="pill" disabled={busy} onclick={() => saveKeys(true)}>Disconnect</button>
+        {/if}
+      </div>
+    </details>
+  {/if}
   {#if provider === "soundcloud"}
     <details class="plate">
       <summary>Provider settings</summary>
@@ -281,6 +349,25 @@
   }
   .country {
     width: 4rem;
+  }
+  .collection h2 {
+    margin: 0 0 var(--sp-2);
+  }
+  .collection ol {
+    margin: 0;
+    padding-inline-start: var(--sp-5);
+  }
+  .collection li {
+    padding-block: var(--sp-1);
+  }
+  .collection li span {
+    margin-inline-start: var(--sp-2);
+    color: var(--text-muted);
+  }
+  .collection li button.collection-song {
+    display: inline;
+    padding: 0;
+    text-align: start;
   }
   iframe {
     width: 100%;

@@ -74,6 +74,11 @@ pub async fn wait_for_soundcloud_redirect() -> Result<String, String> {
     wait_for("/soundcloud-callback").await
 }
 
+#[tauri::command]
+pub async fn wait_for_tidal_redirect() -> Result<String, String> {
+    wait_for("/tidal-callback").await
+}
+
 #[cfg(test)]
 mod tests {
     use super::{CARBON_PATH, SPOTIFY_PATH, callback_query};

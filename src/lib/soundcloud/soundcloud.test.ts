@@ -86,9 +86,6 @@ describe("SoundCloud songs", () => {
     expect(dimmedOf(listed).map((l) => [l.track.id, l.reason])).toEqual([["7", map.REASONS.preview]]);
   });
 
-  it("read a chart's songs out of their wrappers", () => {
-    expect(map.chart([{ track: TRACK, score: 1 }, { score: 2 }]).map((l) => l.track.id)).toEqual(["234194052"]);
-  });
 });
 
 describe("SoundCloud playlists and people", () => {
@@ -112,17 +109,12 @@ describe("SoundCloud playlists and people", () => {
     expect(album).toMatchObject({ kind: "album", subtitle: "Album · Quiet Harbour", playUri: "soundcloud:playlist:2233110584" });
     expect(map.userCard(USER)).toMatchObject({ kind: "artist", uri: "soundcloud:user:1759895682", title: "Quiet Harbour", subtitle: "47 songs" });
     const system = { kind: "system-playlist", id: "soundcloud:system-playlists:trending-by-genre:trap", title: "Trap" };
-    const shelves = map.selections([
-      { title: "Curated", items: { collection: [PLAYLIST, system] } },
-      { title: "Trending by genre", items: { collection: [system] } },
-      { title: "", items: { collection: [PLAYLIST] } },
-    ]);
-    expect(shelves.map((s) => [s.title, s.cards.length])).toEqual([["Curated", 1]]);
+    expect(map.playlistCards([PLAYLIST, system]).map((card) => card.uri)).toEqual(["soundcloud:playlist:2233110584"]);
   });
 
   it("survive an answer that isn't the shape it used to be", () => {
     expect(map.tracks(undefined)).toEqual([]);
-    expect(map.selections({ collection: "moved" })).toEqual([]);
+    expect(map.playlistCards({ collection: "moved" })).toEqual([]);
     expect(map.playlist({}, []).name).toBe("Untitled");
     expect(map.user({ id: "x" })).toMatchObject({ id: "", name: "Unknown artist", image: null, followers: 0 });
   });

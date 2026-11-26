@@ -263,7 +263,7 @@
     isolation: isolate;
     min-height: 0;
     margin-right: var(--inset);
-    border-radius: var(--r-lg);
+    border-radius: var(--r-md);
     box-shadow:
       0 0 0 1px var(--stage-edge),
       0 30px 80px -40px rgb(0 0 0 / 0.9);
@@ -307,7 +307,7 @@
   }
 
   main {
-    --page-x: 48px;
+    --page-x: var(--sp-5);
     height: 100%;
     overflow-y: auto;
     padding: 0 var(--page-x) var(--sp-6);
@@ -315,9 +315,9 @@
     view-transition-name: page;
   }
 
-  @container stage (max-width: 980px) {
+  @container stage (max-width: 670px) {
     main {
-      --page-x: var(--sp-5);
+      --page-x: var(--sp-4);
     }
   }
 

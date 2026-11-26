@@ -41,6 +41,7 @@ async function enqueue(track: Track, later = false): Promise<void> {
 export async function addToPlaylist(playlist: Card, videoIds: string[]): Promise<boolean> {
   try {
     await api.addToPlaylist(playlist.id, videoIds);
+    youtube.playlistChanged(playlist.id);
     toasts.show(`Added to ${playlist.title}.`);
     return true;
   } catch (e) {
@@ -88,6 +89,7 @@ async function removeFrom(playlist: { id: string; name: string }, track: YtTrack
   if (!track.setVideoId) return false;
   try {
     await api.removeFromPlaylist(playlist.id, [{ videoId: track.id, setVideoId: track.setVideoId }]);
+    youtube.playlistChanged(playlist.id);
     toasts.show(`Removed from ${playlist.name}.`);
     return true;
   } catch (e) {

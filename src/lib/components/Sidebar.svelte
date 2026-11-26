@@ -85,7 +85,7 @@
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    height: 38px;
+    height: 34px;
     padding: 0 var(--sp-3) 0 var(--sp-4);
     border-radius: var(--r-pill);
     background: var(--chrome-field);
@@ -166,9 +166,9 @@
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    min-height: 40px;
+    min-height: 32px;
     padding: 0 var(--sp-2) 0 calc(var(--sp-3) + var(--depth, 0) * var(--sp-3));
-    border-radius: var(--r-lg);
+    border-radius: var(--r-md);
     color: var(--chrome-text);
     font-size: var(--fs-body);
     font-weight: 500;

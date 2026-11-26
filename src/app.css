@@ -139,8 +139,8 @@
   --press-held: 0.985;
 
   /* Layout */
-  --titlebar-h: 56px;
-  --sidebar-w: 240px;
+  --titlebar-h: 50px;
+  --sidebar-w: 236px;
   --rail-w: 68px;
   --player-h: 96px;
   --lyrics-w: 340px;

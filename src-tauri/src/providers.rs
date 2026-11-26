@@ -11,6 +11,8 @@ const SC_APP: &str = "soundcloud-api-app";
 const SC_SESSION: &str = "soundcloud-api-refresh";
 const SC_CALLBACK: &str = "http://127.0.0.1:8888/soundcloud-callback";
 const SC_TOKEN: &str = "https://secure.soundcloud.com/oauth/token";
+const APPLE_TOKEN: &str = "apple-music-developer-token";
+const APPLE_API: &str = "https://api.music.apple.com";
 const MAX_BODY: usize = 8 * 1024 * 1024;
 /// Tidal's share pages are about 10 KB; anything far larger isn't one.
 const MAX_PAGE: usize = 512 * 1024;
@@ -62,6 +64,7 @@ fn allowed(url: &Url, hosts: &[&str]) -> bool {
 pub struct Catalog {
     http: Client,
     soundcloud: Mutex<Option<(Instant, String)>>,
+    soundcloud_playlist_edits: Mutex<()>,
 }
 impl Catalog {
     pub fn new() -> Self {
@@ -72,6 +75,7 @@ impl Catalog {
                 .build()
                 .expect("create provider HTTP client"),
             soundcloud: Mutex::default(),
+            soundcloud_playlist_edits: Mutex::default(),
         }
     }
     async fn soundcloud_token(&self) -> Result<String, String> {
@@ -104,6 +108,17 @@ fn sc_app() -> Result<(String, String), String> {
     let value = token_store::load(SC_APP)?
         .ok_or("Connect a registered SoundCloud app in provider settings, or open the SoundCloud player.")?;
     serde_json::from_str(&value).map_err(|_| "Reconnect the SoundCloud app in provider settings.".into())
+}
+fn apple_token() -> Result<String, String> {
+    token_store::load(APPLE_TOKEN)?
+        .ok_or("Connect an Apple Music developer token in Apple Music provider settings to load catalog playlists.".into())
+}
+fn apple_token_valid(token: &str) -> bool {
+    token.len() <= 4096
+        && token.split('.').count() == 3
+        && token.split('.').all(|part| {
+            !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_alphanumeric() || b"-_".contains(&byte))
+        })
 }
 fn sc_token(response: &Value, user: bool) -> Result<(Instant, String), String> {
     let token = response["access_token"].as_str().ok_or("SoundCloud did not return an access token.")?;
@@ -144,12 +159,14 @@ async fn json_response(response: reqwest::Response, name: &str) -> Result<Value,
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Connections {
+    apple: bool,
     soundcloud: bool,
     soundcloud_user: bool,
 }
 #[tauri::command]
 pub fn provider_connections() -> Result<Connections, String> {
     Ok(Connections {
+        apple: token_store::load(APPLE_TOKEN)?.is_some(),
         soundcloud: token_store::load(SC_APP)?.is_some(),
         soundcloud_user: token_store::load(SC_SESSION)?.is_some(),
     })
@@ -162,7 +179,15 @@ pub async fn provider_credentials(
     secret: String,
 ) -> Result<(), String> {
     match provider {
-        Provider::Apple => Err("Apple Music uses its official web player.".into()),
+        Provider::Apple => {
+            if key.is_empty() {
+                token_store::clear(APPLE_TOKEN)
+            } else if apple_token_valid(&key) {
+                token_store::save(APPLE_TOKEN, &key)
+            } else {
+                Err("Enter a signed Apple Music developer token.".into())
+            }
+        }
         Provider::Soundcloud => {
             let mut cached = catalog.soundcloud.lock().await;
             if key.is_empty() {
@@ -236,6 +261,8 @@ pub async fn provider_open(app: AppHandle, provider: Provider, address: String) 
 #[serde(rename_all = "camelCase")]
 pub enum Request {
     Search,
+    SearchAlbums,
+    SearchPlaylists,
     Album,
     Playlist,
     Track,
@@ -269,6 +296,18 @@ fn slug(value: &str) -> bool {
         && value != "."
         && value != ".."
         && value.bytes().all(|b| b.is_ascii_alphanumeric() || b"-_.".contains(&b))
+}
+fn apple_playlist_id(id: &str) -> bool {
+    id.strip_prefix("pl.").is_some_and(|rest| {
+        !rest.is_empty() && rest.len() < 200 && rest.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+    })
+}
+
+fn apple_playlist_page(url: &Url) -> bool {
+    let Some(segments) = url.path_segments() else { return false };
+    let parts = segments.collect::<Vec<_>>();
+    matches!(parts.as_slice(), ["v1", "catalog", country, "playlists", id, "tracks"]
+        if country.len() == 2 && country.bytes().all(|b| b.is_ascii_alphabetic()) && apple_playlist_id(id))
 }
 #[tauri::command]
 pub async fn provider_catalog(catalog: State<'_, Catalog>, query: Query) -> Result<Value, String> {
@@ -308,27 +347,37 @@ pub async fn provider_catalog(catalog: State<'_, Catalog>, query: Query) -> Resu
             _ => return Err("Choose an Internet Archive audio item.".into()),
         },
         Provider::Apple => match action {
-            Search if !id.is_empty() => catalog.http.get("https://itunes.apple.com/search").query(&[
+            Search | SearchAlbums if !id.is_empty() => catalog.http.get("https://itunes.apple.com/search").query(&[
                 ("term", id),
-                ("entity", "song"),
+                ("media", "music"),
+                ("entity", if matches!(action, SearchAlbums) { "album" } else { "song" }),
                 ("country", &country),
                 ("limit", "50"),
             ]),
+            SearchPlaylists if !id.is_empty() => catalog.http
+                .get(format!("{APPLE_API}/v1/catalog/{country}/search"))
+                .bearer_auth(apple_token()?)
+                .query(&[("term", id), ("types", "playlists"), ("limit", "25")]),
             Track | Album | Artist if numeric(id) => catalog.http.get("https://itunes.apple.com/lookup").query(&[
                 ("id", id),
                 ("entity", if matches!(action, Artist) { "album" } else { "song" }),
                 ("country", &country),
                 ("limit", "200"),
             ]),
-            Playlist => return Err(
-                "Open this playlist in Apple Music and export it as XML or text. Choose the file in Carbon to import its tracks."
-                    .into(),
-            ),
+            Playlist if apple_playlist_id(id) => catalog.http
+                .get(format!("{APPLE_API}/v1/catalog/{country}/playlists/{id}"))
+                .bearer_auth(apple_token()?)
+                .query(&[("include", "tracks")]),
+            PlaylistTracks if apple_playlist_id(id) => catalog.http
+                .get(format!("{APPLE_API}/v1/catalog/{country}/playlists/{id}/tracks"))
+                .bearer_auth(apple_token()?),
             _ => return Err("Unsupported Apple Music item.".into()),
         },
         Provider::Deezer => {
             let path = match action {
                 Search if !id.is_empty() => "search".to_owned(),
+                SearchAlbums if !id.is_empty() => "search/album".to_owned(),
+                SearchPlaylists if !id.is_empty() => "search/playlist".to_owned(),
                 PlaylistTracks if numeric(id) => format!("playlist/{id}/tracks"),
                 AlbumTracks if numeric(id) => format!("album/{id}/tracks"),
                 Album if numeric(id) && offset > 0 => format!("album/{id}/tracks"),
@@ -385,7 +434,7 @@ async fn catalog_page(catalog: &Catalog, provider: Provider, address: &str) -> R
     let host = match provider {
         Provider::Mixcloud => "api.mixcloud.com",
         Provider::Archive => return Err("This archive item has no more pages.".into()),
-        Provider::Apple => return Err("This Apple Music item has no more public pages.".into()),
+        Provider::Apple => "api.music.apple.com",
         Provider::Deezer => "api.deezer.com",
         Provider::Soundcloud => "api.soundcloud.com",
     };
@@ -401,10 +450,12 @@ async fn catalog_page(catalog: &Catalog, provider: Provider, address: &str) -> R
     let permitted = match provider {
         Provider::Mixcloud => url.path().trim_matches('/').split('/').all(slug),
         Provider::Archive => false,
-        Provider::Apple => false,
+        Provider::Apple => apple_playlist_page(&url),
         Provider::Deezer => ["/playlist/", "/album/", "/artist/", "/track/", "/search"].iter().any(|p| url.path().starts_with(p)),
         Provider::Soundcloud => {
-            ["/tracks", "/playlists/", "/users/", "/me/likes/tracks", "/me/playlists"].iter().any(|p| url.path().starts_with(p))
+            let path = url.path();
+            matches!(path, "/tracks" | "/playlists" | "/users" | "/me/likes/tracks" | "/me/likes/playlists" | "/me/playlists")
+                || ["/tracks/", "/playlists/", "/users/"].iter().any(|prefix| path.starts_with(prefix))
         }
     };
     if !allowed(&url, &[host]) || !permitted || url.fragment().is_some() {
@@ -412,7 +463,7 @@ async fn catalog_page(catalog: &Catalog, provider: Provider, address: &str) -> R
     }
     let mut req = catalog.http.get(url);
     match provider {
-        Provider::Apple => unreachable!(),
+        Provider::Apple => req = req.bearer_auth(apple_token()?),
         Provider::Soundcloud => req = req.header("Authorization", format!("OAuth {}", catalog.soundcloud_token().await?)),
         Provider::Deezer | Provider::Mixcloud | Provider::Archive => {}
     }
@@ -499,7 +550,7 @@ pub async fn provider_soundcloud_metadata(catalog: State<'_, Catalog>, value: St
     Ok(Some(serde_json::json!({"title":info["title"],"author":info["author_name"],"image":info["thumbnail_url"]})))
 }
 
-/// Compatibility with saved Carbon artist and playlist links, using SoundCloud's documented resources.
+/// Catalog and account resources used by the native SoundCloud pages.
 #[tauri::command]
 pub async fn soundcloud_get(catalog: State<'_, Catalog>, path: String, params: Vec<(String, String)>) -> Result<Value, String> {
     let parts: Vec<_> = path.split('/').collect();
@@ -507,24 +558,114 @@ pub async fn soundcloud_get(catalog: State<'_, Catalog>, path: String, params: V
         ["search", kind @ ("tracks" | "playlists" | "users")] => kind.to_string(),
         ["tracks"] => "tracks".into(),
         ["playlists", id] if numeric(id) => format!("playlists/soundcloud:playlists:{id}"),
+        ["playlists", id, "tracks"] if numeric(id) => format!("playlists/soundcloud:playlists:{id}/tracks"),
         ["users", id] if numeric(id) => format!("users/soundcloud:users:{id}"),
         ["users", id, list @ ("tracks" | "playlists")] if numeric(id) => format!("users/soundcloud:users:{id}/{list}"),
+        ["me"] | ["me", "playlists"] | ["me", "likes", "tracks" | "playlists"] | ["me", "recently-played", "tracks"] => {
+            if token_store::load(SC_SESSION)?.is_none() {
+                return Err("Sign in to SoundCloud to open your library.".into());
+            }
+            path.clone()
+        }
         _ => return Err("Choose a track, playlist, or artist from SoundCloud.".into()),
     };
     if params.len() > 4
         || !params
             .iter()
-            .all(|(k, v)| matches!(k.as_str(), "q" | "limit" | "ids") && v.len() <= 1024 && !v.chars().any(char::is_control))
+            .all(|(k, v)| matches!(k.as_str(), "q" | "limit" | "urns" | "show_tracks" | "access") && v.len() <= 1600 && !v.chars().any(char::is_control))
     {
         return Err("Invalid SoundCloud search.".into());
     }
-    let request = catalog
+    let mut request = catalog
         .http
         .get(format!("https://api.soundcloud.com/{endpoint}"))
         .query(&params)
-        .query(&[("linked_partitioning", "true")])
         .header("Authorization", format!("OAuth {}", catalog.soundcloud_token().await?));
+    if !matches!(parts.as_slice(), ["me"] | ["me", "recently-played", "tracks"] | ["playlists" | "users", _]) {
+        request = request.query(&[("linked_partitioning", "true")]);
+    }
     json(request, "SoundCloud").await
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum SoundcloudPlaylistChange {
+    Create { title: String },
+    Rename { id: String, title: String },
+    UpdateTracks { id: String, track: String, add: bool },
+}
+
+fn soundcloud_playlist_title(title: &str) -> Result<&str, String> {
+    let title = title.trim();
+    if title.is_empty() || title.chars().count() > 200 || title.chars().any(char::is_control) {
+        return Err("Enter a playlist name of up to 200 characters.".into());
+    }
+    Ok(title)
+}
+
+fn soundcloud_track_urn(row: &Value) -> Option<String> {
+    row["urn"].as_str()
+        .and_then(|urn| urn.strip_prefix("soundcloud:tracks:"))
+        .filter(|id| numeric(id))
+        .map(str::to_owned)
+        .or_else(|| row["id"].as_u64().map(|id| id.to_string()))
+        .or_else(|| row["id"].as_str().filter(|id| numeric(id)).map(str::to_owned))
+        .map(|id| format!("soundcloud:tracks:{id}"))
+}
+
+fn soundcloud_playlist_tracks(playlist: &Value, track: &str, add: bool) -> Result<Option<Value>, String> {
+    if !numeric(track) {
+        return Err("Choose a track from SoundCloud.".into());
+    }
+    let incomplete = || "SoundCloud didn't share the complete playlist, so Carbon couldn't change its track list.".to_string();
+    let rows = playlist["tracks"].as_array().ok_or_else(incomplete)?;
+    if playlist["track_count"].as_u64() != Some(rows.len() as u64) {
+        return Err(incomplete());
+    }
+    let mut urns: Vec<_> = rows.iter().map(soundcloud_track_urn).collect::<Option<_>>().ok_or_else(incomplete)?;
+    let target = format!("soundcloud:tracks:{track}");
+    let matches = urns.iter().position(|urn| urn == &target);
+    match (add, matches) {
+        (true, None) => urns.push(target),
+        (false, Some(index)) => { urns.remove(index); }
+        _ => return Ok(None),
+    }
+    Ok(Some(serde_json::json!({ "tracks": urns.into_iter().map(|urn| serde_json::json!({ "urn": urn })).collect::<Vec<_>>() })))
+}
+
+/// Serialize each in-app edit and use SoundCloud's latest track list for changes.
+#[tauri::command]
+pub async fn soundcloud_playlist_change(catalog: State<'_, Catalog>, change: SoundcloudPlaylistChange) -> Result<Value, String> {
+    let _guard = catalog.soundcloud_playlist_edits.lock().await;
+    if token_store::load(SC_SESSION)?.is_none() {
+        return Err("Sign in to SoundCloud to edit your playlists.".into());
+    }
+    let auth = format!("OAuth {}", catalog.soundcloud_token().await?);
+    let title_payload = |title: &str| soundcloud_playlist_title(title).map(|title| serde_json::json!({ "title": title }));
+    let (id, payload) = match change {
+        SoundcloudPlaylistChange::Create { title } => {
+            let payload = serde_json::json!({ "playlist": { "title": soundcloud_playlist_title(&title)?, "sharing": "private", "tracks": [] } });
+            return json(catalog.http.post("https://api.soundcloud.com/playlists").header("Authorization", auth).json(&payload), "SoundCloud").await;
+        }
+        SoundcloudPlaylistChange::Rename { id, title } => (id, title_payload(&title)?),
+        SoundcloudPlaylistChange::UpdateTracks { id, track, add } => {
+            if !numeric(&id) {
+                return Err("Choose a playlist from SoundCloud.".into());
+            }
+            let url = format!("https://api.soundcloud.com/playlists/soundcloud:playlists:{id}");
+            let request = catalog.http.get(url).query(&[("show_tracks", "true"), ("access", "playable,preview,blocked")]);
+            let current = json(request.header("Authorization", &auth), "SoundCloud").await?;
+            let Some(payload) = soundcloud_playlist_tracks(&current, &track, add)? else {
+                return Ok(current);
+            };
+            (id, payload)
+        }
+    };
+    if !numeric(&id) {
+        return Err("Choose a playlist from SoundCloud.".into());
+    }
+    let request = catalog.http.put(format!("https://api.soundcloud.com/playlists/soundcloud:playlists:{id}"));
+    json(request.header("Authorization", auth).json(&serde_json::json!({ "playlist": payload })), "SoundCloud").await
 }
 /// What Tidal's public share page says about a song, album or playlist: names and artwork only.
 /// Tidal publishes no track list there, and Carbon never asks it for audio.
@@ -670,6 +811,7 @@ pub async fn tidal_shared(catalog: State<'_, Catalog>, kind: String, id: String)
 }
 
 pub async fn forget(catalog: &Catalog) -> Result<(), String> {
+    token_store::clear(APPLE_TOKEN)?;
     let mut guard = catalog.soundcloud.lock().await;
     *guard = None;
     token_store::clear(SC_SESSION)?;
@@ -678,6 +820,29 @@ pub async fn forget(catalog: &Catalog) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn soundcloud_playlist_track_edits_keep_all_existing_urns_in_order() {
+        let current = serde_json::json!({
+            "track_count": 3, "tracks": [{"urn": "soundcloud:tracks:4"}, {"id": 7}, {"id": "4"}]
+        });
+        let add = soundcloud_playlist_tracks(&current, "8", true).unwrap().unwrap();
+        assert_eq!(add["tracks"], serde_json::json!([
+            {"urn": "soundcloud:tracks:4"}, {"urn": "soundcloud:tracks:7"},
+            {"urn": "soundcloud:tracks:4"}, {"urn": "soundcloud:tracks:8"}
+        ]));
+        let remove = soundcloud_playlist_tracks(&current, "4", false).unwrap().unwrap();
+        assert_eq!(remove["tracks"], serde_json::json!([{"urn": "soundcloud:tracks:7"}, {"urn": "soundcloud:tracks:4"}]));
+        assert_eq!(soundcloud_playlist_tracks(&current, "4", true).unwrap(), None);
+    }
+
+    #[test]
+    fn soundcloud_playlist_track_edits_refuse_partial_lists() {
+        let partial = serde_json::json!({"track_count": 2, "tracks": [{"id": 4}]});
+        let missing_urn = serde_json::json!({"track_count": 1, "tracks": [{}]});
+        assert!(soundcloud_playlist_tracks(&partial, "7", true).is_err());
+        assert!(soundcloud_playlist_tracks(&missing_urn, "7", false).is_err());
+    }
     #[test]
     fn provider_windows_only_navigate_to_the_selected_service() {
         for url in [
@@ -690,6 +855,22 @@ mod tests {
         }
         assert!(allowed(&Url::parse("https://music.apple.com/us/browse").unwrap(), Provider::Apple.hosts()));
         assert!(!numeric("1/other"));
+    }
+
+    #[test]
+    fn apple_developer_tokens_and_playlist_continuations_have_strict_shapes() {
+        assert!(apple_token_valid("header.payload.signature"));
+        for token in ["header..signature", "header.payload.signature.extra", "header.payload.\n"] {
+            assert!(!apple_token_valid(token));
+        }
+        for (path, valid) in [
+            ("/v1/catalog/us/playlists/pl.u-Catalog42/tracks?offset=100", true),
+            ("/v1/catalog/us/playlists/pl.u-Catalog42/tracks/unrelated", false),
+            ("/v1/catalog/us/playlists/pl.bad%2Finjected/tracks", false),
+            ("/v1/me/library/playlists/p.Example/tracks", false),
+        ] {
+            assert_eq!(apple_playlist_page(&Url::parse(&format!("{APPLE_API}{path}")).unwrap()), valid);
+        }
     }
 
     const SONG: &str = r#"<head><title>I&#39;M THAT GIRL by Beyoncé on TIDAL</title><meta property="og:type" content="music.song"><meta property="og:title" content="Beyoncé - I&#39;M THAT GIRL"><meta property="og:image" content="https://resources.tidal.com/images/d3c4372b/640x640.jpg">

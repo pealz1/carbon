@@ -34,6 +34,7 @@ mod system_audio;
 #[cfg(windows)]
 mod taskbar;
 mod token_store;
+mod tidal;
 mod tray;
 mod visibility;
 mod yours;
@@ -122,6 +123,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(youtube::Youtube::new());
     app.manage(radio::Radio::new(&app.package_info().version.to_string()));
     app.manage(providers::Catalog::new());
+    app.manage(tidal::Tidal::new());
     app.manage(offline::Downloads::default());
     app.manage(lyrics_sources::LyricsSources::new());
     app.manage(servers::Servers::new(&app.package_info().version.to_string()));
@@ -312,7 +314,15 @@ pub fn run() {
             servers::servers_connected,
             servers::server_get,
             providers::soundcloud_get,
+            providers::soundcloud_playlist_change,
             providers::tidal_shared,
+            oauth::wait_for_tidal_redirect,
+            tidal::tidal_connected,
+            tidal::tidal_authorize,
+            tidal::tidal_disconnect,
+            tidal::tidal_read,
+            tidal::tidal_create_playlist,
+            tidal::tidal_edit_playlist_track,
             bandcamp::bandcamp_search,
             bandcamp::bandcamp_release,
             bandcamp::bandcamp_band,

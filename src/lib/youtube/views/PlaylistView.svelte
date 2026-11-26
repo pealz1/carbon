@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { untrack } from "svelte";
   import DetailHeader, { type Chip } from "$lib/components/DetailHeader.svelte";
   import Icon from "$lib/components/Icon.svelte";
   import LoadMore from "$lib/components/LoadMore.svelte";
   import Status from "$lib/components/Status.svelte";
   import TrackList from "$lib/components/TrackList.svelte";
+  import { player } from "$lib/player.svelte";
   import { resource } from "$lib/resource.svelte";
   import { saved } from "$lib/saved.svelte";
   import type { Card, Track } from "$lib/spotify/types";
@@ -16,27 +16,23 @@
   let { id }: { id: string } = $props();
 
   // One request gives both the header and the first page of songs; later pages follow tokens.
-  // svelte-ignore state_referenced_locally
-  let load = api.playlist(id);
-  const info = resource(() => load);
-  const retry = () => {
-    load = api.playlist(id);
-    info.reload();
-  };
-  const tracks = tokenPager<Track>(
-    () => load.then((p) => ({ items: p.tracks, continuation: p.continuation })),
-    (token) => api.playlistMore(token).then((p) => ({ items: p.tracks, continuation: p.continuation })),
-  );
-  // svelte-ignore state_referenced_locally
-  const liked = id === api.LIKED_PLAYLIST;
-
-  // Re-read the details after edits (renames refresh the library list).
-  let seen = false;
-  $effect(() => {
+  let revision = $state(0);
+  const load = $derived.by(() => {
+    void revision;
     void youtube.playlists;
-    if (seen) untrack(retry);
-    seen = true;
+    void youtube.playlistRevisions[id];
+    return api.playlist(id);
   });
+  const info = resource(() => load);
+  const retry = () => revision++;
+  const tracks = $derived.by(() => {
+    const request = load;
+    return tokenPager<Track>(
+      () => request.then((p) => ({ items: p.tracks, continuation: p.continuation })),
+      (token) => api.playlistMore(token).then((p) => ({ items: p.tracks, continuation: p.continuation })),
+    );
+  });
+  const liked = $derived(id === api.LIKED_PLAYLIST);
 
   // Every row of Liked Music is liked; elsewhere, use what each row says.
   $effect(() => (liked ? saved.remember(tracks.items.map((t) => t.uri), true) : rememberLikes(tracks.items)));
@@ -50,7 +46,13 @@
     return [{ label: "Playlist", icon: "note" }, ...(p.trackCount !== null ? [{ label: `${p.trackCount.toLocaleString()} ${p.trackCount === 1 ? "song" : "songs"}`, icon: "listAdd" as const }] : [])];
   });
   const owner = $derived(info.data?.ownerName || (liked ? youtube.account?.name : "") || "");
-  const dropRow = (uri: string) => (tracks.items = tracks.items.filter((t) => t.uri !== uri));
+  const playlistMenu = () => {
+    if (!card) return [];
+    const items = ytCardMenu(card);
+    const seed = tracks.items[0];
+    if (seed) items.splice(2, 0, { label: "Start radio", icon: "play", action: () => player.playContext(seed.uri) });
+    return items;
+  };
 </script>
 
 {#if liked && !youtube.signedIn}
@@ -74,7 +76,7 @@
     playUri={p.uri}
     shuffleCount={p.trackCount ?? undefined}
     share={liked ? undefined : { uri: p.uri, name: p.name }}
-    menuItems={card ? () => ytCardMenu(card!) : undefined}
+    menuItems={card ? playlistMenu : undefined}
   >
     {#snippet byline()}
       {#if owner}<span class="person"><span class="avatar"><Icon name="artist" size={15} /></span>{owner}</span>{/if}
@@ -91,10 +93,9 @@
     numbered
     tools={liked ? "Date added" : "Playlist order"}
     removeFrom={p.owned && !liked ? { id, name: p.name } : undefined}
-    onremove={dropRow}
   />
   {#if tracks.done && !tracks.items.length}<Status empty={liked ? "Songs you like on YouTube Music show up here." : "This playlist is empty."} />{/if}
-  <LoadMore pager={tracks} />
+  {#key tracks}<LoadMore pager={tracks} />{/key}
 {/if}
 
 <style>

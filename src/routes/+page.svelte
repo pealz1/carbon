@@ -2,6 +2,7 @@
   import { onMount, untrack } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import Icon from "$lib/components/Icon.svelte";
   import PillRow, { type Pill } from "$lib/components/PillRow.svelte";
   import Shelf from "$lib/components/Shelf.svelte";
   import Status from "$lib/components/Status.svelte";
@@ -104,6 +105,8 @@
     ...(loved.data && loved.data.length >= ON_REPEAT_COUNT ? [{ id: "favourites", title: "All-time favourites", tracks: loved.data, hue: FAVOURITES_HUE }] : []),
     ...dailyMixes(history.entries, Date.now()).map((m) => ({ id: `daily-${m.service}`, title: m.title, tracks: m.tracks.map(trackOf), hue: DAILY_HUE })),
   ]);
+  const moodMixes = $derived(mixes.filter((mix) => Object.hasOwn(MOOD_HUES, mix.id)));
+  const dailyPlaylists = $derived(mixes.filter((mix) => !Object.hasOwn(MOOD_HUES, mix.id)));
 
   const pills = $derived<Pill[]>([
     { id: "all", label: "All" },
@@ -127,6 +130,7 @@
 
 <header class="hero">
   <h1>{greeting(new Date())}{firstName ? `, ${firstName}` : ""}</h1>
+  <a class="home-settings" href="/settings" aria-label="Settings" title="Settings"><Icon name="settings" size={19} /></a>
 </header>
 
 <PillRow {pills} current={show} label="Shelves" onpick={pick} />
@@ -137,8 +141,14 @@
   <Status error={recent.error} onretry={recent.reload} />
 {/if}
 
-{#if all || show === "recent"}<Recents title="Jump back in" cards={recents} open={!all} />{/if}
+{#if all || show === "recent"}<Recents title="Recently played" cards={recents} open={!all} />{/if}
+{#if all}
+  <MixTiles title="Select a mood" mixes={moodMixes} onopen={pick} mood />
+  <MixTiles title="Made for you" mixes={dailyPlaylists} onopen={pick} />
+{/if}
+{#if all || show === "picks"}<Shelf title="We think you'll like this" cards={pickCards} feature={all} wrap={!all} />{/if}
 {#if all || show === "based"}<Shelf title="Based on your recent music" cards={basedCards} wrap={!all} />{/if}
+{#if all || show === "new"}<ReleasesShelf />{/if}
 {#if all || show === "radio"}<RadioRow title="Your radio" artists={artists.data ?? []} wrap={!all} />{/if}
 
 {#if all && top.data?.length}
@@ -150,9 +160,6 @@
   </section>
 {/if}
 
-{#if all || show === "picks"}<Shelf title="We think you'll like this" cards={pickCards} wrap={!all} />{/if}
-{#if all}<MixTiles title="Made for you" {mixes} onopen={pick} />{/if}
-
 {#if openMix}
   <section class="list">
     <header class="mix-head">
@@ -163,13 +170,16 @@
   </section>
 {/if}
 
-{#if all || show === "new"}<ReleasesShelf />{/if}
 {#if all}<Shelf title="Artists in your orbit" cards={artists.data ?? []} />{/if}
 {#if all || show === "playlists"}<Shelf title="Your playlists" cards={playlistCards} wrap={!all} />{/if}
 
 <style>
   .hero {
-    padding: var(--sp-6) 0 var(--sp-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-4);
+    padding: clamp(26px, 5cqw, 48px) 0 var(--sp-4);
   }
 
   h1 {
@@ -177,6 +187,19 @@
     font-weight: 800;
     line-height: 1.05;
   }
+
+  .home-settings {
+    display: grid;
+    flex: none;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: var(--r-pill);
+    box-shadow: inset 0 0 0 1px var(--glass-edge);
+    color: var(--text-muted);
+  }
+
+  .home-settings:hover { color: var(--text); background: var(--glass-hover); }
 
   .list {
     margin-bottom: var(--sp-6);

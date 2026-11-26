@@ -12,6 +12,11 @@
   const on = $derived(services.value ?? { spotify: false, youtube: false });
   const spotifyPending = $derived(on.spotify && session.status !== "signed-in");
   let busy = $state(false);
+  const providers = [
+    { label: "SoundCloud", href: "/soundcloud" },
+    { label: "TIDAL", href: "/tidal" },
+    { label: "Apple Music", href: "/apple" },
+  ];
 
   async function set(service: "spotify" | "youtube", value: boolean) {
     busy = true;
@@ -41,4 +46,9 @@
       </Row>
     {/if}
   {/if}
+  {#each providers as provider (provider.href)}
+    <Row label={provider.label} keywords="streaming connect developer sign in">
+      <a class="pill" href={provider.href}>Provider settings</a>
+    </Row>
+  {/each}
 </Group>

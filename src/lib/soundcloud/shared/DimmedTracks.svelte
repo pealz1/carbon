@@ -1,10 +1,12 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
+  import type { Track } from "$lib/spotify/types";
   import type { Listed } from "./listed";
 
   // Songs a service lists but Carbon can't play (a preview, a protected stream, no stream at all).
   // They stay visible so a list is honest about what it holds: folded away, dimmed, each with its
   // reason. They have no play button and never enter the queue.
-  let { songs, service }: { songs: Listed[]; service: string } = $props();
+  let { songs, service, rowAction }: { songs: Listed[]; service: string; rowAction?: Snippet<[Track]> } = $props();
   const summary = $derived(songs.length === 1 ? `1 song ${service} doesn't let Carbon play` : `${songs.length} songs ${service} doesn't let Carbon play`);
 </script>
 
@@ -19,6 +21,7 @@
             <span class="artists">{track.artists.map((a) => a.name).join(", ")}</span>
           </span>
           <span class="reason">{reason}</span>
+          {@render rowAction?.(track)}
         </li>
       {/each}
     </ul>
@@ -75,7 +78,7 @@
 
   li {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: var(--sp-4);
     min-height: 50px;

@@ -86,6 +86,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/history", label: "History", icon: "clock", group: "you" },
       // Sources, under Search: listening on the open web, no account needed.
       { href: "/soundcloud", label: "SoundCloud", icon: "cloud", group: "search" },
+      { href: "/tidal", label: "TIDAL", icon: "note", group: "search" },
       { href: "/apple", label: "Apple Music", icon: "note", group: "search" },
       { href: "/deezer", label: "Deezer", icon: "equalizer", group: "search" },
       { href: "/mixcloud", label: "Mixcloud", icon: "radio", group: "search" },

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // A glass panel floating above a player-bar button (devices, sleep timer). Closes on Esc, a click
+  // A glass panel anchored to a toolbar button (devices, sleep timer). Closes on Esc, a click
   // elsewhere or leaving the window, and hands focus back to its button.
   import type { Snippet } from "svelte";
   import { fly } from "svelte/transition";
@@ -10,11 +10,16 @@
   const GAP = 10;
   const MARGIN = 8;
   let panel = $state<HTMLElement>();
-  let place = $state({ right: MARGIN, bottom: 0 });
+  let place = $state({ right: MARGIN, vertical: 0, below: false });
 
   $effect(() => {
     const rect = anchor.getBoundingClientRect();
-    place = { right: Math.max(MARGIN, innerWidth - rect.right - MARGIN), bottom: innerHeight - rect.top + GAP };
+    const below = innerHeight - rect.bottom > rect.top;
+    place = {
+      right: Math.max(MARGIN, innerWidth - rect.right - MARGIN),
+      vertical: below ? rect.bottom + GAP : innerHeight - rect.top + GAP,
+      below,
+    };
     panel?.querySelector<HTMLElement>("button:not(:disabled), input")?.focus();
     return () => anchor.focus();
   });
@@ -31,9 +36,11 @@
   class="popover glass"
   role="dialog"
   aria-label={label}
-  style="right: {place.right}px; bottom: {place.bottom}px"
+  style:right="{place.right}px"
+  style:top={place.below ? `${place.vertical}px` : undefined}
+  style:bottom={place.below ? undefined : `${place.vertical}px`}
   use:keepInView
-  transition:fly={{ y: 8, duration: 200 }}
+  transition:fly={{ y: place.below ? -8 : 8, duration: 200 }}
 >
   {@render children()}
 </div>

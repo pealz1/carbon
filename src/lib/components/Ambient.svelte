@@ -11,9 +11,8 @@
   import { bassLevel, breathSeconds, pace, smooth } from "$lib/song-pulse";
   import { css } from "$lib/wallpaper";
 
-  // The window's wallpaper: the chrome is drawn straight on it. Black with nothing loaded; with a
-  // track, four colour fields read from its artwork (never the artwork itself) drift slowly and
-  // cross-fade when the song changes. Only transform and opacity animate.
+  // The window's wallpaper uses four colour fields, with a blurred layer for local artwork.
+  // The colour fields cross-fade when the song changes. Only transform and opacity animate.
   // Reactive: the fields drift with the song's tempo, energy and volume, the light breathes once a
   // bar, and local files add their real bass. Cinema moves faster and keeps its light in every theme.
   let { image, playing, reactive = false, cinema = false }: { image: string | null; playing: boolean; reactive?: boolean; cinema?: boolean } = $props();
@@ -88,6 +87,11 @@
 </script>
 
 <div class="wallpaper" class:paused={!onScreen.current || !playing} class:cinema aria-hidden="true" bind:this={wallpaper}>
+  {#if image && player.source === "local" && lit && !cinema && prefs.effects === "full"}
+    {#key image}
+      <img class="backdrop-art" src={image} alt="" decoding="async" in:fade={{ duration: 1000 }} out:fade={{ duration: 1000 }} />
+    {/key}
+  {/if}
   <div class="pulse" bind:this={pulse}>
   {#key style}
     {#if style}
@@ -100,6 +104,7 @@
     {/if}
   {/key}
   </div>
+  <div class="vignette"></div>
   <div class="grain"></div>
 </div>
 
@@ -129,9 +134,38 @@
 
   .pulse,
   .wash,
-  .grain {
+  .grain,
+  .vignette {
     position: absolute;
     inset: 0;
+  }
+
+  .backdrop-art {
+    position: absolute;
+    inset: -12%;
+    width: 124%;
+    height: 124%;
+    object-fit: cover;
+    opacity: 0.48;
+    filter: blur(78px) saturate(1.42) brightness(0.57);
+  }
+
+  .paused .backdrop-art {
+    opacity: 0.22;
+  }
+
+  :global([data-theme="dynamic-oled"]) .paused .backdrop-art { opacity: 0; }
+
+  .vignette {
+    display: none;
+    background: radial-gradient(ellipse at 50% 44%, transparent 35%, rgb(0 0 0 / 0.52) 100%);
+  }
+
+  .wallpaper:has(.wash):not(.cinema) .vignette { display: block; }
+
+  :global([data-theme]:not([data-theme="dynamic"], [data-theme="dynamic-oled"])) .wallpaper:not(.cinema) .vignette,
+  :global([data-effects="minimal"]) .vignette {
+    display: none;
   }
 
   /* Bass scales from the middle; the engine's ~30 updates a second glide into each other. */
@@ -143,6 +177,14 @@
   .wash {
     background: var(--f2);
     transition: opacity var(--dur-slow) var(--ease-out);
+  }
+
+  .wallpaper:not(.cinema) .wash {
+    background: color-mix(in srgb, var(--f2) 68%, transparent);
+  }
+
+  :global([data-effects="minimal"]) .wallpaper:not(.cinema) .wash {
+    background: var(--f2);
   }
 
   /* Paused keeps the colour but lowers it, so the frame itself says whether music is playing. */
@@ -162,29 +204,29 @@
   }
 
   .a {
-    left: -7vmax;
-    top: -15vmax;
+    left: -14vmax;
+    top: -20vmax;
     background: radial-gradient(closest-side, var(--f0), transparent);
     animation: drift-a 62s ease-in-out infinite alternate;
   }
 
   .b {
-    right: -11vmax;
-    top: -19vmax;
+    right: -15vmax;
+    top: -12vmax;
     background: radial-gradient(closest-side, var(--f1), transparent);
     animation: drift-b 78s ease-in-out infinite alternate;
   }
 
   .c {
-    left: -11vmax;
-    bottom: -21vmax;
+    left: -16vmax;
+    bottom: -11vmax;
     background: radial-gradient(closest-side, var(--f3), transparent);
     animation: drift-c 70s ease-in-out infinite alternate;
   }
 
   .d {
-    right: -5vmax;
-    bottom: -25vmax;
+    right: -16vmax;
+    bottom: -23vmax;
     background: radial-gradient(closest-side, var(--f0), transparent);
     animation: drift-d 86s ease-in-out infinite alternate;
   }
@@ -254,6 +296,7 @@
   /* Film grain: on the wallpaper, so it shows on the chrome and never on artwork above it. */
   .grain {
     background-image: var(--grain);
+    opacity: 0.52;
   }
 
   /* Balanced: the same light, standing still. */

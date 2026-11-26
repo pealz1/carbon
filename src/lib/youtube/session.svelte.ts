@@ -18,6 +18,7 @@ class YoutubeSession {
   signedIn = $state(false);
   account = $state<YtAccount | null>(null);
   playlists = $state<Card[]>([]);
+  playlistRevisions = $state<Record<string, number>>({});
   busy = $state(false);
   error = $state<string | null>(null);
   dialog = $state<YtDialog | null>(null);
@@ -26,6 +27,10 @@ class YoutubeSession {
   /** Playlists you can add songs to: your library minus Liked Music. */
   get editable(): Card[] {
     return this.playlists.filter((p) => p.id !== api.LIKED_PLAYLIST);
+  }
+
+  playlistChanged(id: string): void {
+    this.playlistRevisions[id] = (this.playlistRevisions[id] ?? 0) + 1;
   }
 
   async boot(): Promise<void> {
@@ -78,6 +83,7 @@ class YoutubeSession {
     this.signedIn = false;
     this.account = null;
     this.playlists = [];
+    this.playlistRevisions = {};
   }
 }
 

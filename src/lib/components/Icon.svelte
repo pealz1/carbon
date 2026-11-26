@@ -1,4 +1,17 @@
 <script lang="ts" module>
+  import cast from "$lib/assets/cider-glyphs/airplay.svg?url";
+  import previous from "$lib/assets/cider-glyphs/backward.svg?url";
+  import next from "$lib/assets/cider-glyphs/forward.svg?url";
+  import library from "$lib/assets/cider-glyphs/library.svg?url";
+  import together from "$lib/assets/cider-glyphs/listentogether.svg?url";
+  import lyrics from "$lib/assets/cider-glyphs/lyrics.svg?url";
+  import pause from "$lib/assets/cider-glyphs/pause.svg?url";
+  import play from "$lib/assets/cider-glyphs/play.svg?url";
+  import playlist from "$lib/assets/cider-glyphs/playlist.svg?url";
+
+  const PORTED: Partial<Record<IconName, string>> = {
+    devices: cast, library, lyrics, next, pause, play, prev: previous, stack: playlist, together,
+  };
   // Icons from Phosphor (phosphoricons.com), MIT License, Copyright (c) 2023 Phosphor Icons: soft,
   // rounded shapes on a 256 grid, drawn filled. The window controls keep Carbon's own hairlines.
   const SHAPES = {
@@ -87,11 +100,15 @@
 
 <script lang="ts">
   let { name, size = 20, filled = false, label }: { name: IconName; size?: number; filled?: boolean; label?: string } = $props();
+  const asset = $derived(PORTED[name]);
   const stroke = $derived(name in STROKES ? STROKES[name as keyof typeof STROKES] : null);
   const shape = $derived(stroke ? "" : ((filled && SOLID[name as keyof typeof SHAPES]) || SHAPES[name as keyof typeof SHAPES]));
 </script>
 
-{#if stroke}
+{#if asset}
+  <span class="glyph" style:width="{size}px" style:height="{size}px" style:mask-image={`url("${asset}")`}
+    role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : "true"}></span>
+{:else if stroke}
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : "true"}>
     <path d={stroke} />
   </svg>
@@ -100,3 +117,15 @@
     <path d={shape} />
   </svg>
 {/if}
+
+<style>
+  .glyph {
+    display: inline-block;
+    flex: none;
+    vertical-align: middle;
+    background: currentColor;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+  }
+</style>
