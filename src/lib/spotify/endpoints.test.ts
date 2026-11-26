@@ -41,10 +41,56 @@ describe("endpoints", () => {
     const items = vi.fn().mockResolvedValueOnce(Response.json({ items: [], total: 0, next: null }))
       .mockResolvedValueOnce(new Response(null, { status: 403 }))
       .mockResolvedValueOnce(Response.json({ error: { message: "Insufficient client scope" } }, { status: 403 }));
-    vi.stubGlobal("fetch", (url: string) => url.includes("/items?") ? items() : Response.json(meta));
+    vi.stubGlobal("fetch", (url: string) => {
+      if (url.includes("/items?")) return items();
+      if (url.includes("/tracks?")) return new Response(null, { status: 404 });
+      return Response.json(meta);
+    });
     expect((await sp.playlistPage("empty")).first).toEqual({ items: [], total: 0, nextOffset: null });
     expect((await sp.playlistPage("followed")).first).toBeNull();
     await expect(sp.playlistPage("scope")).rejects.toMatchObject({ status: 403, message: "Insufficient client scope" });
+  });
+
+  it("reads and pages legacy Spotify playlist rows when /items is unavailable", async () => {
+    const fetchMock = vi.fn(async (input: string) => {
+      const url = new URL(input);
+      if (url.pathname.endsWith("/legacy")) return Response.json({ id: "legacy", name: "Legacy", uri: "spotify:playlist:legacy" });
+      if (!url.pathname.endsWith("/tracks")) return new Response(null, { status: 404 });
+      return url.searchParams.get("offset") === "2"
+        ? Response.json({ items: [{ track: track("b") }], next: null, total: 3 })
+        : Response.json({ items: [{ track: track("a") }, { track: null }], next: "more", total: 3 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { first } = await sp.playlistPage("legacy");
+    expect(first).toMatchObject({ items: [{ id: "a" }], nextOffset: 2 });
+    expect(await sp.playlistTracks("legacy", first!.nextOffset!)).toMatchObject({ items: [{ id: "b" }], nextOffset: null });
+  });
+
+  it("loads authorized songs even when Spotify only provides metadata in the library listing", async () => {
+    vi.stubGlobal("fetch", routes({
+      "/playlists/listed/items": { items: [{ item: track("a") }], next: null, total: 1 },
+    }));
+    const listed = { id: "listed", name: "Listed", uri: "spotify:playlist:listed", ownerId: "owner",
+      ownerName: "", description: "", image: null, trackCount: null, public: false, collaborative: true };
+    expect(await sp.playlistPage("listed", listed)).toMatchObject({ playlist: listed, first: { items: [{ id: "a" }] } });
+  });
+
+  it("uses Spotify's embed availability when unlisted playlists have no API rows", async () => {
+    const fetchMock = vi.fn(async (input: string, _init?: RequestInit) => {
+      const url = new URL(input);
+      if (url.pathname === "/oembed") return url.searchParams.get("url")?.endsWith("/unlisted")
+        ? Response.json({ title: "Unlisted mix" })
+        : new Response(null, { status: 404 });
+      if (url.pathname.endsWith("/items") || url.pathname.endsWith("/tracks")) return new Response(null, { status: 403 });
+      const id = url.pathname.split("/").at(-1);
+      return Response.json({ id, uri: `spotify:playlist:${id}`, name: "Mix", public: false });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await sp.playlistPage("unlisted")).toMatchObject({ first: null, embedAvailable: true });
+    expect(await sp.playlistPage("private")).toMatchObject({ first: null, embedAvailable: false });
+    const previewCalls = fetchMock.mock.calls.filter(([input]) => input.includes("/oembed?"));
+    expect(previewCalls).toHaveLength(2);
+    for (const [, init] of previewCalls) expect(init).toEqual({ credentials: "omit", referrerPolicy: "no-referrer" });
   });
 
   it("recovers public titles and covers without sending credentials to Spotify Embeds", async () => {

@@ -19,11 +19,11 @@
   const info = resource(async () => {
     const playlistId = id;
     const listed = session.playlists.find((p) => p.id === playlistId);
-    const { playlist, first } = await sp.playlistPage(playlistId, listed);
+    const { playlist, first, embedAvailable } = await sp.playlistPage(playlistId, listed);
     playlist.tracksReadable = first !== null;
     if (listed) listed.tracksReadable = playlist.tracksReadable;
     const tracks = first && new Pager((offset) => sp.playlistTracks(playlistId, offset), first);
-    return { playlist, tracks, listed: !!listed };
+    return { playlist, tracks, embedAvailable, listed: !!listed };
   });
   const p = $derived(info.data?.playlist);
   const tracks = $derived(info.data?.tracks);
@@ -75,7 +75,8 @@
       ...(p.ownerName ? [{ label: "Made by", value: p.ownerName }] : []),
       ...(tracks ? [{ label: "Songs", value: String(tracks.total ?? tracks.items.length) }] : []),
       ...(tracks?.done && totalMs ? [{ label: "Length", value: formatTotal(totalMs) }] : []),
-      { label: "Visibility", value: p.collaborative ? "Collaborative" : p.public === false ? "Private" : "Public" },
+      ...(p.collaborative ? [{ label: "Visibility", value: "Collaborative" }]
+        : p.public === true ? [{ label: "Visibility", value: "Public" }] : []),
     ]}
     feelIds={tracks?.items.slice(0, 20).map((t) => t.id)}
   >
@@ -92,11 +93,11 @@
     <TrackList tracks={tracks.items} contextUri={p.uri} showAlbum showArt numbered tools="Playlist order" removeFrom={canEditTracks ? p : undefined} onremove={dropRow} />
     {#if tracks.done && !tracks.items.length}<Status empty={tracks.total === 0 ? "This playlist is empty." : "No playable songs in this playlist."} />{/if}
     <LoadMore pager={tracks} />
-  {:else if p.public !== false}
+  {:else if info.data?.embedAvailable}
     <iframe title={`${p.name} on Spotify`} src={`https://open.spotify.com/embed/playlist/${encodeURIComponent(id)}`} height="352"
       loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
   {:else}
-    <p class="notice">Open this private playlist in Spotify, or ask its owner to invite you as a collaborator.</p>
+    <p class="notice">Spotify didn't share this playlist's songs with Carbon. Ask the owner for a collaborator invite to see the track list here.</p>
   {/if}
   {#if !tracks}
     <details class="copy plate">

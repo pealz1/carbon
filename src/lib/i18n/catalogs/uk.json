@@ -640,7 +640,7 @@
  "Open player": "Відкрити плеєр",
  "Open that song from its album to play it.": "Щоб відтворити цю пісню, відкрийте її з альбому.",
  "Open the": "Відкрийте",
- "Open this private playlist in Spotify, or ask its owner to invite you as a collaborator.": "Відкрийте цей приватний плейліст у Spotify або попросіть власника запросити вас як співавтора.",
+ "Spotify didn't share this playlist's songs with Carbon. Ask the owner for a collaborator invite to see the track list here.": "Spotify не надав застосунку Carbon доступ до пісень із цього плейліста. Попросіть власника запросити вас до співпраці, щоб побачити тут список пісень.",
  "Optional": "Необов'язково",
  "Optional. Adds your library and likes.": "Необов'язково. Додає вашу бібліотеку й вподобання.",
  "Or choose an exported track list": "Або виберіть експортований список треків",

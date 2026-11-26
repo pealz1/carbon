@@ -95,11 +95,24 @@ function trackPage(raw: Paging<RawPlaylistRow>, offset: number): Page<Track> {
   return { items: compactTracks(raw.items.map(trackFromRow)), total: raw.total ?? null, nextOffset: nextOffset(raw, offset) };
 }
 
+export async function readPlaylistItems<T extends RawPlaylistRow>(
+  id: string,
+  offset: number,
+  read: (path: string) => Promise<Paging<T>>,
+): Promise<Paging<T>> {
+  const path = playlistPath(id);
+  const params = q({ limit: PAGE_SIZE, offset });
+  try {
+    return await read(`${path}/items?${params}`);
+  } catch (e) {
+    if (!playlistUnavailable(e)) throw e;
+    // Extended Quota Mode apps can still use Spotify's legacy playlist endpoint.
+    return read(`${path}/tracks?${params}`);
+  }
+}
+
 export async function playlistTracks(id: string, offset = 0): Promise<Page<Track>> {
-  const raw = await get<Paging<RawPlaylistRow>>(
-    `/playlists/${encodeURIComponent(id)}/items?${q({ limit: PAGE_SIZE, offset })}`,
-  );
-  return trackPage(raw, offset);
+  return trackPage(await readPlaylistItems<RawPlaylistRow>(id, offset, get), offset);
 }
 
 export const playlistUrl = (id: string) => `https://open.spotify.com/playlist/${encodeURIComponent(id)}`;
@@ -137,29 +150,35 @@ export async function playlistArtwork(id: string, allowPublic: boolean, failed?:
   return allowPublic ? (await publicPlaylist(id))?.image ?? null : null;
 }
 
-export async function playlistPage(id: string, listed?: PlaylistSummary): Promise<{ playlist: PlaylistDetail; first: Page<Track> | null }> {
-  let raw: RawPlaylist;
+export async function playlistPage(id: string, listed?: PlaylistSummary): Promise<{
+  playlist: PlaylistDetail;
+  first: Page<Track> | null;
+  embedAvailable: boolean;
+}> {
+  let playlist = listed && { ...listed, largeImage: listed.image };
   try {
-    raw = await get<RawPlaylist>(playlistPath(id));
+    const raw = await get<RawPlaylist>(playlistPath(id));
+    playlist = detail(raw);
+    const page = raw.items ?? raw.tracks;
+    if (page && Array.isArray(page.items) && page.next !== undefined) {
+      return { playlist, first: trackPage({ ...page, items: page.items, next: page.next }, page.offset ?? 0), embedAvailable: false };
+    }
   } catch (e) {
     if (!playlistUnavailable(e)) throw e;
-    if (listed) return { playlist: { ...listed, largeImage: listed.image }, first: null };
-    const preview = await publicPlaylist(id);
-    if (!preview) throw e;
-    return { playlist: { ...detail({ id, uri: `spotify:playlist:${id}`, name: preview.title, public: true }), image: preview.image, largeImage: preview.image }, first: null };
-  }
-  const p = detail(raw);
-  const page = raw.items ?? raw.tracks;
-  // Full playlist responses often contain the first page already.
-  if (page && Array.isArray(page.items) && page.next !== undefined) {
-    return { playlist: p, first: trackPage({ ...page, items: page.items, next: page.next }, page.offset ?? 0) };
+    if (!playlist) {
+      const preview = await publicPlaylist(id);
+      if (!preview) throw e;
+      playlist = { ...detail({ id, uri: `spotify:playlist:${id}`, name: preview.title, public: true }), image: preview.image, largeImage: preview.image };
+    }
   }
   try {
-    return { playlist: p, first: await playlistTracks(id) };
+    return { playlist, first: await playlistTracks(id), embedAvailable: false };
   } catch (e) {
     if (!playlistUnavailable(e)) throw e;
-    return { playlist: p, first: null };
   }
+  // A playlist can be missing from its owner's profile and still have a public Spotify embed.
+  const embedAvailable = playlist.public === true || Boolean(await publicPlaylist(id).catch(() => null));
+  return { playlist, first: null, embedAvailable };
 }
 
 export interface AlbumDetail {
