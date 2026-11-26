@@ -3,7 +3,8 @@ param(
   [Parameter(Mandatory = $true)][string] $StagingPath,
   [string] $Repository = 'pealz1/carbon',
   [string] $Tag = '',
-  [switch] $AllowDraft
+  [switch] $AllowDraft,
+  [switch] $InitializeCatalog
 )
 $ErrorActionPreference = 'Stop'
 $env:CLOUDFLARE_ACCOUNT_ID = '8c28d68df63ec3278045b5cc68a0bba5'
@@ -56,15 +57,24 @@ foreach ($platform in $update.platforms.Values) {
   $platform.url = "https://getcarbon.cc/downloads/$($release.tagName)/$assetName"
 }
 
-$history = RunValue 'gh' @('release', 'list', '--repo', $Repository, '--exclude-drafts', '--exclude-pre-releases', '--limit', '100', '--json', 'tagName,publishedAt') | ConvertFrom-Json
 $entries = @(
   @{ tag_name = $release.tagName; body = $release.body; published_at = ($release.publishedAt ?? $release.createdAt); assets = $catalogAssets }
-  foreach ($item in $history) {
-    if ($item.tagName -eq $release.tagName) { continue }
-    $entry = RunValue 'gh' @('release', 'view', $item.tagName, '--repo', $Repository, '--json', 'body') | ConvertFrom-Json
-    @{ tag_name = $item.tagName; body = $entry.body; published_at = $item.publishedAt; assets = @() }
+  if ($InitializeCatalog) {
+    $history = RunValue 'gh' @('release', 'list', '--repo', $Repository, '--exclude-drafts', '--exclude-pre-releases', '--limit', '100', '--json', 'tagName,publishedAt') | ConvertFrom-Json
+    foreach ($item in $history) {
+      if ($item.tagName -eq $release.tagName) { continue }
+      $entry = RunValue 'gh' @('release', 'view', $item.tagName, '--repo', $Repository, '--json', 'body') | ConvertFrom-Json
+      @{ tag_name = $item.tagName; body = $entry.body; published_at = $item.publishedAt; assets = @() }
+    }
+  } else {
+    $previous = Join-Path $work 'previous-catalog.json'
+    RunValue $WrappedWrangler @('r2', 'object', 'get', "$bucket/catalog.json", '--remote', '--file', $previous) | Out-Null
+    $older = Get-Content -LiteralPath $previous -Raw | ConvertFrom-Json
+    if (!$older.releases) { throw 'The existing changelog is invalid.' }
+    $older.releases | Where-Object tag_name -NE $release.tagName
   }
 )
+
 $manifest = Join-Path $work 'latest.json'
 $catalog = Join-Path $work 'catalog.json'
 $update | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $manifest -Encoding utf8NoBOM

@@ -1,6 +1,3 @@
-- Added invite-only account access
-- Added gated website downloads
-- Added a website changelog
-- Added current volume percentage
-- Added playlist recommendations and radio
-- Added SoundCloud and TIDAL playlist tools
+- Added Cider’s interface and lyrics fonts
+- Added Cider’s search and player icons
+- Moved changelog and support links
