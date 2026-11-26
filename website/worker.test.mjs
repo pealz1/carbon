@@ -29,6 +29,8 @@ test("anonymous visits see the access page and cannot fetch the app, metadata, o
   assert.equal((await get("/assets/screenshots/app.webp")).status, 404);
   assert.equal((await get("/brand/carbon-mark.svg")).status, 404);
   assert.equal((await get("/downloads/latest.json")).status, 401);
+  assert.equal((await get("/v1/library/people/share-id")).status, 401);
+  assert.equal((await get("/v1/library/shared/share-id")).status, 401);
   assert.equal((await get("/downloads/v0.10.1/setup.exe")).status, 401);
   assert.equal((await get("/access")).status, 200);
 });

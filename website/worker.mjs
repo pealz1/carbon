@@ -8,6 +8,7 @@ const PUBLIC = new Set([
 const SESSION = /(?:^|;\s*)__Host-carbon_session=([A-Za-z0-9_-]{43})(?=;|$)/;
 const TERMS = new Set(["/terms", "/acceptable-use", "/privacy"]);
 const DOWNLOAD = /^\/downloads\/((?:catalog\.json|latest\.json)|v\d+\.\d+\.\d+\/[A-Za-z0-9._-]+)$/;
+const SHARED_CONTENT = /^\/v1\/library\/(?:shared|people)\//;
 const permissions = new Map();
 
 function uncached(response) {
@@ -65,6 +66,9 @@ export default {
       return uncached(Response.redirect(url, 308));
     }
     if (url.pathname.startsWith("/v1/")) {
+      if (env.PRIVATE_SITE === "true" && SHARED_CONTENT.test(url.pathname) && !(await authenticate(request, env.API))) {
+        return uncached(new Response(null, { status: 401 }));
+      }
       return uncached(await env.API.fetch(new Request(API_ORIGIN + url.pathname + url.search, request)));
     }
     if (url.pathname.startsWith("/downloads/")) {

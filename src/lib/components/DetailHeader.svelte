@@ -120,6 +120,25 @@
 
 <header class="detail" class:washed={!!tones.current} {style}>
   <div class="wash" aria-hidden="true"><i class="blob a"></i><i class="blob b"></i><i class="blob c"></i><i class="grain"></i></div>
+  {#if share || hasAbout || menuItems}
+    <div class="header-tools" role="group" aria-label="Details actions">
+      {#if share}
+        <button class="tool" onclick={(e) => menu.open(e, shareItem(share.uri, share.name).items ?? [])} aria-label="Share" aria-haspopup="menu" title="Share">
+          <Icon name="export" size={18} />
+        </button>
+      {/if}
+      {#if hasAbout}
+        <button class="tool" onclick={() => (reading = true)} aria-label="About {title}" aria-haspopup="dialog" title="About">
+          <Icon name="info" size={19} />
+        </button>
+      {/if}
+      {#if menuItems}
+        <button class="tool" onclick={(e) => menu.open(e, menuItems())} aria-label="More options for {title}" aria-haspopup="menu" title="More">
+          <Icon name="more" size={19} />
+        </button>
+      {/if}
+    </div>
+  {/if}
   <div class="art" class:round class:playing>
     {#if image}
       <button
@@ -168,24 +187,9 @@
           <span>{playing ? "Pause" : "Play"}</span>
         </button>
       {/if}
-      {#if share}
-        <button class="circle" onclick={(e) => menu.open(e, shareItem(share.uri, share.name).items ?? [])} aria-label="Share" aria-haspopup="menu" title="Share">
-          <Icon name="export" size={18} />
-        </button>
-      {/if}
-      {#if hasAbout}
-        <button class="circle" onclick={() => (reading = true)} aria-label="About {title}" aria-haspopup="dialog" title="About">
-          <Icon name="info" size={19} />
-        </button>
-      {/if}
       {@render children?.()}
       {#if playUri && /^spotify:(playlist|album|artist):/.test(playUri)}
         <DevicePicker contextUri={playUri} />
-      {/if}
-      {#if menuItems}
-        <button class="circle" onclick={(e) => menu.open(e, menuItems())} aria-label="More options for {title}" aria-haspopup="menu" title="More">
-          <Icon name="more" size={19} />
-        </button>
       {/if}
     </div>
   </div>
@@ -676,6 +680,31 @@
     font-weight: 650;
   }
 
+  .header-tools {
+    position: absolute;
+    inset: var(--sp-3) var(--page-x, 0px) auto auto;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: var(--r-pill);
+    background: rgb(var(--tint) / 0.05);
+    box-shadow: var(--rim);
+  }
+
+  .tool {
+    display: grid;
+    place-items: center;
+    inline-size: 42px;
+    block-size: 34px;
+    color: var(--text);
+    border-radius: var(--r-pill);
+  }
+
+  .tool:hover {
+    background: rgb(var(--tint) / 0.12);
+  }
+
   .actions {
     display: flex;
     flex-wrap: wrap;
@@ -756,12 +785,31 @@
 
   @container stage (max-width: 760px) {
     .detail {
+      --art-size: min(350px, 65cqi);
       flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
+      padding-block-start: 64px;
+      gap: 44px;
     }
 
-    .detail {
-      --art-size: 200px;
+    .info {
+      align-items: center;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 7cqi, 2.5rem);
+    }
+
+    .byline,
+    .chips,
+    .actions {
+      justify-content: center;
+    }
+
+    .description {
+      max-width: 48ch;
+      text-align: center;
     }
   }
 </style>
