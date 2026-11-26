@@ -17,7 +17,6 @@
   import Row from "./Row.svelte";
 
   const SITE = "https://getcarbon.cc";
-  const REPO = "https://github.com/pealz1/carbon";
   const MB = 1024 * 1024;
 
   let info = $state<AppInfo | null>(null);
@@ -148,12 +147,11 @@
   </Group>
 
   <Group heading="About" message="Carbon isn't affiliated with Spotify.">
-    <Row label="Carbon on the web" keywords="website github source code privacy policy releases changelog version history">
+    <Row label="Carbon on the web" keywords="website privacy policy releases changelog version history">
       <span class="links">
         <button class="link" onclick={() => openUrl(SITE)}>getcarbon.cc</button>
-        <button class="link" onclick={() => openUrl(REPO)}>Source on GitHub</button>
         <button class="link" onclick={() => openUrl(`${SITE}/privacy`)}>Privacy</button>
-        <button class="link" onclick={() => openUrl(`${REPO}/releases`)}>Version history</button>
+        <button class="link" onclick={() => openUrl(`${SITE}/changelog`)}>Version history</button>
       </span>
     </Row>
   </Group>

@@ -20,8 +20,8 @@ import { view } from "$lib/view.svelte";
 
 const LINKS = {
   guide: "https://getcarbon.cc/setup",
-  bug: "https://github.com/pealz1/carbon/issues/new/choose",
-  source: "https://github.com/pealz1/carbon",
+  bug: "https://getcarbon.cc/#support",
+  changelog: "https://getcarbon.cc/changelog",
   site: "https://getcarbon.cc",
 };
 
@@ -77,7 +77,7 @@ async function checkUpdates(): Promise<void> {
 
 async function about(): Promise<void> {
   try {
-    toasts.show(`Carbon ${(await appInfo()).version}. Free and open source, made for listening.`);
+    toasts.show(`Carbon ${(await appInfo()).version}. Available by invitation.`);
   } catch (e) {
     toasts.error(describeError(e));
   }
@@ -113,7 +113,7 @@ export function appMenu(): MenuEntry[] {
         { label: "Keyboard shortcuts", icon: "keyboard", action: () => (dialogs.shortcuts = true) },
         { label: "Setup guide", icon: "link", action: open(LINKS.guide) },
         { label: "Report a bug", icon: "link", action: open(LINKS.bug) },
-        { label: "Source on GitHub", icon: "link", action: open(LINKS.source) },
+        { label: "Changelog", icon: "link", action: open(LINKS.changelog) },
         { label: "getcarbon.cc", icon: "link", action: open(LINKS.site) },
       ],
     },
