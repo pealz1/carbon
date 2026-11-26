@@ -52,10 +52,9 @@
     "createUpdaterArtifacts": true,
     "publisher": "Carbon",
     "homepage": "https://getcarbon.cc",
-    "homepage": "https://getcarbon.cc",
     "copyright": "© 2026 Carbon contributors",
     "category": "Music",
-    "shortDescription": "A fast, beautiful Spotify client",
+    "shortDescription": "A desktop player for your music services and library",
     "longDescription": "Carbon is a desktop music player with synced lyrics, Discord status and Last.fm scrobbling.",
     "icon": [
       "icons/32x32.png",
@@ -64,6 +63,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": {
+      "../THIRD_PARTY_NOTICES.md": "licenses/THIRD_PARTY_NOTICES.md",
+      "../src/lib/assets/cider-fonts/HostGrotesk-OFL.txt": "licenses/HostGrotesk-OFL.txt",
+      "../src/lib/assets/cider-fonts/Figtree-OFL.txt": "licenses/Figtree-OFL.txt",
+      "../src/lib/assets/cider-glyphs/FEATHER-LICENSE": "licenses/Feather.txt",
+      "../src/lib/assets/cider-glyphs/IONICONS-LICENSE": "licenses/Ionicons.txt"
+    },
     "windows": {
       "nsis": {
         "installMode": "currentUser",

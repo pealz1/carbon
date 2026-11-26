@@ -2,6 +2,20 @@
    only where something floats. Every raw value lives here; docs/DESIGN.md explains the system. */
 /* Colour. Repeated on .keep-dark (cinema, the artwork viewer and the mini player stay dark under
    any theme) and .theme-scope (an element with its own data-theme, such as a theme preview). */
+@font-face {
+  font-family: "Host Grotesk";
+  src: url("$lib/assets/cider-fonts/HostGrotesk.woff2") format("woff2");
+  font-weight: 1 999;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Figtree;
+  src: url("$lib/assets/cider-fonts/Figtree.ttf") format("truetype");
+  font-weight: 45 920;
+  font-display: swap;
+}
+
 :root,
 .theme-scope,
 .keep-dark {
@@ -89,12 +103,12 @@
   --accent-deep: oklch(32% 0.12 var(--accent-h));
   --accent-glow: oklch(var(--accent-l) var(--accent-c) var(--accent-h) / 0.32);
   /* Type: one family, a fixed scale (product UI doesn't need fluid type). */
-  --font-display-default: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
-  --font-text-default: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display-default: "Host Grotesk", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-text-default: "Host Grotesk", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   /* Settings → Appearance overrides these on :root with a chosen family ahead of the default stack. */
   --font-display: var(--font-display-default);
   --font-text: var(--font-text-default);
-  --font-lyrics: var(--font-display-default);
+  --font-lyrics: Figtree, var(--font-display-default);
   --fs-micro: 0.6875rem;
   --fs-caption: 0.75rem;
   --fs-small: 0.8125rem;

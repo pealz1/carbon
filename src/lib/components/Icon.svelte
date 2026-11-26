@@ -9,8 +9,21 @@
   import play from "$lib/assets/cider-glyphs/play.svg?url";
   import playlist from "$lib/assets/cider-glyphs/playlist.svg?url";
 
+  import back from "$lib/assets/cider-glyphs/chevron-back.svg?url";
+  import forward from "$lib/assets/cider-glyphs/chevron-fwd.svg?url";
+  import heart from "$lib/assets/cider-glyphs/love.svg?url";
+  import hearted from "$lib/assets/cider-glyphs/unlove.svg?url";
+  import miniPlayer from "$lib/assets/cider-glyphs/miniplayer.svg?url";
+  import more from "$lib/assets/cider-glyphs/more.svg?url";
+  import mute from "$lib/assets/cider-glyphs/volume-x.svg?url";
+  import queue from "$lib/assets/cider-glyphs/queue-music.svg?url";
+  import search from "$lib/assets/cider-glyphs/search.svg?url";
+  import sidebar from "$lib/assets/cider-glyphs/sidePanel.svg?url";
+  import volume from "$lib/assets/cider-glyphs/volume-2.svg?url";
+
   const PORTED: Partial<Record<IconName, string>> = {
-    devices: cast, library, lyrics, next, pause, play, prev: previous, stack: playlist, together,
+    back, devices: cast, forward, heart, library, lyrics, more, mute, next, pause, pip: miniPlayer,
+    play, prev: previous, queue, search, sidebar, stack: playlist, together, volume,
   };
   // Icons from Phosphor (phosphoricons.com), MIT License, Copyright (c) 2023 Phosphor Icons: soft,
   // rounded shapes on a 256 grid, drawn filled. The window controls keep Carbon's own hairlines.
@@ -100,7 +113,7 @@
 
 <script lang="ts">
   let { name, size = 20, filled = false, label }: { name: IconName; size?: number; filled?: boolean; label?: string } = $props();
-  const asset = $derived(PORTED[name]);
+  const asset = $derived(name === "heart" && filled ? hearted : PORTED[name]);
   const stroke = $derived(name in STROKES ? STROKES[name as keyof typeof STROKES] : null);
   const shape = $derived(stroke ? "" : ((filled && SOLID[name as keyof typeof SHAPES]) || SHAPES[name as keyof typeof SHAPES]));
 </script>

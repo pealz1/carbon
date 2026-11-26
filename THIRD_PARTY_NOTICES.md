@@ -153,3 +153,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Installed Cider interface assets
+
+Carbon uses Cider's packaged Host Grotesk and Figtree variable fonts under the
+SIL Open Font License 1.1. The font copyrights and licenses are in
+[src/lib/assets/cider-fonts](src/lib/assets/cider-fonts).
+
+The Cider glyphs include icons from Ionicons and Feather. Their MIT licenses
+accompany the assets in [src/lib/assets/cider-glyphs](src/lib/assets/cider-glyphs).
