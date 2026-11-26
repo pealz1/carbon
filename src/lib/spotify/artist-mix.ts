@@ -1,5 +1,5 @@
-// "Start radio" for Spotify. Spotify closed its recommendations to apps like Carbon, so the mix is
-// the song itself, then songs by its artists taken in turn: honest about what it is.
+// "Start radio" for Spotify: a seed, recommendations, then songs by the chosen artists.
+import { similarTo } from "$lib/home/recommend";
 import { player } from "$lib/player.svelte";
 import { toasts } from "$lib/toast.svelte";
 import { artistSongs } from "./endpoints";
@@ -28,6 +28,10 @@ export async function startArtistRadio(seed: Track | null, artists: { id: string
   const picked = artists.filter((a) => a.id).slice(0, MAX_ARTISTS);
   const lists = await Promise.all(picked.map((a) => artistSongs(a.id, a.name).catch((e) => (console.warn("[radio] songs for", a.name, e), [] as Track[]))));
   const mix = artistMix(seed, lists);
-  if (mix.length < 2) return toasts.error("Couldn't find enough songs for a radio.");
-  if (await player.playTracks(mix.map((t) => t.uri), 0, mix)) toasts.show(`Playing songs by ${picked.map((a) => a.name).join(", ")}.`);
+  const recommendations = await similarTo(seed ? [seed] : mix, new Set(mix.map((track) => track.id)));
+  const queue = mix.length ? [mix[0], ...recommendations, ...mix.slice(1)].slice(0, MIX_LENGTH) : [];
+  if (queue.length < 2) return toasts.error("Couldn't find enough songs for a radio.");
+  if (await player.playTracks(queue.map((t) => t.uri), 0, queue)) {
+    toasts.show(recommendations.length ? "Playing radio." : `Playing songs by ${picked.map((a) => a.name).join(", ")}.`);
+  }
 }

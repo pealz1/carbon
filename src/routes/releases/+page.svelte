@@ -8,7 +8,7 @@
   import { byWeek, MAX_ARTISTS, recent, releaseCard } from "$lib/releases/releases";
   import { newReleases as store } from "$lib/releases/store.svelte";
 
-  // Albums and singles from the artists you follow, from the last few weeks, newest first.
+  // Albums and singles from the artists you follow or play, newest first.
   const SPANS = [4, 8, 12] as const;
   const weeks = $derived(SPANS.find((w) => String(w) === page.url.searchParams.get("weeks")) ?? 8);
   const groups = $derived(byWeek(recent(store.cache, weeks, Date.now()), Date.now()));
@@ -22,7 +22,7 @@
     const capped = count >= MAX_ARTISTS ? ` (Carbon checks the first ${MAX_ARTISTS})` : "";
     const hours = store.updatedMs ? Math.round((Date.now() - store.updatedMs) / 3_600_000) : null;
     const age = hours === null ? "" : hours < 1 ? " · Up to date" : ` · Checked ${hours} h ago`;
-    return `From ${count} ${count === 1 ? "artist" : "artists"} you follow${capped}${age}`;
+    return `From ${count} ${count === 1 ? "artist" : "artists"} you follow or play${capped}${age}`;
   }
 </script>
 
@@ -58,7 +58,7 @@
   {#if !store.loaded || store.checking}
     <Status loading />
   {:else if !store.error}
-    <Status empty={store.artistCount ? `Nothing new in the last ${weeks} weeks.` : "Follow artists on Spotify and their new albums and singles show up here."} />
+    <Status empty={store.artistCount ? `Nothing new in the last ${weeks} weeks.` : "Play or follow artists on Spotify to see their new releases."} />
   {/if}
 {/each}
 

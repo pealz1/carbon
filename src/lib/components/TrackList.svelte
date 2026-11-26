@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import { formatDuration } from "$lib/format";
   import { hold } from "$lib/hold";
   import { hasPage, isLocalUri } from "$lib/local/tracks";
@@ -28,6 +29,7 @@
     compact = false,
     removeFrom,
     onremove,
+    rowAction,
   }: {
     tracks: Track[];
     /** Play inside this album/playlist/collection so next/prev follow it. */
@@ -41,6 +43,7 @@
     /** Lets the menu remove songs from this playlist (only pass for playlists you can edit). */
     removeFrom?: Pick<PlaylistSummary, "id" | "name">;
     onremove?: (uri: string) => void;
+    rowAction?: Snippet<[Track]>;
   } = $props();
 
   let query = $state("");
@@ -181,9 +184,13 @@
       <!-- Liked Songs is Spotify-only; the empty cell keeps local rows on the grid. -->
       {#if isLocalUri(track.uri)}<span></span>{:else}<LikeButton uri={track.uri} label={track.name} />{/if}
       <span class="duration tabular">{track.durationMs ? formatDuration(track.durationMs) : ""}</span>
-      <button class="more" onclick={(e) => openMenu(e, track, i)} aria-label="More options for {track.name}" aria-haspopup="menu" title="More">
-        <Icon name="more" size={16} />
-      </button>
+      {#if rowAction}
+        {@render rowAction(track)}
+      {:else}
+        <button class="more" onclick={(e) => openMenu(e, track, i)} aria-label="More options for {track.name}" aria-haspopup="menu" title="More">
+          <Icon name="more" size={16} />
+        </button>
+      {/if}
     </li>
   {/each}
 </ol>

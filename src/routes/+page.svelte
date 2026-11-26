@@ -14,6 +14,7 @@
   import RadioRow from "$lib/home/RadioRow.svelte";
   import Recents from "$lib/home/Recents.svelte";
   import { moodsOf, similarTo, type MoodId } from "$lib/home/recommend";
+  import { carbonPlaylists } from "$lib/local/playlists.svelte";
   import { player } from "$lib/player.svelte";
   import { prefs } from "$lib/preferences.svelte";
   import ReleasesShelf from "$lib/releases/ReleasesShelf.svelte";
@@ -26,7 +27,6 @@
   // Home: what you played, what is like it, stations, mixes by mood and what is new. The pills on
   // top show one shelf at a time (kept in the URL); "All" shows a row of each.
   const ON_REPEAT_COUNT = 8;
-  const SEEDS = 5;
   const MOOD_HUES: Record<MoodId, number> = { sad: 255, energy: 25, chill: 195, bright: 90 };
   const REPEAT_HUE = 330;
   const FAVOURITES_HUE = 60;
@@ -74,9 +74,25 @@
 
   // Recommendations wait until everything they must not repeat has loaded, then ask once.
   const settled = $derived(!recent.loading && !top.loading && !loved.loading);
-  const heard = () => new Set([...(recent.data?.tracks ?? []), ...(top.data ?? []), ...(loved.data ?? [])].map((t) => t.id));
-  const likeRecent = resource(() => (settled ? untrack(() => similarTo((recent.data?.tracks ?? []).slice(0, SEEDS), heard())) : Promise.resolve([])));
-  const picks = resource(() => (settled ? untrack(() => similarTo((loved.data ?? []).slice(0, SEEDS), heard())) : Promise.resolve([])));
+  async function discover(seeds: Track[]): Promise<Track[]> {
+    if (!seeds.length) return [];
+    await Promise.all([history.load(), carbonPlaylists.load()]);
+    const known = new Set([...(recent.data?.tracks ?? []), ...(top.data ?? []), ...(loved.data ?? [])].map((t) => t.id));
+    for (const entry of history.entries) {
+      if (entry.uri.startsWith("spotify:track:")) known.add(entry.uri.slice("spotify:track:".length));
+    }
+    for (const playlist of carbonPlaylists.list) {
+      for (const item of playlist.items) {
+        if (item.kind === "spotify") known.add(item.track.id);
+      }
+    }
+    const candidates = await similarTo(seeds, known);
+    if (!candidates.length) return [];
+    const saved = await sp.isSaved(candidates.map((track) => track.uri)).catch(() => []);
+    return candidates.filter((_, i) => !saved[i]);
+  }
+  const likeRecent = resource(() => (settled ? untrack(() => discover(recent.data?.tracks ?? [])) : Promise.resolve([])));
+  const picks = resource(() => (settled ? untrack(() => discover(loved.data ?? [])) : Promise.resolve([])));
   // The two shelves are asked for separately; a song both suggest stays on the first.
   const basedCards = $derived((likeRecent.data ?? []).map(trackCard));
   const pickCards = $derived((picks.data ?? []).filter((t) => !likeRecent.data?.some((r) => r.id === t.id)).map(trackCard));

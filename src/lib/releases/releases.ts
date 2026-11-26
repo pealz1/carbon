@@ -1,9 +1,10 @@
-// New releases from the artists you follow. Spotify removed its new-releases feed for apps like
-// Carbon, so this asks each followed artist for their latest albums and singles, a few artists at
+// New releases from the artists you follow and play. Spotify removed its new-releases feed for apps
+// like Carbon, so this asks each artist for their latest albums and singles, a few artists at
 // a time, and keeps the answers for a day (on disk for at most a week, as temporary metadata).
 import { ARTIST_ALBUMS_LIMIT } from "$lib/config";
 import { get } from "$lib/spotify/api";
-import { pickImage } from "$lib/spotify/mappers";
+import { topArtists } from "$lib/spotify/endpoints";
+import { pickImage, uniqueBy } from "$lib/spotify/mappers";
 import type { Card, Paging, RawAlbum, RawArtist } from "$lib/spotify/types";
 
 export interface Release {
@@ -62,6 +63,12 @@ export async function followedArtists(): Promise<FollowedArtist[]> {
     url = page.artists.next;
   }
   return list.slice(0, MAX_ARTISTS);
+}
+
+export async function releaseArtists(): Promise<FollowedArtist[]> {
+  const [listening, followed] = await Promise.all([topArtists("short_term").catch(() => []), followedArtists()]);
+  const played = listening.map((artist) => ({ id: artist.id, name: artist.title }));
+  return uniqueBy([...played, ...followed], (artist) => artist.id).slice(0, MAX_ARTISTS);
 }
 
 const albumsPath = (id: string, groups: string) => `/artists/${encodeURIComponent(id)}/albums?include_groups=${groups}&limit=${ARTIST_ALBUMS_LIMIT}`;

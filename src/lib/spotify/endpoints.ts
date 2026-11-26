@@ -58,6 +58,14 @@ export async function topArtists(range: TopRange = "medium_term", limit = 20): P
   return raw.items.map(artistCard);
 }
 
+/** Available to Spotify apps with existing access to the recommendations endpoint. */
+export async function recommendations(seedIds: string[], limit: number): Promise<Track[]> {
+  const raw = await get<{ tracks: RawTrack[] }>(
+    `/recommendations?${q({ seed_tracks: seedIds.join(","), limit: Math.min(100, limit) })}`, 10 * 60_000,
+  );
+  return compactTracks(raw.tracks.map((track) => toTrack(track)));
+}
+
 export async function myPlaylists(offset = 0): Promise<Page<PlaylistSummary>> {
   const raw = await get<Paging<RawPlaylist>>(`/me/playlists?${q({ limit: PAGE_SIZE, offset })}`);
   return { items: raw.items.filter(Boolean).map(toPlaylistSummary), total: raw.total ?? null, nextOffset: nextOffset(raw, offset) };
@@ -158,7 +166,7 @@ export async function playlistPage(id: string, listed?: PlaylistSummary): Promis
   let playlist = listed && { ...listed, largeImage: listed.image };
   try {
     const raw = await get<RawPlaylist>(playlistPath(id));
-    playlist = detail(raw);
+    playlist = detail({ ...raw, collaborative: raw.collaborative ?? listed?.collaborative });
     const page = raw.items ?? raw.tracks;
     if (page && Array.isArray(page.items) && page.next !== undefined) {
       return { playlist, first: trackPage({ ...page, items: page.items, next: page.next }, page.offset ?? 0), embedAvailable: false };
@@ -379,8 +387,18 @@ export async function deletePlaylist(id: string): Promise<void> {
 }
 
 export async function addToPlaylist(id: string, uris: string[]): Promise<void> {
+  const path = playlistPath(id);
+  let itemsPath = `${path}/items`;
   try {
-    for (const run of chunk(uris, PLAYLIST_BATCH)) await send("POST", `${playlistPath(id)}/items`, { uris: run });
+    for (const run of chunk(uris, PLAYLIST_BATCH)) {
+      try {
+        await send("POST", itemsPath, { uris: run });
+      } catch (e) {
+        if (itemsPath !== `${path}/items` || !(e instanceof ApiError && e.status === 404)) throw e;
+        itemsPath = `${path}/tracks`;
+        await send("POST", itemsPath, { uris: run });
+      }
+    }
   } finally {
     invalidatePlaylist(id);
   }

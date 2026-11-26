@@ -3,7 +3,7 @@
 import { describeError } from "$lib/errors";
 import { cacheGet, cacheSet } from "$lib/playlist-tools/files";
 import { ApiError } from "$lib/spotify/api";
-import { ARTIST_TTL_MS, followedArtists, latestFrom, parseCache, staleArtists, type FollowedArtist, type Release, type ReleaseCache } from "./releases";
+import { ARTIST_TTL_MS, releaseArtists, latestFrom, parseCache, staleArtists, type FollowedArtist, type Release, type ReleaseCache } from "./releases";
 
 const WORKERS = 3;
 const DISK_TTL_SECS = 7 * 24 * 3600;
@@ -39,7 +39,7 @@ class NewReleases {
       this.loaded = true;
       const now = Date.now();
       if (force || !this.cache.artists || now - this.cache.artists.at >= ARTIST_TTL_MS) {
-        this.cache = { ...this.cache, artists: { at: now, list: await followedArtists() } };
+        this.cache = { ...this.cache, artists: { at: now, list: await releaseArtists() } };
       }
       const stale = force ? this.cache.artists!.list : staleArtists(this.cache, this.cache.artists!.list, now);
       await this.#ask(stale);

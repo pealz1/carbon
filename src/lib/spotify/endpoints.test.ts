@@ -75,6 +75,16 @@ describe("endpoints", () => {
     expect(await sp.playlistPage("listed", listed)).toMatchObject({ playlist: listed, first: { items: [{ id: "a" }] } });
   });
 
+  it("keeps the collaboration flag when only the Spotify library listing supplies it", async () => {
+    vi.stubGlobal("fetch", routes({
+      "/playlists/shared": { id: "shared", name: "Shared", uri: "spotify:playlist:shared",
+        items: { items: [{ item: track("a") }], next: null, total: 1 } },
+    }));
+    const listed = { id: "shared", name: "Shared", uri: "spotify:playlist:shared", ownerId: "owner",
+      ownerName: "", description: "", image: null, trackCount: null, public: false, collaborative: true };
+    expect(await sp.playlistPage("shared", listed)).toMatchObject({ playlist: { collaborative: true }, first: { items: [{ id: "a" }] } });
+  });
+
   it("uses Spotify's embed availability when unlisted playlists have no API rows", async () => {
     const fetchMock = vi.fn(async (input: string, _init?: RequestInit) => {
       const url = new URL(input);
@@ -246,6 +256,29 @@ describe("endpoints", () => {
     expect(bodies[0].uris).toHaveLength(100);
     expect(bodies[1].uris).toHaveLength(50);
     expect(bodies[2]).toEqual({ items: [{ uri: "spotify:track:1" }] });
+  });
+
+  it("switches writes to the legacy playlist endpoint when the current route returns 404", async () => {
+    const fetchMock = vi.fn(async (input: string, _init?: RequestInit) =>
+      new Response(null, { status: new URL(input).pathname.endsWith("/items") ? 404 : 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const uris = Array.from({ length: 101 }, (_, i) => `spotify:track:${i}`);
+    await sp.addToPlaylist("legacy", uris);
+    expect(fetchMock.mock.calls.map(([input, init]) => [new URL(input).pathname, JSON.parse(String(init?.body)).uris.length])).toEqual([
+      ["/v1/playlists/legacy/items", 100], ["/v1/playlists/legacy/tracks", 100], ["/v1/playlists/legacy/tracks", 1],
+    ]);
+  });
+
+  it("uses the connected Spotify account to request a seeded recommendation list", async () => {
+    const fetchMock = vi.fn(async (_input: string, _init?: RequestInit) => Response.json({ tracks: [track("new")] }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await sp.recommendations(["a", "b"], 12)).toMatchObject([{ id: "new" }]);
+    const [[input, init]] = fetchMock.mock.calls;
+    const url = new URL(input);
+    expect(url.pathname).toBe("/v1/recommendations");
+    expect(url.searchParams.get("seed_tracks")).toBe("a,b");
+    expect(url.searchParams.get("limit")).toBe("12");
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer token");
   });
 
   it("maps the profile, top lists, playlists and saved albums", async () => {

@@ -1,8 +1,8 @@
-// Home's recommendations. Spotify closed its own recommendations and audio features to apps like
-// Carbon, so these come from ReccoBeats (reccobeats.com), the free public catalogue Carbon already
-// asks for tempo: songs like the ones you play, and the mood of songs you already have.
-// It is sent Spotify track ids only, never who is asking.
+// Recommendations for Home, playlists and radio. Spotify's endpoint is available to some apps.
+// ReccoBeats supplies recommendations and mood data when needed using only Spotify track IDs.
 import * as sp from "$lib/spotify/endpoints";
+import { ApiError } from "$lib/spotify/api";
+import { uniqueBy } from "$lib/spotify/mappers";
 import type { Track } from "$lib/spotify/types";
 
 const API = "https://api.reccobeats.com/v1";
@@ -72,22 +72,35 @@ async function ask(path: string): Promise<unknown> {
 }
 
 /**
- * Songs like `seeds` that aren't in `known`, as playable Spotify tracks. Never rejects: no answer
- * means an empty shelf, and a song Spotify no longer has is skipped.
+ * Songs like `seeds` that aren't in `known`, as playable Spotify tracks. A song Spotify no
+ * longer has is skipped. If neither recommendation service responds, try the artists' catalogs.
  */
 export async function similarTo(seeds: readonly Track[], known: ReadonlySet<string>, size = 14): Promise<Track[]> {
-  const ids = seeds.map((t) => t.id).filter((id) => SPOTIFY_ID.test(id)).slice(0, MAX_SEEDS);
-  if (!ids.length) return [];
+  const songs = uniqueBy(seeds.filter((t) => t.uri === `spotify:track:${t.id}` && SPOTIFY_ID.test(t.id)), (t) => t.id);
+  if (!songs.length) return [];
+  const diverse = uniqueBy(songs, (t) => t.artists[0]?.id || t.id);
+  const ids = uniqueBy([...diverse, ...songs], (t) => t.id).slice(0, MAX_SEEDS).map((t) => t.id);
+  const excluded = new Set([...known, ...songs.map((t) => t.id)]);
+  const fresh = (tracks: Track[]) => uniqueBy(tracks.filter((t) => !excluded.has(t.id)), (t) => t.id).slice(0, size);
+  try {
+    const native = fresh(await sp.recommendations(ids, size * 2));
+    if (native.length) return native;
+  } catch (e) {
+    if (!(e instanceof ApiError && [403, 404, 410].includes(e.status))) console.warn("[recommendations] Spotify failed", e);
+  }
   try {
     const picked = idsIn(await ask(`/track/recommendation?size=${size * 2}&seeds=${ids.join(",")}`))
-      .filter((id) => !known.has(id))
+      .filter((id) => !excluded.has(id))
       .slice(0, size);
     const tracks = await Promise.allSettled(picked.map((id) => sp.track(id)));
-    return tracks.flatMap((t) => (t.status === "fulfilled" && t.value ? [t.value] : []));
+    const catalog = fresh(tracks.flatMap((t) => (t.status === "fulfilled" && t.value ? [t.value] : [])));
+    if (catalog.length) return catalog;
   } catch (e) {
-    console.warn("[home] recommendations failed", e);
-    return [];
+    console.warn("[recommendations] ReccoBeats failed", e);
   }
+  const artists = uniqueBy(songs.flatMap((t) => t.artists).filter((artist) => artist.id), (artist) => artist.id).slice(0, 3);
+  const tracks = await Promise.allSettled(artists.map(({ id, name }) => sp.artistSongs(id, name)));
+  return fresh(tracks.flatMap((answer) => answer.status === "fulfilled" ? answer.value : []));
 }
 
 const remembered = new Map<string, Features | null>();

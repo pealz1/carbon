@@ -13,6 +13,8 @@
   import { resource } from "$lib/resource.svelte";
   import { session } from "$lib/session.svelte";
   import * as sp from "$lib/spotify/endpoints";
+  import type { Track } from "$lib/spotify/types";
+  import PlaylistRecommendations from "./PlaylistRecommendations.svelte";
 
   let { id }: { id: string } = $props();
 
@@ -43,6 +45,11 @@
 
   const edit = () => p && (dialogs.playlist = { mode: "edit", playlist: p, largeImage: p.largeImage });
   const dropRow = (uri: string) => { if (tracks) tracks.items = tracks.items.filter((t) => t.uri !== uri); };
+  function appendTrack(playlistId: string, track: Track) {
+    if (p?.id !== playlistId || !tracks) return;
+    tracks.items = [...tracks.items, track];
+    if (tracks.total !== null) tracks.total++;
+  }
   let pasted = $state("");
   let pasteError = $state("");
   function reviewCopy() {
@@ -93,6 +100,11 @@
     <TrackList tracks={tracks.items} contextUri={p.uri} showAlbum showArt numbered tools="Playlist order" removeFrom={canEditTracks ? p : undefined} onremove={dropRow} />
     {#if tracks.done && !tracks.items.length}<Status empty={tracks.total === 0 ? "This playlist is empty." : "No playable songs in this playlist."} />{/if}
     <LoadMore pager={tracks} />
+    {#if p.id === id && tracks.done && tracks.items.length}
+      {#key p.id}
+        <PlaylistRecommendations playlist={p} tracks={tracks.items} canAdd={!!canEditTracks} onadded={appendTrack} />
+      {/key}
+    {/if}
   {:else if info.data?.embedAvailable}
     <iframe title={`${p.name} on Spotify`} src={`https://open.spotify.com/embed/playlist/${encodeURIComponent(id)}`} height="352"
       loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
